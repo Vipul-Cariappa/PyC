@@ -14,7 +14,7 @@ module = Extension(
         "src/",
         "/usr/include/python3.9",
         "/usr/local/include",
-        "/usr/lib/llvm-11/include/",
+        "/usr/lib/llvm-10/include/",
     ],
     library_dirs=[
         "/usr/local/lib",
@@ -22,7 +22,7 @@ module = Extension(
     ],
     libraries=[
         "ffi",
-        "clang-11",
+        "clang-10",
     ],
     extra_compile_args=[
         "-ftest-coverage",
