@@ -15,17 +15,17 @@ jobs:
       run: |
         sudo apt-get install -y libclang-dev
     
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-          languages: cpp
-          queries: security-and-quality
+    # - name: Initialize CodeQL
+    #   uses: github/codeql-action/init@v2
+    #   with:
+    #       languages: cpp
+    #       queries: security-and-quality
 
     - name: Build
       run: python setup.py build
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+    # - name: Perform CodeQL Analysis
+    #   uses: github/codeql-action/analyze@v2
 
     - name: Install
       run: python setup.py install
