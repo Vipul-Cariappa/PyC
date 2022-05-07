@@ -5,6 +5,9 @@
 #include "ffi.h"
 #include "clang-c/Index.h"
 
+extern CXString (*mangled_name_getter_fn)(CXCursor);
+CXString GET_MANGLED_NAME(CXCursor cursor);
+
 std::string get_type_string(ffi_type type);
 
 class FunctionType

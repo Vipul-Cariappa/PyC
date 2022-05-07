@@ -121,7 +121,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
         // Function Declaration
 
         Function *func = new Function(clang_getCString(clang_getCursorSpelling(cursor)));
-        std::string mangledname = clang_getCString(clang_Cursor_getMangling(cursor));
+        std::string mangledname = clang_getCString(GET_MANGLED_NAME(cursor));
         std::vector<ffi_type> args_types = {};
 
         int argc = clang_Cursor_getNumArguments(cursor);
@@ -187,7 +187,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
     else if (clang_getCursorKind(cursor) == CXCursor_VarDecl)
     {
         std::string name = clang_getCString(clang_getCursorSpelling(cursor));
-        std::string mangledname = clang_getCString(clang_Cursor_getMangling(cursor));
+        std::string mangledname = clang_getCString(GET_MANGLED_NAME(cursor));
         CXType type = clang_getCursorType(cursor);
 
         Global *global = new Global(name, mangledname, get_ffi_type(type), type);
