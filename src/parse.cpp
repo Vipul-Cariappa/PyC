@@ -111,9 +111,9 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
 {
     Symbols *symbols = (Symbols *)client_data;
 
-    std::cout << "Cursor '" << clang_getCursorSpelling(cursor) << "' of kind '"
-              << clang_getCursorKindSpelling(clang_getCursorKind(cursor)) << "' "
-              << clang_getCursorType(cursor).kind << "\n";
+    // std::cout << "Cursor '" << clang_getCursorSpelling(cursor) << "' of kind '"
+    //           << clang_getCursorKindSpelling(clang_getCursorKind(cursor)) << "' "
+    //           << clang_getCursorType(cursor).kind << "\n";
 
     // function
     if (clang_getCursorKind(cursor) == CXCursor_FunctionDecl)
@@ -131,15 +131,15 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
             CXType arg_type = clang_getCursorType(arg);
 
             args_types.push_back(get_ffi_type(arg_type));
-            std::cout << "Type of arg " << i << ": " << clang_getTypeSpelling(arg_type) << "\n";
+            // std::cout << "Type of arg " << i << ": " << clang_getTypeSpelling(arg_type) << "\n";
         }
         ffi_type return_type = get_ffi_type(clang_getCursorResultType(cursor));
 
         FunctionType *funcType = new FunctionType(return_type, args_types, argc);
         func->addFuncDecl(mangledname, funcType);
         symbols->append_function(func);
-        std::cout << "Return type: " << clang_getTypeSpelling(clang_getCursorResultType(cursor)) << "\n";
-        std::cout << std::endl;
+        // std::cout << "Return type: " << clang_getTypeSpelling(clang_getCursorResultType(cursor)) << "\n";
+        // std::cout << std::endl;
     }
 
     // struct
@@ -163,7 +163,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
                     obj->attr_names.push_back(name);
                     obj->types.push_back(get_ffi_type(type));
 
-                    std::cout << "Name: " << name << " Type: " << clang_getTypeSpelling(type) << "\n";
+                    // std::cout << "Name: " << name << " Type: " << clang_getTypeSpelling(type) << "\n";
                 }
 
                 return CXChildVisit_Continue;
@@ -180,7 +180,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
         CXType underlying_type = clang_getTypedefDeclUnderlyingType(cursor);
         CXString name = clang_getCursorSpelling(cursor);
 
-        std::cout << "Name: " << name << " Type: " << clang_getTypeSpelling(underlying_type) << "\n";
+        // std::cout << "Name: " << name << " Type: " << clang_getTypeSpelling(underlying_type) << "\n";
     }
 
     // global variables
@@ -194,10 +194,10 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
 
         symbols->append_global(global);
 
-        std::cout << "Name: " << clang_getCursorSpelling(cursor) << " Type: " << clang_getTypeSpelling(clang_getCursorType(cursor)) << "\n";
+        // std::cout << "Name: " << clang_getCursorSpelling(cursor) << " Type: " << clang_getTypeSpelling(clang_getCursorType(cursor)) << "\n";
     }
 
-    std::cout << "\n";
+    // std::cout << "\n";
 
     return CXChildVisit_Continue;
 }

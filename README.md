@@ -8,5 +8,5 @@ General Purpose Binding between Python &amp; C/C++
 - [ ] stuct support
 - [ ] struct pointer & array support
 - [ ] Resolving overloaded function
-- [ ] Seperate support for c and c++
+- [x] Seperate support for c and c++
 - [ ] Object Oriented Programming
