@@ -1,3 +1,5 @@
+#include <string>
+#include <cmath>
 #include "module.hpp"
 
 int add(int x, int y)
@@ -11,15 +13,12 @@ int copy_int(int *destination, int *source)
     return *destination;
 }
 
-char *concat(char *x, char *y)
+char *concat(char* x, char* y)
 {
-    size_t len_x = strlen(x);
-    size_t len = len_x + strlen(y) + 1;
-    char *result = (char *)malloc(len);
-    strcpy(result, x);
-    stpcpy(result + len_x, y);
-
-    return result;
+    std::string a = std::string(x);
+    std::string b = std::string(y);
+    std::string result = a + b;
+    return (char*)result.c_str();
 }
 
 double pi(int n)

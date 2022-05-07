@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
