@@ -22,18 +22,21 @@ jobs:
     #       queries: security-and-quality
 
     - name: Build
-      run: bash .github/build.sh
+      run: python setup.py build
 
     # - name: Perform CodeQL Analysis
     #   uses: github/codeql-action/analyze@v1
 
+    - name: Install
+      run: python setup.py install
+    
     - name: Test
-      run: bash .github/test.sh
+      run: bash ./.github/test.sh
 
     - name: Code Coverage
       run: |
-        gcov -abcfu obj/Debug/binding.cpp
-        gcov -abcfu obj/Debug/parse.cpp
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/binding.cpp
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/parse.cpp
 
     - name: Upload Code Coverage
       uses: codecov/codecov-action@v2
