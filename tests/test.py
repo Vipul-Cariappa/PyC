@@ -1,14 +1,21 @@
+import unittest
 from PyC import LoadCpp
 
 cppModule = LoadCpp("tests/libcmodule.so", "tests/c/module.hpp")
-print(cppModule)
-print(cppModule.add)
-print(cppModule.add(1, 2))
-print(cppModule.pi)
-print(cppModule.pi(1))
-print(cppModule.pi(1_000_000))
-print(cppModule.concat)
-print(cppModule.concat("Vipul", " Cariappa"))
-print(cppModule.MAX)
-print(cppModule.PROGRAM)
-print(cppModule.f)
+
+
+class TestBasic(unittest.TestCase):
+    def test_global_variables(self):
+        self.assertEqual(cppModule.MAX, 5_000_000)
+        self.assertAlmostEqual(cppModule.f, 3.14, 4)
+        self.assertEqual(cppModule.PROGRAM, "C/C++")
+
+    def test_simple_functions(self):
+        self.assertEqual(cppModule.add(24, 46), 70)
+        self.assertAlmostEqual(cppModule.pi(1_000_000), 3.14159, 4)
+        self.assertEqual(cppModule.concat(
+            "Vipul ", "Cariappa"), "Vipul Cariappa")
+
+
+if __name__ == "__main__":
+    unittest.main()

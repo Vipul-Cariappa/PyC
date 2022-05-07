@@ -1,10 +1,10 @@
 #!/bin/sh
 
 printf "\nCompiling the bindings\n"
-make
+python setup.py build -v
 
-printf "\nCopying the bindings\n"
-cp ./bin/Debug/libPyC.so ./tests/PyC.so
+printf "\nCompiling the installings\n"
+python setup.py install
 
 printf "\nCompiling test module\n"
 g++ -g -Wall -shared -fPIC -I./tests/c/ -o tests/libcmodule.so tests/c/module.cpp
