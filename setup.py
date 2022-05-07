@@ -5,7 +5,7 @@ with open("README.md") as f:
     module_discription = f.read()
 
 module = Extension(
-    "PyC", 
+    "PyC",
     sources=[
         "src/binding.cpp",
         "src/parse.cpp",
@@ -14,7 +14,7 @@ module = Extension(
         "src/",
         "/usr/include/python3.9",
         "/usr/local/include",
-        "/usr/lib/llvm-10/include/",
+        "/usr/lib/llvm-11/include/",
     ],
     library_dirs=[
         "/usr/local/lib",
@@ -22,14 +22,14 @@ module = Extension(
     ],
     libraries=[
         "ffi",
-        "clang-10",
+        "clang-11",
     ],
     extra_compile_args=[
-        "-ftest-coverage",
-        "-fprofile-arcs",
+        # "-ftest-coverage",
+        # "-fprofile-arcs",
     ],
     extra_link_args=[
-        "-lgcov",
+        # "-lgcov",
     ]
 )
 

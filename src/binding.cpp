@@ -8,6 +8,8 @@ static PyObject *PyCpp;
 static PyObject *CppError;
 static PyObject *BindingError;
 
+CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
+
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type)
 {
     switch (type.type)
@@ -167,9 +169,14 @@ typedef struct PyCpp_CppFunction
     void *func;
 } PyCpp_CppFunction;
 
+CXString GET_MANGLED_NAME(CXCursor cursor)
+{
+    return mangled_name_getter_fn(cursor);
+}
+
 static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    std::cout << "Init CppModule\n";
+    // std::cout << "Init CppModule\n";
 
     PyCpp_CppModule *selfType = (PyCpp_CppModule *)self;
 
@@ -179,7 +186,34 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)
     {
         return 0;
     }
-    std::cout << "Library: " << library << " Header: " << header << std::endl;
+    // std::cout << "Library: " << library << " Header: " << header << std::endl;
+
+    if (kwargs)
+    {
+        PyObject *cpp = PyUnicode_FromString("cpp");
+        if (PyDict_Contains(kwargs, cpp))
+        {
+            PyObject *mode = PyDict_GetItem(kwargs, cpp);
+
+            if (mode == Py_True)
+            {
+                mangled_name_getter_fn = &clang_Cursor_getMangling;
+            }
+            else if (mode == Py_False)
+            {
+                mangled_name_getter_fn = &clang_getCursorSpelling;
+            }
+            else
+            {
+                std::runtime_error("TypeError: Got non boolean value for mode");
+            }
+        }
+        Py_DECREF(cpp);
+    }
+    else
+    {
+        mangled_name_getter_fn = &clang_getCursorSpelling;
+    }
 
     selfType->header_name = header;
     selfType->library_name = library;
@@ -314,7 +348,7 @@ static PyTypeObject CppFunction_Type = {
     .tp_finalize = &Cpp_FunctionGC,
 };
 
-static PyObject *load_cpp(PyObject *self, PyObject *args)
+static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     // const char* library;
     // const char* header;
@@ -327,14 +361,14 @@ static PyObject *load_cpp(PyObject *self, PyObject *args)
     PyObject *obj = PyObject_GetAttrString(PyCpp, "CppModule");
     if (obj)
     {
-        return PyObject_CallObject(obj, args);
+        return PyObject_Call(obj, args, kwargs);
     }
     PyErr_SetString(BindingError, "Unable to access PyCpp.CppModule");
     return nullptr;
 }
 
 static PyMethodDef PyCppMethods[] = {
-    {"LoadCpp", load_cpp, METH_VARARGS, "Execute a shell command."},
+    {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS, "Execute a shell command."},
     {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef PyCppmodule = {
