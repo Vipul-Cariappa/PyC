@@ -112,8 +112,8 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
     Symbols *symbols = (Symbols *)client_data;
 
     std::cout << "Cursor '" << clang_getCursorSpelling(cursor) << "' of kind '"
-         << clang_getCursorKindSpelling(clang_getCursorKind(cursor)) << "' "
-         << clang_getCursorType(cursor).kind << "\n";
+              << clang_getCursorKindSpelling(clang_getCursorKind(cursor)) << "' "
+              << clang_getCursorType(cursor).kind << "\n";
 
     // function
     if (clang_getCursorKind(cursor) == CXCursor_FunctionDecl)
