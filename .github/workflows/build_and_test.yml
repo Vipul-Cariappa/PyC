@@ -1,0 +1,42 @@
+name: Build and Test
+
+on: [push]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install Requirements
+      run: |
+        sudo apt-get install -y libclang-dev
+    
+    # - name: Initialize CodeQL
+    #   uses: github/codeql-action/init@v1
+    #   with:
+    #       languages: cpp
+    #       queries: security-and-quality
+
+    - name: Build
+      run: bash .github/build.sh
+
+    # - name: Perform CodeQL Analysis
+    #   uses: github/codeql-action/analyze@v1
+
+    - name: Test
+      run: bash .github/test.sh
+
+    - name: Code Coverage
+      run: |
+        gcov -abcfu obj/Debug/binding.cpp
+        gcov -abcfu obj/Debug/parse.cpp
+
+    - name: Upload Code Coverage
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: [ binding.cpp.gcov, binding.hpp.gcov, parse.cpp.gcov]

@@ -13,6 +13,8 @@ project "PyC"
     links { "python3.9", "ffi", "clang-11" }
 
     filter "configurations:Debug"
+        buildoptions { "-ftest-coverage", "-fprofile-arcs" }
+        linkoptions { "-lgcov" }
         defines { "DEBUG" }
         symbols "On"
 
