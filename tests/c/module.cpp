@@ -38,28 +38,28 @@ double pi(int n)
     return pi;
 }
 
-RECT *get_rect(int x, int y)
-{
-    RECT *result = (RECT *)malloc(sizeof(RECT));
-    result->x = x;
-    result->y = y;
-    return result;
-}
+// RECT *get_rect(int x, int y)
+// {
+//     RECT *result = (RECT *)malloc(sizeof(RECT));
+//     result->x = x;
+//     result->y = y;
+//     return result;
+// }
 
-RECT *rect_add(RECT *a, RECT *b)
-{
-    RECT *result = (RECT *)malloc(sizeof(RECT));
-    result->x = a->x + b->x;
-    result->y = a->y + b->y;
-    return result;
-}
+// RECT *rect_add(RECT *a, RECT *b)
+// {
+//     RECT *result = (RECT *)malloc(sizeof(RECT));
+//     result->x = a->x + b->x;
+//     result->y = a->y + b->y;
+//     return result;
+// }
 
-int get_area(RECT a)
-{
-    return a.x * a.y;
-}
+// int get_area(RECT a)
+// {
+//     return a.x * a.y;
+// }
 
-int get_periment(RECT a)
-{
-    return 2 * (a.x + a.y);
-}
+// int get_periment(RECT a)
+// {
+//     return 2 * (a.x + a.y);
+// }
