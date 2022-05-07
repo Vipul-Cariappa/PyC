@@ -2,7 +2,7 @@ import unittest
 from PyC import LoadCpp
 
 cppModule = LoadCpp("tests/libcppmodule.so", "tests/c/module.hpp", cpp=True)
-cModule = LoadCpp("tests/libcmodule.so", "tests/c/module.hpp")
+cModule = LoadCpp("tests/libcmodule.so", "tests/c/module.h")
 
 
 class TestBasic(unittest.TestCase):
