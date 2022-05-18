@@ -105,6 +105,7 @@ public:
     std::vector<std::string> attr_names;
     std::vector<ffi_type> types;
     size_t types_count;
+    size_t struct_size;
     ffi_type type;
 
     Structure(std::string name_)
@@ -113,14 +114,16 @@ public:
         attr_names = {};
         types = {};
         types_count = 0;
+        struct_size = 0;
     }
 
-    Structure(std::string name_, std::vector<std::string> attr_names_, std::vector<ffi_type> type_, size_t count_)
+    Structure(std::string name_, std::vector<std::string> attr_names_, std::vector<ffi_type> type_, size_t count_, size_t struct_size_)
     {
         name = name_;
         attr_names = attr_names_;
         types = type_;
         types_count = count_;
+        struct_size = struct_size_;
 
         type = create_ffi_struct_type(types);
     }
@@ -151,7 +154,7 @@ public:
 
     void print_self()
     {
-        std::cout << "Name: " << name << "\n";
+        std::cout << "Name: " << name << " struct size: " << struct_size << "\n";
         for (int i = 0; i < types_count; i++)
         {
             std::cout << "\t" << attr_names.at(i) << " : " << get_type_string(types.at(i)) << "\n";

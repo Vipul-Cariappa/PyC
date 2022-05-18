@@ -10,6 +10,11 @@ static PyObject *BindingError;
 
 CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
 
+CXString GET_MANGLED_NAME(CXCursor cursor)
+{
+    return mangled_name_getter_fn(cursor);
+}
+
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type)
 {
     switch (type.type)
@@ -169,10 +174,12 @@ typedef struct PyCpp_CppFunction
     void *func;
 } PyCpp_CppFunction;
 
-CXString GET_MANGLED_NAME(CXCursor cursor)
+typedef struct PyCpp_CppStruct
 {
-    return mangled_name_getter_fn(cursor);
-}
+    PyObject_HEAD
+        Structure *structType;
+    void *data;
+} PyCpp_CppStruct;
 
 static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -322,6 +329,38 @@ static void Cpp_FunctionGC(PyObject *self)
     return;
 }
 
+static PyObject *new_PyCpp_CppStruct(Structure _struct)
+{
+    PyObject *obj = PyObject_GetAttrString(PyCpp, "CppStruct");
+    if (obj)
+    {
+        PyCpp_CppStruct *result = (PyCpp_CppStruct *)PyObject_Call(obj, nullptr, nullptr);
+        result->structType = &_struct;
+        result->data = malloc(_struct.struct_size);
+    }
+    PyErr_SetString(BindingError, "Unable to access PyCpp.CppStruct");
+    return nullptr;
+}
+
+static PyObject *Cpp_StructGet(PyObject *self, char *attr)
+{
+    PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
+    Py_RETURN_NONE;
+}
+
+static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue)
+{
+    PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
+    return 0;
+}
+
+static void Cpp_StructGC(PyObject *self)
+{
+    // TODO: implement
+    PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
+    return;
+}
+
 static PyTypeObject CppModule_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
         .tp_name = "PyCpp.CppModule",
@@ -346,6 +385,19 @@ static PyTypeObject CppFunction_Type = {
     .tp_doc = "PyCpp.CppModule",
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_FunctionGC,
+};
+
+static PyTypeObject CppStruct_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+        .tp_name = "PyCpp.CppStruct",
+    .tp_basicsize = sizeof(PyCpp_CppStruct),
+    .tp_itemsize = 0,
+    .tp_getattr = &Cpp_StructGet,
+    .tp_setattr = &Cpp_StructSet,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.CppStruct",
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &Cpp_StructGC,
 };
 
 static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs)

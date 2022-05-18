@@ -264,3 +264,4 @@ cython_debug/
 .vscode/
 bin/
 *.gcov
+*tmp*

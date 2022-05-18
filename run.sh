@@ -1,7 +1,8 @@
 #!/bin/sh
 
 printf "\nCompiling the bindings\n"
-python setup.py build -v
+# python setup.py build -v
+python setup.py build -v --debug
 
 printf "\nInstallings\n"
 python setup.py install

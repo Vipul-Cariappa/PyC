@@ -170,7 +170,8 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
             },
             obj); // change field_visitor to lambda function
 
-        // obj->type = obj->create_ffi_struct_type(obj->types);
+        obj->struct_size = clang_Type_getSizeOf(clang_getCursorType(cursor));
+        obj->type = obj->create_ffi_struct_type(obj->types);
         symbols->append_struct(obj);
     }
 
