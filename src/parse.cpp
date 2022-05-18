@@ -120,7 +120,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
     {
         // Function Declaration
 
-        Function *func = new Function(clang_getCString(clang_getCursorSpelling(cursor)));
+        Function *func = new Function(clang_getCString(clang_getCursorSpelling(cursor)), cursor);
         std::string mangledname = clang_getCString(GET_MANGLED_NAME(cursor));
         std::vector<ffi_type> args_types = {};
 
@@ -147,7 +147,7 @@ CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client
     {
         std::string name = clang_getCString(clang_getCursorSpelling(cursor));
 
-        Structure *obj = new Structure(name);
+        Structure *obj = new Structure(name, clang_getCursorType(cursor));
 
         clang_visitChildren(
             cursor,

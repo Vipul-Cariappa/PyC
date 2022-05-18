@@ -24,7 +24,7 @@ public:
         args_count = args_count_;
     }
 
-    FunctionType()
+    FunctionType(CXType cpp_type_)
     {
         return_type = ffi_type_void;
         args_count = 0;
@@ -44,9 +44,11 @@ public:
     std::string mangledname;
     FunctionType *type;
     size_t functions_count = 0;
+    CXCursor cpp_type;
 
-    Function(std::string name_)
+    Function(std::string name_, CXCursor cpp_type_)
     {
+        cpp_type = cpp_type_;
         name = name_;
     }
 
@@ -58,6 +60,7 @@ public:
     void print_self()
     {
         std::cout << "Name: " << name << "\n";
+        // std::cout << "Name: " << name << "; " << clang_getCString(clang_getTypeSpelling(cpp_type)) "\n";
         std::cout << "\tMangledname : " << mangledname << "\n";
         std::cout << "\n";
         // TODO: print types
@@ -94,7 +97,7 @@ public:
 
     void print_self()
     {
-        std::cout << "Name: " << name << " MangledName: " << mangledname << " Type: " << get_type_string(c_type) << "\n";
+        std::cout << "Name: " << name << " MangledName: " << mangledname << " Type: " << get_type_string(c_type) << "; " << clang_getCString(clang_getTypeSpelling(datatype)) << "\n";
     }
 };
 
@@ -107,23 +110,26 @@ public:
     size_t types_count;
     size_t struct_size;
     ffi_type type;
+    CXType cpp_type;
 
-    Structure(std::string name_)
+    Structure(std::string name_, CXType cpp_type_)
     {
         name = name_;
         attr_names = {};
         types = {};
         types_count = 0;
         struct_size = 0;
+        cpp_type = cpp_type_;
     }
 
-    Structure(std::string name_, std::vector<std::string> attr_names_, std::vector<ffi_type> type_, size_t count_, size_t struct_size_)
+    Structure(std::string name_, std::vector<std::string> attr_names_, std::vector<ffi_type> type_, size_t count_, size_t struct_size_, CXType cpp_type_)
     {
         name = name_;
         attr_names = attr_names_;
         types = type_;
         types_count = count_;
         struct_size = struct_size_;
+        cpp_type = cpp_type_;
 
         type = create_ffi_struct_type(types);
     }
@@ -154,7 +160,7 @@ public:
 
     void print_self()
     {
-        std::cout << "Name: " << name << " struct size: " << struct_size << "\n";
+        std::cout << "Name: " << name << " struct size: " << struct_size << "; " << clang_getCString(clang_getTypeSpelling(cpp_type)) << "\n";
         for (int i = 0; i < types_count; i++)
         {
             std::cout << "\t" << attr_names.at(i) << " : " << get_type_string(types.at(i)) << "\n";

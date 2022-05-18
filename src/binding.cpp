@@ -226,7 +226,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)
     selfType->library_name = library;
     selfType->symbols = get_symbols(header);
 
-    // selfType->symbols->print_self();  //
+    selfType->symbols->print_self(); //
 
     // opening the shared library
     void *so = dlopen(library, RTLD_NOW);
