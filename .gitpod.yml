@@ -1,11 +1,17 @@
+image:
+  file: .gitpod.dockerfile
+
 tasks:
   - command: |
       premake5 --file=.gitpod.premake5.lua --cc=clang gmake
       bear make
       sh ./.gitpod.run.sh
+
 vscode:
   extensions:
     - llvm-vs-code-extensions.vscode-clangd
     - ms-python.python
     - ms-toolsai.jupyter
     - eamodio.gitlens
+    - ms-toolsai.jupyter-keymap
+    - ms-toolsai.jupyter-renderers
