@@ -41,6 +41,13 @@ class TestBasic(unittest.TestCase):
     def test_structs(self):
         r = cModule.RECT
         print(r)
+        
+        print(r.x)
+        print(r.y)
+
+        r.x = 99
+        r.y = 100
+
         print(r.x)
         print(r.y)
 
