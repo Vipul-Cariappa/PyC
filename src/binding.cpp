@@ -1,7 +1,8 @@
 #define PY_SSIZE_T_CLEAN
-#include "Python.h"
 #include <iostream>
 #include <dlfcn.h>
+#include <string.h>
+#include "Python.h"
 #include "binding.hpp"
 
 static PyObject *PyCpp;
@@ -274,10 +275,17 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
 
         if (!var)
         {
-            throw std::runtime_error("Global Variable Not found. Quitting.");
+            throw std::runtime_error("Global Variable Not found.    Quitting.");
         }
 
         return cppArg_to_pyArg(var, globalVar->c_type);
+    }
+
+    Structure *structVar = selfType->symbols->get_structure(attr);
+
+    if (structVar)
+    {
+        return new_PyCpp_CppStruct(structVar);
     }
 
     Py_RETURN_NONE;
@@ -329,14 +337,16 @@ static void Cpp_FunctionGC(PyObject *self)
     return;
 }
 
-static PyObject *new_PyCpp_CppStruct(Structure _struct)
+static PyObject *new_PyCpp_CppStruct(Structure *_struct)
 {
     PyObject *obj = PyObject_GetAttrString(PyCpp, "CppStruct");
     if (obj)
     {
-        PyCpp_CppStruct *result = (PyCpp_CppStruct *)PyObject_Call(obj, nullptr, nullptr);
-        result->structType = &_struct;
-        result->data = malloc(_struct.struct_size);
+        PyCpp_CppStruct *result = (PyCpp_CppStruct *)PyObject_CallObject(obj, nullptr);
+        result->structType = _struct;
+        result->data = malloc(_struct->struct_size);
+
+        return (PyObject *)result;
     }
     PyErr_SetString(BindingError, "Unable to access PyCpp.CppStruct");
     return nullptr;
@@ -345,6 +355,22 @@ static PyObject *new_PyCpp_CppStruct(Structure _struct)
 static PyObject *Cpp_StructGet(PyObject *self, char *attr)
 {
     PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
+    int index = 0;
+
+    for (std::string &i : selfType->structType->attr_names)
+    {
+        if (i == attr)
+        {
+            long long offset = clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
+
+            char *data = (char *)selfType->data;
+            std::cout << attr << ": " << offset << "\n";
+
+            return cppArg_to_pyArg(data + offset, selfType->structType->types.at(index));
+        }
+        index++;
+    }
+
     Py_RETURN_NONE;
 }
 
@@ -352,6 +378,11 @@ static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue)
 {
     PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
     return 0;
+}
+
+PyObject *Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    return self;
 }
 
 static void Cpp_StructGC(PyObject *self)
@@ -394,6 +425,7 @@ static PyTypeObject CppStruct_Type = {
     .tp_itemsize = 0,
     .tp_getattr = &Cpp_StructGet,
     .tp_setattr = &Cpp_StructSet,
+    .tp_call = &Cpp_StructCall,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.CppStruct",
     .tp_new = PyType_GenericNew,
@@ -460,6 +492,19 @@ PyMODINIT_FUNC PyInit_PyC(void)
     if (PyModule_AddObject(m, "CppFunction", (PyObject *)&CppFunction_Type) < 0)
     {
         Py_DECREF(&CppFunction_Type);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    if (PyType_Ready(&CppStruct_Type) < 0)
+    {
+        return NULL;
+    }
+
+    Py_INCREF(&CppStruct_Type);
+    if (PyModule_AddObject(m, "CppStruct", (PyObject *)&CppStruct_Type) < 0)
+    {
+        Py_DECREF(&CppStruct_Type);
         Py_DECREF(m);
         return NULL;
     }

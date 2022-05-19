@@ -2,12 +2,11 @@ extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
-typedef struct RECT RECT;
-struct RECT
+typedef struct RECT
 {
     int x;
     int y;
-};
+} RECT;
 
 int add(int x, int y);
 int copy_int(int *destination, int *source);

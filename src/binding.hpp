@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include "Python.h"
 #include "ffi.h"
 #include "clang-c/Index.h"
 
@@ -278,7 +279,21 @@ public:
 
         return nullptr;
     }
+
+    Structure *get_structure(const char *name_)
+    {
+        for (Structure *&i : structs)
+        {
+            if (i->name == name_)
+            {
+                return i;
+            }
+        }
+
+        return nullptr;
+    }
 };
 
 Symbols *get_symbols(const char *filename);
 int free_symbols(Symbols *symbols);
+static PyObject *new_PyCpp_CppStruct(Structure *_struct);
