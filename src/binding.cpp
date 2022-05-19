@@ -16,6 +16,76 @@ CXString GET_MANGLED_NAME(CXCursor cursor)
     return mangled_name_getter_fn(cursor);
 }
 
+void *pyArg_to_cppArg(PyObject *arg, ffi_type type)
+{
+    void *data = nullptr;
+
+    switch (type.type)
+    {
+    case FFI_TYPE_INT:
+    case FFI_TYPE_SINT32:
+    case FFI_TYPE_UINT32:
+    {
+        data = malloc(4);
+        int32_t i = (int32_t)PyLong_AsLong(arg);
+        memcpy(data, &i, 4);
+        break;
+    }
+    case FFI_TYPE_SINT8:
+    case FFI_TYPE_UINT8:
+    {
+        data = malloc(1);
+        int8_t i = (int8_t)PyLong_AsLong(arg);
+        memcpy(data, &i, 1);
+        break;
+    }
+    case FFI_TYPE_SINT16:
+    case FFI_TYPE_UINT16:
+    {
+        data = malloc(2);
+        int16_t i = (int16_t)PyLong_AsLong(arg);
+        memcpy(data, &i, 2);
+        break;
+    }
+    case FFI_TYPE_SINT64:
+    case FFI_TYPE_UINT64:
+    {
+        data = malloc(8);
+        int64_t i = (int64_t)PyLong_AsLong(arg);
+        memcpy(data, &i, 8);
+        break;
+    }
+    case FFI_TYPE_FLOAT:
+    {
+        data = malloc(sizeof(float));
+        float i = (float)PyFloat_AsDouble(arg);
+        memcpy(data, &i, sizeof(float));
+        break;
+    }
+    case FFI_TYPE_DOUBLE:
+    {
+        data = malloc(sizeof(double));
+        double i = (double)PyFloat_AsDouble(arg);
+        memcpy(data, &i, sizeof(double));
+        break;
+    }
+    case FFI_TYPE_LONGDOUBLE:
+    {
+        data = malloc(sizeof(long double));
+        long double i = (long double)PyFloat_AsDouble(arg);
+        memcpy(data, &i, sizeof(long double));
+        break;
+    }
+    case FFI_TYPE_POINTER: // Assuming it is char pointer
+        data = (char *)PyUnicode_AsUTF8(arg);
+        break;
+    default:
+        throw std::runtime_error("Could not convert Cpp type to Python type");
+    }
+
+    return data;
+}
+
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type)
 {
     switch (type.type)
@@ -377,7 +447,28 @@ static PyObject *Cpp_StructGet(PyObject *self, char *attr)
 static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue)
 {
     PyCpp_CppStruct *selfType = (PyCpp_CppStruct *)self;
-    return 0;
+    int index = 0;
+
+    for (std::string &i : selfType->structType->attr_names)
+    {
+        if (i == attr)
+        {
+            long long offset = clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
+            ffi_type type = selfType->structType->types.at(index);
+            char *data = (char *)selfType->data;
+            void *value = pyArg_to_cppArg(pValue, type);
+            
+            memcpy(data+offset, value, type.size);
+
+            free(value);
+
+            return 0;
+        }
+        index++;
+    }
+
+    PyErr_SetString(CppError, "Struct with given attribute not found");
+    return -1;
 }
 
 PyObject *Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs)
