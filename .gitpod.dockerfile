@@ -15,3 +15,11 @@ RUN sudo wget https://github.com/premake/premake-core/releases/download/v5.0.0-b
  && sudo tar xzf premake-5.0.0-beta1-linux.tar.gz \
  && sudo mv premake5 /usr/bin \
  && sudo rm premake-5.0.0-beta1-linux.tar.gz
+
+RUN git clone https://github.com/wolkykim/qlibc.git \
+ && cd qlibc \
+ && ./configure --prefix=/usr/ \
+ && make \
+ && sudo make install \
+ && cd .. \
+ && rm -fr qlibc/
