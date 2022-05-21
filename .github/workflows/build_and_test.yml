@@ -13,7 +13,14 @@ jobs:
 
     - name: Install Requirements
       run: |
-        sudo apt-get install -y libclang-dev
+        sudo apt-get install -y libclang-dev libffi-dev
+        git clone https://github.com/wolkykim/qlibc.git
+        cd qlibc
+        ./configure --prefix=/usr/
+        make
+        sudo make install
+        cd ..
+        rm -fr qlibc/
     
     # - name: Initialize CodeQL
     #   uses: github/codeql-action/init@v2
@@ -35,11 +42,13 @@ jobs:
 
     - name: Code Coverage
       run: |
-        gcov -abcfu build/temp.linux-x86_64-3.9/src/binding.cpp
-        gcov -abcfu build/temp.linux-x86_64-3.9/src/parse.cpp
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/CppTypeInfo.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/CppWrapper_PyTypes.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/PyC.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/TypeConversions.c
 
     - name: Upload Code Coverage
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./binding.cpp.gcov,./binding.hpp.gcov,./parse.cpp.gcov
+        files: ./CppTypeInfo.c.gcov,./CppWrapper_PyTypes.c.gcov,./PyC.c.gcov,./TypeConversions.c.gcov
