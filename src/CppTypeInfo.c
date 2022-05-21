@@ -244,7 +244,12 @@ bool Symbols_appendFunction(Symbols *sym, const char *name, const char *mangledN
     }
 
     raise_error:
-        // TODO: raise error
+        if (errno == ENOMEM)
+            PyErr_NoMemory();
+        else if (errno == EINVAL)
+            PyErr_SetString(py_BindingError, "Incompatible function name");
+        else
+            PyErr_SetString(py_BindingError, "Unknown error occured");
         return false;
 }
 
@@ -261,7 +266,12 @@ bool Symbols_appendStructure(Symbols *sym, Structure s)
     return true;
 
     raise_error:
-        // TODO: raise error
+        if (errno == ENOMEM)
+            PyErr_NoMemory();
+        else if (errno == EINVAL)
+            PyErr_SetString(py_BindingError, "Incompatible struct name");
+        else
+            PyErr_SetString(py_BindingError, "Unknown error occured");
         return false;
 }
 
@@ -278,7 +288,12 @@ bool Symbols_appendGlobal(Symbols *sym, Global g)
     return true;
 
     raise_error:
-        // TODO: raise error
+        if (errno == ENOMEM)
+            PyErr_NoMemory();
+        else if (errno == EINVAL)
+            PyErr_SetString(py_BindingError, "Incompatible global name");
+        else
+            PyErr_SetString(py_BindingError, "Unknown error occured");
         return false;
 }
 
@@ -387,7 +402,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
             qvector_addlast(funcType.argsType, get_ffi_type(arg_type));
         }
 
-        Symbols_appendFunction(symbols, funcName, mangledName, funcType);
+        Symbols_appendFunction(symbols, funcName, mangledName, funcType);   // TODO: exception handling
     }
 
     // struct
@@ -444,7 +459,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
         global.type = *get_ffi_type(type);
         global.underlyingType = type.kind;
 
-        Symbols_appendGlobal(symbols, global);
+        Symbols_appendGlobal(symbols, global);  // TODO: exception handling
     }
 
     return CXChildVisit_Continue;
