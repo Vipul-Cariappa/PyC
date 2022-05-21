@@ -17,8 +17,8 @@ char *concat(char* x, char* y)
 {
     std::string a = std::string(x);
     std::string b = std::string(y);
-    std::string result = a + b;
-    return (char*)result.c_str();
+    std::string *result = new std::string(a + b);
+    return (char*)result->c_str();
 }
 
 double pi(int n)
