@@ -16,11 +16,12 @@ module = Extension(
         "src/",
         "/usr/include/python3.9",
         "/usr/local/include",
-        "/usr/local/include/qlibc",
+        "/usr/include/qlibc",
         "/usr/lib/llvm-10/include",
     ],
     library_dirs=[
         "/usr/local/lib",
+        "/usr/lib",
         "usr/lib/x86_64-linux-gnu",
     ],
     libraries=[
