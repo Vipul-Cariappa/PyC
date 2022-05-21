@@ -391,7 +391,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
         FunctionType funcType;
         funcType.returnType = *(get_ffi_type(clang_getCursorResultType(cursor)));
         funcType.argsCount = clang_Cursor_getNumArguments(cursor);
-        funcType.argsType = qvector(MAX_SIZE, sizeof(ffi_type), QVECTOR_RESIZE_EXACT );
+        funcType.argsType = qvector(MAX_SIZE, sizeof(ffi_type), QVECTOR_RESIZE_EXACT ); // TODO: change ffi_type to ffi_type*
         funcType.argsUnderlyingType = NULL; // TODO: extract Underlying Type Info
 
         for (int i = 0; i < funcType.argsCount; i++)

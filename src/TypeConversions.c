@@ -3,7 +3,9 @@
 #include "ffi.h"
 #include "clang-c/Index.h"
 #include "qlibc.h"
+#include "PyC.h"
 
+#define MAX_SIZE 1024
 
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type)
 {
@@ -123,7 +125,6 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type)
 
     for (int i = 0; i < args_len; i++)
     {
-        // ffi_type type = args_type.at(i);
         ffi_type type = *((ffi_type*)qvector_getat(args_type, i, false));
         PyObject *pyArg = PyTuple_GetItem(args, i);
 
@@ -223,6 +224,127 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type)
     }
     rvalue[args_len] = NULL;
     return rvalue;
+}
+
+int match_ffi_type_to_defination(Function *funcs, qvector_t *ffi_type_list)
+{
+    int funcNum = -1;
+    size_t funcCount = funcs->funcCount;
+    size_t argsCount = qvector_size(ffi_type_list);
+
+    for (int i = 0; i < funcCount; i++)
+    {
+        FunctionType *funcType = qvector_getat(funcs->functionTypes, i, false);
+        size_t funcTypeArgsCount = funcType->argsCount;
+        if (argsCount == funcTypeArgsCount)
+        {
+            for (int j = 0; j < argsCount; j++)
+            {
+                ffi_type *type_from_list = qvector_getat(ffi_type_list, j, false);
+                ffi_type *type_from_decl = qvector_getat(funcType->argsType, j, false);
+                switch (type_from_list->type) 
+                {
+                    case FFI_TYPE_SINT32:
+                        switch (type_from_decl->type)
+                        {
+                            case FFI_TYPE_INT:
+                            case FFI_TYPE_UINT8:
+                            case FFI_TYPE_SINT8:
+                            case FFI_TYPE_UINT16:
+                            case FFI_TYPE_SINT16:
+                            case FFI_TYPE_SINT32:
+                            case FFI_TYPE_UINT32:
+                            case FFI_TYPE_UINT64:
+                            case FFI_TYPE_SINT64:
+                                funcNum = i;
+                                continue;
+                            default:
+                                funcNum = -1;
+                                break;
+                        }
+                        break;
+                    case FFI_TYPE_FLOAT:
+                        switch (type_from_decl->type)
+                        {
+                            case FFI_TYPE_FLOAT:
+                            case FFI_TYPE_DOUBLE:
+                            case FFI_TYPE_LONGDOUBLE:
+                                funcNum = i;
+                                continue;
+                            default:
+                                funcNum = -1;
+                                break;
+                        }
+                        break;
+                    case FFI_TYPE_POINTER:
+                        switch (type_from_decl->type)
+                        {
+                            case FFI_TYPE_POINTER:
+                                funcNum = i;
+                                continue;
+                            default:
+                                funcNum = -1;
+                                break;
+                        }
+                        break;
+                    case FFI_TYPE_VOID:
+                        switch (type_from_decl->type)
+                        {
+                            case FFI_TYPE_VOID:
+                                funcNum = i;
+                                continue;
+                            default:
+                                funcNum = -1;
+                                break;
+                        }
+                        break;
+                    default:
+                        // TODO: raise exception "Could not find python type"
+                        abort();
+                }
+                if (funcNum == -1)
+                    break;
+            }
+            if (funcNum != -1)
+                return funcNum;
+        }
+    }
+
+    return funcNum;
+}
+
+qvector_t *get_ffi_type_from_pyArgs(PyObject* args)
+{
+    size_t len = PyTuple_Size(args);
+    qvector_t *ffi_type_list = qvector(MAX_SIZE, sizeof(ffi_type), QVECTOR_RESIZE_EXACT);   // TODO: use underlyingType info
+
+    for (int i = 0; i < len; i++)
+    {
+        PyObject *pyArg = PyTuple_GetItem(args, i);
+        if ((pyArg == Py_True) || (pyArg == Py_False) || PyNumber_Check(pyArg))
+        {
+            qvector_addlast(ffi_type_list, &ffi_type_sint32);
+        }
+        else if (PyFloat_Check(pyArg))
+        {
+            qvector_addlast(ffi_type_list, &ffi_type_float);
+        }
+        else if (pyArg == Py_None)
+        {
+            qvector_addlast(ffi_type_list, &ffi_type_void);
+        }
+        else if (PyUnicode_Check(pyArg))
+        {
+            qvector_addlast(ffi_type_list, &ffi_type_pointer);
+        }
+        else
+        {
+            // TODO: raise error "Could not find python type"
+            abort();
+        }
+    }
+
+    return ffi_type_list;
 }
 
 const char *ffi_type_To_char_p(ffi_type type)

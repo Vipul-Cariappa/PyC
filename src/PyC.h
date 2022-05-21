@@ -18,6 +18,8 @@ extern PyModuleDef PyC_Module;
 const char *ffi_type_To_char_p(ffi_type type);
 ffi_type *get_ffi_type(CXType type);
 void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type);
+qvector_t *get_ffi_type_from_pyArgs(PyObject* args);
+int match_ffi_type_to_defination(Function *funcs, qvector_t *ffi_type_list);
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type);
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type);
 

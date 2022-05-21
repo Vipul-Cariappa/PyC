@@ -7,6 +7,19 @@ int add(int x, int y)
     return x + y;
 }
 
+char *add(char *s, int n)
+{
+    std::string *result = new std::string("");
+    std::string str = std::string(s);
+
+    for (int i = 0; i < n; i++)
+    {
+        *result += str;
+    }
+
+    return (char*)result->c_str();
+}
+
 int copy_int(int *destination, int *source)
 {
     *destination = *source;

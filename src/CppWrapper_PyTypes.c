@@ -30,7 +30,7 @@ typedef struct PyC_CppFunction
 {
     PyObject_HEAD
     Function *funcType;
-    void *func;
+    void *so;
 } PyC_CppFunction;
 
 typedef struct PyC_CppStruct
@@ -193,20 +193,12 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
 
     if (funcType)
     {
-        void *func = dlsym(selfType->so, qlist_getlast(funcType->mangledNames, NULL, false));
-
-        if (!func)
-        {
-            PyErr_SetString(py_CppError, dlerror());
-            return NULL;
-        }
-
         PyObject *obj = PyObject_GetAttrString(PyC, "CppFunction");
         if (obj)
         {
             PyC_CppFunction *pyCppFunction = (PyC_CppFunction*)PyObject_CallObject(obj, NULL);
-            pyCppFunction->func = func;
             pyCppFunction->funcType = funcType;
+            pyCppFunction->so = selfType->so;
 
             return (PyObject *)pyCppFunction;
         }
@@ -273,7 +265,28 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     PyC_CppFunction *selfType = (PyC_CppFunction *)self;
 
-    FunctionType *funcType = qvector_getlast(selfType->funcType->functionTypes, false);
+    qvector_t *pyArgs_ffi_type = get_ffi_type_from_pyArgs(args);
+    int funcNum = match_ffi_type_to_defination(selfType->funcType, pyArgs_ffi_type);
+    qvector_free(pyArgs_ffi_type);
+
+    if (funcNum == -1)
+    {
+        PyErr_SetString(py_CppError, "Could not find function with given declaration with same name");
+        return NULL;
+    }
+
+
+    FunctionType *funcType = qvector_getat(selfType->funcType->functionTypes, funcNum, false);
+    
+    // getting function
+    void *func = dlsym(selfType->so, qlist_getat(selfType->funcType->mangledNames, funcNum, NULL, false));
+    // TODO: store the func* in FunctionType
+    if (!func)
+    {
+        PyErr_SetString(py_CppError, dlerror());
+        return NULL;
+    }
+
     size_t args_count = funcType->argsCount;
 
     qvector_t *args_list = funcType->argsType;
@@ -290,7 +303,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs)
     void **args_values = pyArgs_to_cppArgs(args, args_list);
     if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, &funcType->returnType, ffi_args) == FFI_OK)
     {
-        ffi_call(&cif, (void (*)())selfType->func, rc, args_values);
+        ffi_call(&cif, (void (*)())func, rc, args_values);
     }
 
     return cppArg_to_pyArg(rc, funcType->returnType);
