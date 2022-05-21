@@ -197,8 +197,8 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
 
         if (!func)
         {
-            // TODO: raise error "Function Not found. Quitting."
-            abort();
+            PyErr_SetString(py_CppError, dlerror());
+            return NULL;
         }
 
         PyObject *obj = PyObject_GetAttrString(PyC, "CppFunction");
@@ -222,8 +222,8 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
 
         if (!var)
         {
-            // TODO: raise error "Global Variable Not found. Quitting."
-            abort();
+            PyErr_SetString(py_CppError, dlerror());
+            return NULL;
         }
 
         return cppArg_to_pyArg(var, globalVar->type);
