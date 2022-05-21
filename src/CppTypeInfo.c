@@ -288,31 +288,6 @@ Symbols *create_Symbol(const char *name)
     sym->classes = qhashtbl(0, 0);
     sym->classesCount = 0;
 
-    CXIndex index = clang_createIndex(0, 0);
-    CXTranslationUnit unit = clang_parseTranslationUnit(
-        index,
-        name,
-        NULL,
-        0,
-        NULL,
-        0,
-        CXTranslationUnit_None);
-
-    if (unit == NULL)
-    {
-        // TODO: raise error "Unable to parse translation unit. Quitting."
-        abort();
-    }
-
-    CXCursor cursor = clang_getTranslationUnitCursor(unit);
-    clang_visitChildren(
-        cursor,
-        visitor,
-        sym);
-
-    clang_disposeTranslationUnit(unit);
-    clang_disposeIndex(index);
-
     return sym;
 }
 
@@ -336,20 +311,43 @@ void free_Symbols(Symbols *sym)
     free(sym);
 }
 
+bool Symbols_parse(Symbols *sym, const char *header)
+{
+    CXIndex index = clang_createIndex(1, 0);
+    CXTranslationUnit unit = clang_parseTranslationUnit(
+        index,
+        header,
+        NULL,
+        0,
+        NULL,
+        0,
+        CXTranslationUnit_None
+    );
+
+    if (unit == NULL)
+        return false;
+
+    CXCursor cursor = clang_getTranslationUnitCursor(unit);
+    clang_visitChildren(
+        cursor,
+        visitor,
+        sym
+    );
+
+    clang_disposeTranslationUnit(unit);
+    clang_disposeIndex(index);
+
+    return true;
+}
+
 enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
     Symbols *symbols = client_data;
-
-    // std::cout << "Cursor '" << clang_getCursorSpelling(cursor) << "' of kind '"
-    //           << clang_getCursorKindSpelling(clang_getCursorKind(cursor)) << "' "
-    //           << clang_getCursorType(cursor).kind << "\n";
 
     // function
     if (clang_getCursorKind(cursor) == CXCursor_FunctionDecl)
     {
         // Function Declaration
-
-        // Function *func = new Function(clang_getCString(clang_getCursorSpelling(cursor)), cursor);
         const char *funcName = clang_getCString(clang_getCursorSpelling(cursor));
         const char *mangledName = clang_getCString(GET_MANGLED_NAME(cursor));
 
@@ -365,10 +363,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
             CXType arg_type = clang_getCursorType(arg);
 
             qvector_addlast(funcType.argsType, get_ffi_type(arg_type));
-            // std::cout << "Type of arg " << i << ": " << clang_getTypeSpelling(arg_type) << "\n";
         }
-        // std::cout << "Return type: " << clang_getTypeSpelling(clang_getCursorResultType(cursor)) << "\n";
-        // std::cout << std::endl;
 
         Symbols_appendFunction(symbols, funcName, mangledName, funcType);
     }
@@ -422,19 +417,13 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
     {
         CXType type = clang_getCursorType(cursor);
 
-        // Global *global = new Global(name, mangledname, get_ffi_type(type), type);
-        // symbols->append_global(global);
-
         Global global;
         global.name = clang_getCString(clang_getCursorSpelling(cursor));
         global.type = *get_ffi_type(type);
         global.underlyingType = type.kind;
 
         Symbols_appendGlobal(symbols, global);
-        // std::cout << "Name: " << clang_getCursorSpelling(cursor) << " Type: " << clang_getTypeSpelling(clang_getCursorType(cursor)) << "\n";
     }
-
-    // std::cout << "\n";
 
     return CXChildVisit_Continue;
 }

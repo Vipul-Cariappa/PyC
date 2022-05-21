@@ -78,3 +78,4 @@ bool Symbols_appendClass(Symbols *sym, Class c);
 
 Symbols *create_Symbol(const char *name);
 void free_Symbols(Symbols *sym);
+bool Symbols_parse(Symbols *sym, const char *header);

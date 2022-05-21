@@ -146,8 +146,15 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)
     selfType->header_name = header;
     selfType->library_name = library;
     selfType->symbols = create_Symbol(header);
+    if (!Symbols_parse(selfType->symbols, header))
+    {
+        free_Symbols(selfType->symbols);
 
-    print_Symbols(selfType->symbols);
+        PyErr_SetString(py_BindingError, "Unable to parse translation unit. Quitting.");
+        return -1;
+    }
+
+    // print_Symbols(selfType->symbols);
 
     // opening the shared library
     void *so = dlopen(library, RTLD_NOW);
