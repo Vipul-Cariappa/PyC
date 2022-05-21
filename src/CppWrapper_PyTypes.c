@@ -79,7 +79,8 @@ PyTypeObject py_CppStructType = {
 
 
 PyMethodDef PyC_Methods[] = {
-    {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS, "Execute a shell command."},
+    {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS, "Load C/C++ shared object"},
+    {"print_CppModule", (PyCFunction)print_PyC_CppModule, METH_VARARGS, "print CppModule symbols"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -102,6 +103,19 @@ static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs)
     
     PyErr_SetString(py_BindingError, "Unable to access PyCpp.CppModule");
     return NULL;
+}
+
+static PyObject *print_PyC_CppModule(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    PyObject *py_PyC_CppModule;
+
+    if (!PyArg_ParseTuple(args, "O", &py_PyC_CppModule))
+        return NULL;
+
+    PyC_CppModule *type_PyC_CppModule = (PyC_CppModule*)py_PyC_CppModule;
+    print_Symbols(type_PyC_CppModule->symbols);
+
+    Py_RETURN_NONE;
 }
 
 static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs)

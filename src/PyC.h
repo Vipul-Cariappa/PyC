@@ -22,6 +22,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type);
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type);
 
 static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *print_PyC_CppModule(PyObject *self, PyObject *args, PyObject *kwargs);
 
 static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr);

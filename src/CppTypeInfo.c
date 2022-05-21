@@ -1,3 +1,4 @@
+#define PY_SSIZE_T_CLEAN
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
