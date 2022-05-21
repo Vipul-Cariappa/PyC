@@ -125,10 +125,17 @@ Function *Symbols_getFunction(Symbols *sym, const char *name)
     }
     else if (errno == ENOENT)
     {
+        errno = 0;
         return NULL;   
     }
-    // TODO: raise error
-    abort();
+    
+    if (errno == EINVAL)
+        PyErr_SetString(py_BindingError, "Invalid argument");
+
+    if (errno == ENOMEM)
+        PyErr_NoMemory();
+    
+    return NULL;
 }
 
 Structure *Symbols_getStructure(Symbols *sym, const char *name)
@@ -140,10 +147,17 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name)
     }
     else if (errno == ENOENT)
     {
+        errno = 0;
         return NULL;   
     }
-    // TODO: raise error
-    abort();
+    
+    if (errno == EINVAL)
+        PyErr_SetString(py_BindingError, "Invalid argument");
+
+    if (errno == ENOMEM)
+        PyErr_NoMemory();
+    
+    return NULL;
 }
 
 Global *Symbols_getGlobal(Symbols *sym, const char *name)
@@ -155,10 +169,17 @@ Global *Symbols_getGlobal(Symbols *sym, const char *name)
     }
     else if (errno == ENOENT)
     {
+        errno = 0;
         return NULL;   
     }
-    // TODO: raise error
-    abort();
+    
+    if (errno == EINVAL)
+        PyErr_SetString(py_BindingError, "Invalid argument");
+
+    if (errno == ENOMEM)
+        PyErr_NoMemory();
+    
+    return NULL;
 }
 
 Class *Symbols_getClass(Symbols *sym, const char *name)

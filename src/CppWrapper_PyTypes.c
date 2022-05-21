@@ -1,6 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <dlfcn.h>
 #include "Python.h"
 #include "PyC.h"
@@ -105,6 +106,7 @@ static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs)
     return NULL;
 }
 
+// print symbols of given CppModule
 static PyObject *print_PyC_CppModule(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     PyObject *py_PyC_CppModule;
@@ -209,6 +211,8 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
             return (PyObject *)pyCppFunction;
         }
     }
+    else if (errno != 0)
+        return NULL;
 
     Global *globalVar = Symbols_getGlobal(selfType->symbols, attr);
 
@@ -224,13 +228,15 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr)
 
         return cppArg_to_pyArg(var, globalVar->type);
     }
+    else if (errno != 0)
+        return NULL;
 
     Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
     if (structVar)
-    {
         return new_PyCpp_CppStruct(structVar);
-    }
+    else if (errno != 0)
+        return NULL;
 
     Py_RETURN_NONE;
 }
