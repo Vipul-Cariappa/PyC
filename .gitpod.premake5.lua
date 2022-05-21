@@ -3,7 +3,7 @@ workspace "PyC"
 
 project "PyC"
     kind "SharedLib"
-    language "C++"
+    language "C"
     targetdir "bin/%{cfg.buildcfg}"
     files { "src/**.h", "src/**.c", "src/**.hpp", "src/**.cpp" }
     excludes { "test/**" }
