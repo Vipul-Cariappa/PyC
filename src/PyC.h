@@ -39,6 +39,23 @@ static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue);
 static PyObject *Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs);
 static void Cpp_StructGC(PyObject *self);
 
+
+static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_int_iter(PyObject *self);
+static PyObject *c_int_getattr(PyObject *self, char *attr);
+static void c_int_finalizer(PyObject *self);
+static PyObject *c_int_append(PyObject *self, PyObject *args);
+static PyObject *c_int_pop(PyObject *self);
+static PyObject *c_int_value(PyObject *self);
+static PyObject *c_int_donot_free(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_int_to_pointer(PyObject *self);
+static PyObject *c_int_to_int(PyObject *self);
+static Py_ssize_t c_int_len(PyObject *self);
+static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
+static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
+
+
 static PyObject *new_PyCpp_CppStruct(Structure *structure);
 
 CXString GET_MANGLED_NAME(CXCursor cursor);

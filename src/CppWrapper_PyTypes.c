@@ -40,9 +40,19 @@ typedef struct PyC_CppStruct
     void *data;
 } PyC_CppStruct;
 
+typedef struct PyC_c_int {
+    int value;
+    int *pointer;
+    bool isPointer;
+    bool isArray;
+    size_t arraySize;
+    size_t arrayCapacity;
+} PyC_c_int;
+
 
 PyTypeObject py_CppModuleType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppModule",
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "PyCpp.CppModule",
     .tp_basicsize = sizeof(PyC_CppModule),
     .tp_itemsize = 0,
     .tp_getattr = &Cpp_ModuleGet,
@@ -55,7 +65,8 @@ PyTypeObject py_CppModuleType = {
 };
 
 PyTypeObject py_CppFunctionType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppFunction",
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "PyCpp.CppFunction",
     .tp_basicsize = sizeof(PyC_CppFunction),
     .tp_itemsize = 0,
     .tp_call = &Cpp_FunctionCall,
@@ -66,7 +77,8 @@ PyTypeObject py_CppFunctionType = {
 };
 
 PyTypeObject py_CppStructType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppStruct",
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "PyCpp.CppStruct",
     .tp_basicsize = sizeof(PyC_CppStruct),
     .tp_itemsize = 0,
     .tp_getattr = &Cpp_StructGet,
@@ -76,6 +88,42 @@ PyTypeObject py_CppStructType = {
     .tp_doc = "PyCpp.CppStruct",
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_StructGC,
+};
+
+PyNumberMethods c_int_as_int = {
+    .nb_int = &c_int_to_int,
+};
+
+PyMappingMethods c_int_as_mapping = {
+    .mp_length = &c_int_len,
+    .mp_subscript = &c_int_getitem,
+    .mp_ass_subscript = &c_int_setitem,
+};
+
+PyMethodDef c_int_methods[] = {
+    {"append", (PyCFunction)c_int_append, METH_VARARGS, "c_int.append()"},
+    {"pop", (PyCFunction)c_int_pop, METH_NOARGS, "c_int.pop()"},
+    {"value", (PyCFunction)c_int_value, METH_NOARGS, "c_int.value()"},
+    {"donot_free", (PyCFunction)c_int_donot_free, METH_VARARGS | METH_KEYWORDS, "c_int.donot_free()"},
+    {"to_pointer", (PyCFunction)c_int_to_pointer, METH_NOARGS, "c_int.to_pointer()"},
+    {NULL, NULL, 0, NULL}
+};
+
+PyTypeObject py_c_int_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "PyCpp.c_int",
+    .tp_basicsize = sizeof(PyC_c_int),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_int_as_int,
+    .tp_as_mapping = &c_int_as_mapping,
+    .tp_getattr = &c_int_getattr,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_int",
+    .tp_iter = &c_int_iter,
+    .tp_methods = c_int_methods,
+    .tp_init = &c_int_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_int_finalizer,
 };
 
 
@@ -369,4 +417,82 @@ static void Cpp_StructGC(PyObject *self)
 {
     // TODO: implement Cpp_StructGC
     PyC_CppStruct *selfType = (PyC_CppStruct *)self;
+}
+
+static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    // TODO: implement
+    return 0;
+}
+
+static PyObject *c_int_iter(PyObject *self)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_getattr(PyObject *self, char *attr)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static void c_int_finalizer(PyObject *self)
+{
+    // TODO: implement
+    return;
+}
+
+static PyObject *c_int_append(PyObject *self, PyObject *args)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_pop(PyObject *self)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_value(PyObject *self)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_donot_free(PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_to_pointer(PyObject *self)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static PyObject *c_int_to_int(PyObject *self)
+{
+    // TODO: implement
+    return PyLong_FromLong(123);
+}
+
+static Py_ssize_t c_int_len(PyObject *self)
+{
+    // TODO: implement
+    return 0;
+}
+
+static PyObject *c_int_getitem(PyObject *self, PyObject *attr)
+{
+    // TODO: implement
+    Py_RETURN_NONE;
+}
+
+static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value)
+{
+    // TODO: implement
+    return 0;
 }
