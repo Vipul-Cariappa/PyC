@@ -1,4 +1,5 @@
 import unittest
+import PyC
 from PyC import LoadCpp
 
 cppModule = LoadCpp("tests/libcppmodule.so", "tests/c/module.hpp", cpp=True)
@@ -38,6 +39,13 @@ class TestBasic(unittest.TestCase):
             ),
             "Vipul Cariappa"
         )
+
+    def test_pointer_args_with_functions(self):
+        n1 = PyC.c_int(1)
+        n2 = PyC.c_int(10)
+        cModule.copy_int(n1, n2)
+        self.assertEqual(n1.value(), 10)
+        self.assertEqual(n2.value(), 10)
 
     # def test_structs(self):
     #     r = cModule.RECT

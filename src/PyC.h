@@ -14,12 +14,24 @@ extern PyTypeObject py_CppModuleType;
 extern PyTypeObject py_CppFunctionType;
 extern PyTypeObject py_CppStructType;
 extern PyModuleDef PyC_Module;
+extern PyTypeObject py_c_int_type;
+
+typedef struct PyC_c_int {
+    PyObject_HEAD
+    int value;
+    int *pointer;
+    bool isPointer;
+    bool isArray;
+    size_t arraySize;
+    size_t arrayCapacity;
+} PyC_c_int;
 
 const char *ffi_type_To_char_p(ffi_type type);
+const char *CXTypeKind_TO_char_p(enum CXTypeKind type);
 ffi_type *get_ffi_type(CXType type);
 void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type);
 qvector_t *get_ffi_type_from_pyArgs(PyObject* args);
-int match_ffi_type_to_defination(Function *funcs, qvector_t *ffi_type_list);
+int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type);
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type);
 

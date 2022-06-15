@@ -34,7 +34,14 @@ void print_Function(Function func)
         for (size_t j = 0; j < type.argsCount; j++)
         {
             ffi_type *ffi_type_p = qvector_getat(type.argsType, j, false);
-            printf("%s, ", ffi_type_To_char_p(*ffi_type_p));
+            if (type.argsUnderlyingType[j])
+            {
+                printf("%s, ", CXTypeKind_TO_char_p(type.argsUnderlyingType[j]));
+            }
+            else
+            {
+                printf("%s, ", ffi_type_To_char_p(*ffi_type_p));
+            }
         }
         printf(")\n");
     }
@@ -392,12 +399,17 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
         funcType.returnType = *(get_ffi_type(clang_getCursorResultType(cursor)));
         funcType.argsCount = clang_Cursor_getNumArguments(cursor);
         funcType.argsType = qvector(MAX_SIZE, sizeof(ffi_type), QVECTOR_RESIZE_EXACT ); // TODO: change ffi_type to ffi_type*
-        funcType.argsUnderlyingType = NULL; // TODO: extract Underlying Type Info
+        funcType.argsUnderlyingType = calloc(funcType.argsCount, sizeof(enum CXTypeKind)); // TODO: extract Underlying Type Info
 
         for (int i = 0; i < funcType.argsCount; i++)
         {
             CXCursor arg = clang_Cursor_getArgument(cursor, i);
             CXType arg_type = clang_getCursorType(arg);
+            
+            if (arg_type.kind == CXType_Pointer)
+                funcType.argsUnderlyingType[i] = clang_getPointeeType(arg_type).kind;
+            else
+                funcType.argsUnderlyingType[i] = 0;
 
             qvector_addlast(funcType.argsType, get_ffi_type(arg_type));
         }
