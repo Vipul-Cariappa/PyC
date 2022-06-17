@@ -15,4 +15,5 @@ General Purpose Binding between Python &amp; C/C++
 - [ ] pointer
 - [ ] array
 - [ ] union
+- [ ] typedefs
 - [ ] function pointers
