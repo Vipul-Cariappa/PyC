@@ -10,3 +10,9 @@ General Purpose Binding between Python &amp; C/C++
 - [ ] Resolving overloaded function
 - [x] Seperate support for c and c++
 - [ ] Object Oriented Programming
+---
+- [ ] struct
+- [ ] pointer
+- [ ] array
+- [ ] union
+- [ ] function pointers
