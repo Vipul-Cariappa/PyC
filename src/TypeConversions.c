@@ -181,6 +181,14 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type)
             case FFI_TYPE_LONGDOUBLE:
                 *(long double *)x = (long double)PyFloat_AsDouble(pyArg);
                 break;
+            case FFI_TYPE_POINTER:
+                if (PyObject_IsInstance(pyArg, (PyObject*)&py_c_int_type))
+                {
+                    void** tmp = malloc(sizeof(void*)); // TODO: free this malloc
+                    *tmp = &(((PyC_c_int *)pyArg)->value);
+                    x = tmp;
+                    break;
+                }
             default:
                 // TODO: raise error "Could not convert Python type to Cpp type"
                 abort();
@@ -226,11 +234,11 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type)
     return rvalue;
 }
 
-int match_ffi_type_to_defination(Function *funcs, qvector_t *ffi_type_list)
+int match_ffi_type_to_defination(Function *funcs, PyObject *args)
 {
     int funcNum = -1;
     size_t funcCount = funcs->funcCount;
-    size_t argsCount = qvector_size(ffi_type_list);
+    Py_ssize_t argsCount = PyTuple_Size(args);
 
     for (int i = 0; i < funcCount; i++)
     {
@@ -240,51 +248,45 @@ int match_ffi_type_to_defination(Function *funcs, qvector_t *ffi_type_list)
         {
             for (int j = 0; j < argsCount; j++)
             {
-                ffi_type *type_from_list = qvector_getat(ffi_type_list, j, false);
                 ffi_type *type_from_decl = qvector_getat(funcType->argsType, j, false);
-                switch (type_from_list->type) 
+                PyObject *pyArg = PyTuple_GetItem(args, j);
+    
+                switch (type_from_decl->type) 
                 {
                     case FFI_TYPE_SINT32:
-                        switch (type_from_decl->type)
+                        if ((pyArg == Py_True) || (pyArg == Py_False) || PyNumber_Check(pyArg) || PyObject_IsInstance(pyArg, (PyObject*)&py_c_int_type))
                         {
-                            case FFI_TYPE_INT:
-                            case FFI_TYPE_UINT8:
-                            case FFI_TYPE_SINT8:
-                            case FFI_TYPE_UINT16:
-                            case FFI_TYPE_SINT16:
-                            case FFI_TYPE_SINT32:
-                            case FFI_TYPE_UINT32:
-                            case FFI_TYPE_UINT64:
-                            case FFI_TYPE_SINT64:
-                                funcNum = i;
-                                continue;
-                            default:
-                                funcNum = -1;
-                                break;
+                            funcNum = i;
+                            continue;
+                        }
+                        else 
+                        {
+                            funcNum = -1;
+                            break;
                         }
                         break;
                     case FFI_TYPE_FLOAT:
-                        switch (type_from_decl->type)
+                        if (PyFloat_Check(pyArg))
                         {
-                            case FFI_TYPE_FLOAT:
-                            case FFI_TYPE_DOUBLE:
-                            case FFI_TYPE_LONGDOUBLE:
-                                funcNum = i;
-                                continue;
-                            default:
-                                funcNum = -1;
-                                break;
+                            funcNum = i;
+                            continue;
+                        }
+                        else 
+                        {
+                            funcNum = -1;
+                            break;
                         }
                         break;
                     case FFI_TYPE_POINTER:
-                        switch (type_from_decl->type)
+                        if (PyObject_IsInstance(pyArg, (PyObject*)&py_c_int_type) || PyUnicode_Check(pyArg))
                         {
-                            case FFI_TYPE_POINTER:
-                                funcNum = i;
-                                continue;
-                            default:
-                                funcNum = -1;
-                                break;
+                            funcNum = i;
+                            continue;
+                        }
+                        else 
+                        {
+                            funcNum = -1;
+                            break;
                         }
                         break;
                     case FFI_TYPE_VOID:
@@ -347,6 +349,43 @@ qvector_t *get_ffi_type_from_pyArgs(PyObject* args)
     return ffi_type_list;
 }
 
+const char *CXTypeKind_TO_char_p(enum CXTypeKind type)
+{
+    switch (type) 
+    {
+    case CXType_Void :
+        return "void*";
+    case CXType_UInt:
+        return "u_int*";
+    case CXType_Float:
+        return "float*";
+    case CXType_Double:
+        return "double*";
+    case CXType_LongDouble:
+        return "long double*";
+    case CXType_UShort :
+        return "u_short*";
+    case CXType_Int:
+        return "int*";
+    case CXType_Long:
+    case CXType_LongLong:
+        return "int64_t*";
+    case CXType_Short :
+        return "int16_t*";
+    case CXType_ULong:
+    case CXType_ULongLong:
+        return "u_int64_t*";
+    case CXType_Record:
+        return "struct*";
+    case CXType_Char_S:
+        return "char*";
+    default:
+        // printf("%i", type);
+        // return "Could not figure out";
+        abort();
+    }
+}
+
 const char *ffi_type_To_char_p(ffi_type type)
 {
     switch (type.type)
@@ -384,7 +423,8 @@ const char *ffi_type_To_char_p(ffi_type type)
     case FFI_TYPE_POINTER:
         return "void*";
     default:
-        return "Could not figure out";
+        // return "Could not figure out";
+        abort();
     }
 }
 

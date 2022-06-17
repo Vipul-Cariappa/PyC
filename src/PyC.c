@@ -12,10 +12,12 @@ PyObject *py_BindingError;
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
 
+  // creating module
   m = PyModule_Create(&PyC_Module);
   if (m == NULL)
     return NULL;
 
+  // creating CppModuleType
   if (PyType_Ready(&py_CppModuleType) < 0) {
     return NULL;
   }
@@ -27,6 +29,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
+  // creating CppFunctionType
   if (PyType_Ready(&py_CppFunctionType) < 0) {
     return NULL;
   }
@@ -38,6 +41,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
+  // creating CppStructType
   if (PyType_Ready(&py_CppStructType) < 0) {
     return NULL;
   }
@@ -49,6 +53,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
+  // creating Exception CppError
   py_CppError = PyErr_NewException("PyCpp.CppError", NULL, NULL);
   Py_XINCREF(py_CppError);
   if (PyModule_AddObject(m, "CppError", py_CppError) < 0) {
@@ -58,11 +63,24 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
+  // creating Exception BindingError
   py_BindingError = PyErr_NewException("PyCpp.BindingError", NULL, NULL);
   Py_XINCREF(py_BindingError);
   if (PyModule_AddObject(m, "BindingError", py_BindingError) < 0) {
     Py_XDECREF(py_BindingError);
     Py_CLEAR(py_BindingError);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_int
+  if (PyType_Ready(&py_c_int_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_int_type);
+  if (PyModule_AddObject(m, "c_int", (PyObject *)&py_c_int_type) < 0) {
+    Py_DECREF(&py_c_int_type);
     Py_DECREF(m);
     return NULL;
   }

@@ -17,3 +17,5 @@ vscode:
     - ms-toolsai.jupyter-keymap
     - ms-toolsai.jupyter-renderers
     - Gruntfuggly.todo-tree
+    - WakaTime.vscode-wakatime
+    - ms-vscode.hexeditor

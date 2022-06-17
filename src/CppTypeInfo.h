@@ -7,7 +7,7 @@
 typedef struct FunctionType {
     ffi_type returnType;
     qvector_t *argsType;    // vector of ffi_type
-    qvector_t *argsUnderlyingType;  // vector of CXTypeKind
+    enum CXTypeKind *argsUnderlyingType;  // array of CXTypeKind
     size_t argsCount;
 } FunctionType;
 
