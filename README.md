@@ -1,5 +1,9 @@
 # PyC
+![GitHub Workflow](https://github.com/Vipul-Cariappa/PyC/actions/workflows/build_and_test.yml/badge.svg)
+[![codecov](https://codecov.io/gh/Vipul-Cariappa/PyC/branch/main/graph/badge.svg?token=EWE6SIYGC1)](https://codecov.io/gh/Vipul-Cariappa/PyC)
+
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/Vipul-Cariappa/PyC)
+
 
 General Purpose Binding between Python &amp; C/C++
 
