@@ -1,13 +1,12 @@
 #define PY_SSIZE_T_CLEAN
+#include "PyC.h"
+#include "Py_C_Types.h"
 #include "Python.h"
 
-#include "PyC.h"
-
-PyObject* PyC;
+PyObject *PyC;
 
 PyObject *py_CppError;
 PyObject *py_BindingError;
-
 
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
@@ -35,7 +34,8 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   }
 
   Py_INCREF(&py_CppFunctionType);
-  if (PyModule_AddObject(m, "CppFunction", (PyObject *)&py_CppFunctionType) < 0) {
+  if (PyModule_AddObject(m, "CppFunction", (PyObject *)&py_CppFunctionType) <
+      0) {
     Py_DECREF(&py_CppFunctionType);
     Py_DECREF(m);
     return NULL;
@@ -81,6 +81,18 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   Py_INCREF(&py_c_int_type);
   if (PyModule_AddObject(m, "c_int", (PyObject *)&py_c_int_type) < 0) {
     Py_DECREF(&py_c_int_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_double
+  if (PyType_Ready(&py_c_double_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_double_type);
+  if (PyModule_AddObject(m, "c_double", (PyObject *)&py_c_double_type) < 0) {
+    Py_DECREF(&py_c_double_type);
     Py_DECREF(m);
     return NULL;
   }
