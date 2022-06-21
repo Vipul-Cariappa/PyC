@@ -3,10 +3,9 @@ extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
 typedef struct RECT RECT;
-struct RECT
-{
-    int x;
-    int y;
+struct RECT {
+  int x;
+  int y;
 };
 
 int add(int x, int y);

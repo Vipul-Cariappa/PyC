@@ -2,8 +2,8 @@ import unittest
 import PyC
 from PyC import LoadCpp
 
-cppModule = LoadCpp("tests/libcppmodule.so", "tests/c/module.hpp", cpp=True)
 cModule = LoadCpp("tests/libcmodule.so", "tests/c/module.h")
+cppModule = LoadCpp("tests/libcppmodule.so", "tests/c/module.hpp", cpp=True)
 
 
 class TestBasic(unittest.TestCase):
@@ -47,10 +47,21 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(n1.value(), 10)
         self.assertEqual(n2.value(), 10)
 
+        d1 = PyC.c_double(20.20)
+        d2 = PyC.c_double(3.14)
+        cModule.copy_double(d1, d2)
+        self.assertAlmostEqual(d1.value(), 3.14, 4)
+        self.assertAlmostEqual(d2.value(), 3.14, 4)
+
+    def test_function_with_c_types(self):
+        self.assertEqual(cModule.add(PyC.c_int(24), PyC.c_int(46)), 70)
+        self.assertAlmostEqual(cModule.copy_double(
+            PyC.c_double(3.14), PyC.c_double(3.14)), 3.14, 4)
+
     # def test_structs(self):
     #     r = cModule.RECT
     #     print(r)
-        
+
         # print(r.x)
         # print(r.y)
 

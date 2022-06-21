@@ -1,45 +1,43 @@
+#include "module.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "module.h"
 
-int add(int x, int y)
-{
-    return x + y;
+int add(int x, int y) { return x + y; }
+
+int copy_int(int *destination, int *source) {
+  *destination = *source;
+  return *destination;
 }
 
-int copy_int(int *destination, int *source)
-{
-    *destination = *source;
-    return *destination;
+double copy_double(double *destination, double *source) {
+  *destination = *source;
+  return *destination;
 }
 
-char *concat(char *x, char *y)
-{
-    size_t len_x = strlen(x);
-    size_t len = len_x + strlen(y) + 1;
-    char *result = (char *)malloc(len);
-    strcpy(result, x);
-    stpcpy(result + len_x, y);
+char *concat(char *x, char *y) {
+  size_t len_x = strlen(x);
+  size_t len = len_x + strlen(y) + 1;
+  char *result = (char *)malloc(len);
+  strcpy(result, x);
+  stpcpy(result + len_x, y);
 
-    return result;
+  return result;
 }
 
-double pi(int n)
-{
-    long int i;
-    double sum = 0.0, term, pi;
+double pi(int n) {
+  long int i;
+  double sum = 0.0, term, pi;
 
-    /* Applying Leibniz Formula */
-    for (i = 0; i < n; i++)
-    {
-        term = pow(-1, i) / (2 * i + 1);
-        sum += term;
-    }
-    pi = 4 * sum;
+  /* Applying Leibniz Formula */
+  for (i = 0; i < n; i++) {
+    term = pow(-1, i) / (2 * i + 1);
+    sum += term;
+  }
+  pi = 4 * sum;
 
-    return pi;
+  return pi;
 }
 
 // RECT *get_rect(int x, int y)
