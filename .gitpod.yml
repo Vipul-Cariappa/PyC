@@ -3,7 +3,7 @@ image:
 
 tasks:
   - command: |
-      premake5 --file=.gitpod.premake5.lua --cc=clang gmake
+      premake5 --file=.gitpod.premake5.lua gmake
       bear make
       sh ./.gitpod.run.sh
 
