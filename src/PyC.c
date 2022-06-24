@@ -3,11 +3,10 @@
 
 #include "PyC.h"
 
-PyObject* PyC;
+PyObject *PyC;
 
 PyObject *py_CppError;
 PyObject *py_BindingError;
-
 
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
@@ -35,7 +34,8 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   }
 
   Py_INCREF(&py_CppFunctionType);
-  if (PyModule_AddObject(m, "CppFunction", (PyObject *)&py_CppFunctionType) < 0) {
+  if (PyModule_AddObject(m, "CppFunction", (PyObject *)&py_CppFunctionType) <
+      0) {
     Py_DECREF(&py_CppFunctionType);
     Py_DECREF(m);
     return NULL;
