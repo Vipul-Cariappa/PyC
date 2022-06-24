@@ -254,6 +254,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args)
                 switch (type_from_decl->type) 
                 {
                     case FFI_TYPE_SINT32:
+                    case FFI_TYPE_SINT64:
                         if ((pyArg == Py_True) || (pyArg == Py_False) || PyNumber_Check(pyArg) || PyObject_IsInstance(pyArg, (PyObject*)&py_c_int_type))
                         {
                             funcNum = i;
