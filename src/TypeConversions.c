@@ -10,7 +10,7 @@
 
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   void *data = NULL;
-  
+
   switch (type.type) {
   case FFI_TYPE_SINT8:
   case FFI_TYPE_UINT8: {
@@ -159,7 +159,8 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
         *(double *)x = (double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
       case FFI_TYPE_LONGDOUBLE:
-        *(long double *)x = (long double)PyFloat_AsDouble(PyNumber_Float(pyArg));
+        *(long double *)x =
+            (long double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
       case FFI_TYPE_POINTER:
         // TODO: verify what is it pointing to from UnderlyingType
@@ -245,7 +246,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_FLOAT:
         case FFI_TYPE_DOUBLE:
         case FFI_TYPE_LONGDOUBLE:
-          if (PyFloat_Check(pyArg)) {
+          if (PyFloat_Check(pyArg) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
             funcNum = i;
             continue;
           } else {
@@ -255,6 +257,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           break;
         case FFI_TYPE_POINTER:
           if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
               PyUnicode_Check(pyArg)) {
             funcNum = i;
             continue;

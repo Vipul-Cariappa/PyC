@@ -4,15 +4,11 @@
 
 int add(int x, int y) { return x + y; }
 
-long increment_1(long x)
-{
-    return ++x;
-}
+long increment_1(long x) { return ++x; }
 
-char *add(char *s, int n)
-{
-    std::string *result = new std::string("");
-    std::string str = std::string(s);
+char *add(char *s, int n) {
+  std::string *result = new std::string("");
+  std::string str = std::string(s);
 
   for (int i = 0; i < n; i++) {
     *result += str;
