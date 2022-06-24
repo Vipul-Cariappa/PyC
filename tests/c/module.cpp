@@ -1,10 +1,16 @@
 #include <string>
 #include <cmath>
+#include <assert.h>
 #include "module.hpp"
 
 int add(int x, int y)
 {
     return x + y;
+}
+
+long inc(long x)
+{
+    return ++x;
 }
 
 char *add(char *s, int n)
