@@ -8,7 +8,10 @@ RUN sudo apt-get update \
     libffi-dev \
     clangd-12 \
     bear \
- && sudo rm -rf /var/lib/apt/lists/*
+    manpages-posix-dev \
+    manpages-dev \
+    python-pygments \
+    && sudo rm -rf /var/lib/apt/lists/*
 
 # downloading and extracting premake5
 RUN sudo wget https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-linux.tar.gz \

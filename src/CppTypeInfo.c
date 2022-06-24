@@ -357,7 +357,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
         qvector(MAX_SIZE, sizeof(ffi_type),
                 QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
     funcType.argsUnderlyingType =
-        calloc(funcType.argsCount, sizeof(enum CXTypeKind));
+        calloc(funcType.argsCount,
+               sizeof(enum CXTypeKind)); // TODO: extract Underlying Type Info
 
     for (int i = 0; i < funcType.argsCount; i++) {
       CXCursor arg = clang_Cursor_getArgument(cursor, i);

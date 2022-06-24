@@ -10,16 +10,8 @@
 
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   void *data = NULL;
-
+  
   switch (type.type) {
-  case FFI_TYPE_INT:
-  case FFI_TYPE_SINT32:
-  case FFI_TYPE_UINT32: {
-    data = malloc(4);
-    int32_t i = (int32_t)PyLong_AsLong(arg);
-    memcpy(data, &i, 4);
-    break;
-  }
   case FFI_TYPE_SINT8:
   case FFI_TYPE_UINT8: {
     data = malloc(1);
@@ -32,6 +24,14 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     data = malloc(2);
     int16_t i = (int16_t)PyLong_AsLong(arg);
     memcpy(data, &i, 2);
+    break;
+  }
+  case FFI_TYPE_INT:
+  case FFI_TYPE_SINT32:
+  case FFI_TYPE_UINT32: {
+    data = malloc(4);
+    int32_t i = (int32_t)PyLong_AsLong(arg);
+    memcpy(data, &i, 4);
     break;
   }
   case FFI_TYPE_SINT64:
@@ -66,6 +66,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     // TODO: raise error "Could not convert Cpp type to Python type"
     abort();
   }
+
   return data;
 }
 
@@ -222,11 +223,18 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         PyObject *pyArg = PyTuple_GetItem(args, j);
 
         switch (type_from_decl->type) {
+        case FFI_TYPE_INT:
+        case FFI_TYPE_SINT8:
+        case FFI_TYPE_UINT8:
+        case FFI_TYPE_SINT16:
+        case FFI_TYPE_UINT16:
         case FFI_TYPE_SINT32:
+        case FFI_TYPE_UINT32:
+        case FFI_TYPE_SINT64:
+        case FFI_TYPE_UINT64:
           if ((pyArg == Py_True) || (pyArg == Py_False) ||
               PyNumber_Check(pyArg) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type)) {
-
             funcNum = i;
             continue;
           } else {
@@ -235,6 +243,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           }
           break;
         case FFI_TYPE_FLOAT:
+        case FFI_TYPE_DOUBLE:
+        case FFI_TYPE_LONGDOUBLE:
           if (PyFloat_Check(pyArg)) {
             funcNum = i;
             continue;
@@ -245,7 +255,6 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           break;
         case FFI_TYPE_POINTER:
           if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
-              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
               PyUnicode_Check(pyArg)) {
             funcNum = i;
             continue;
@@ -271,36 +280,12 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         if (funcNum == -1)
           break;
       }
-      if (funcNum != -1)  // TODO: check if this redundant
+      if (funcNum != -1)
         return funcNum;
     }
   }
+
   return funcNum;
-}
-
-qvector_t *get_ffi_type_from_pyArgs(PyObject *args) {
-  size_t len = PyTuple_Size(args);
-  qvector_t *ffi_type_list =
-      qvector(MAX_SIZE, sizeof(ffi_type),
-              QVECTOR_RESIZE_EXACT); // TODO: use underlyingType info
-
-  for (int i = 0; i < len; i++) {
-    PyObject *pyArg = PyTuple_GetItem(args, i);
-    if ((pyArg == Py_True) || (pyArg == Py_False) || PyNumber_Check(pyArg)) {
-      qvector_addlast(ffi_type_list, &ffi_type_sint32);
-    } else if (PyFloat_Check(pyArg)) {
-      qvector_addlast(ffi_type_list, &ffi_type_float);
-    } else if (pyArg == Py_None) {
-      qvector_addlast(ffi_type_list, &ffi_type_void);
-    } else if (PyUnicode_Check(pyArg)) {
-      qvector_addlast(ffi_type_list, &ffi_type_pointer);
-    } else {
-      // TODO: raise error "Could not find python type"
-      abort();
-    }
-  }
-
-  return ffi_type_list;
 }
 
 const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {

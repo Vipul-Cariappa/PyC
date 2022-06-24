@@ -3,7 +3,7 @@ image:
 
 tasks:
   - command: |
-      premake5 --file=.gitpod.premake5.lua --cc=clang gmake
+      premake5 --file=.gitpod.premake5.lua gmake
       bear make
       sh ./.gitpod.run.sh
 
@@ -17,5 +17,4 @@ vscode:
     - ms-toolsai.jupyter-keymap
     - ms-toolsai.jupyter-renderers
     - Gruntfuggly.todo-tree
-    - WakaTime.vscode-wakatime
     - ms-vscode.hexeditor
