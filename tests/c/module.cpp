@@ -1,6 +1,5 @@
 #include <string>
 #include <cmath>
-#include <assert.h>
 #include "module.hpp"
 
 int add(int x, int y)
@@ -8,7 +7,7 @@ int add(int x, int y)
     return x + y;
 }
 
-long inc(long x)
+long increment_1(long x)
 {
     return ++x;
 }
