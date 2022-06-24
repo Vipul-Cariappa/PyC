@@ -1,14 +1,24 @@
 #/usr/bin/sh
 
 printf "\nBuilding PyC\n"
-make
+if ! make ; then
+    exit 1
+fi
 
 printf "\nCopying Files\n" 
-cp ./bin/Debug/libPyC.so ./tests/PyC.so
+if ! cp ./bin/Debug/libPyC.so ./tests/PyC.so ; then
+    exit 1
+fi
 
 printf "\nBuilding Testing library\n"
-g++ -g -Wall -shared -fPIC -I./tests/c/ -o tests/libcppmodule.so tests/c/module.cpp
-gcc -g -Wall -shared -fPIC -I./tests/c/ -o tests/libcmodule.so tests/c/module.c
+if ! g++ -g -Wall -shared -fPIC -I./tests/c/ -o tests/libcppmodule.so tests/c/module.cpp ; then
+    exit 1
+fi
+if ! gcc -g -Wall -shared -fPIC -I./tests/c/ -o tests/libcmodule.so tests/c/module.c ; then
+    exit 1
+fi
 
 printf "\nRunning the tests\n"
-python tests/test.py
+if ! python3 tests/test.py ; then
+    exit 1
+fi
