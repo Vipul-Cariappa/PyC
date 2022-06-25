@@ -39,7 +39,7 @@ PyTypeObject py_CppModuleType = {
     .tp_getattr = &Cpp_ModuleGet,
     .tp_setattr = &Cpp_ModuleSet,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppModule",
+    .tp_doc = CPP_MODULE_DOC_STRING,
     .tp_init = &Cpp_ModuleInit,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_ModuleGC,
@@ -51,7 +51,7 @@ PyTypeObject py_CppFunctionType = {
     .tp_itemsize = 0,
     .tp_call = &Cpp_FunctionCall,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppModule",
+    .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_FunctionGC,
 };
@@ -97,7 +97,7 @@ PyTypeObject py_c_int_type = {
     .tp_as_mapping = &c_int_as_mapping,
     .tp_getattr = &c_int_getattr,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.c_int",
+    .tp_doc = C_INT_DOC_STRING,
     .tp_iter = &c_int_iter,
     .tp_methods = c_int_methods,
     .tp_init = &c_int_init,
@@ -108,9 +108,9 @@ PyTypeObject py_c_int_type = {
 
 PyMethodDef PyC_Methods[] = {
     {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS,
-     "Load C/C++ shared object"},
+     LOAD_CPP_DOC_STRING},
     {"print_CppModule", (PyCFunction)print_PyC_CppModule, METH_VARARGS,
-     "print CppModule symbols"},
+     PRINT_CPPMODULE_DOC_STRING},
     {NULL, NULL, 0, NULL}};
 
 PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1,
@@ -161,8 +161,10 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
       } else if (mode == Py_False) {
         mangled_name_getter_fn = &clang_getCursorSpelling;
       } else {
-        // TODO: raise "TypeError: Got non boolean value for mode"
-        abort();
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Expected boolen value. Got non boolean value for mode");
+        return -1;
       }
     }
     Py_DECREF(cpp);
@@ -176,8 +178,10 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   if (!Symbols_parse(selfType->symbols, header)) {
     free_Symbols(selfType->symbols);
 
-    PyErr_SetString(py_BindingError,
-                    "Unable to parse translation unit. Quitting.");
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(py_BindingError, "Unable to parse translation unit. "
+                                       "Possible reasons: file does not exist");
+    }
     return -1;
   }
 
@@ -186,8 +190,9 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   // opening the shared library
   void *so = dlopen(library, RTLD_NOW);
   if (!so) {
-    // TODO: raise error "Unable to load the shared library. Quitting."
-    abort();
+    PyErr_SetString(py_BindingError, "Unable to load the shared library. "
+                                     "Possible reasons: file does not exist");
+    return -1;
   }
 
   selfType->so = so;
@@ -195,6 +200,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   return 0;
 }
 
+// PyCpp.CppModule.__get__
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
 
@@ -234,7 +240,13 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   else if (errno != 0)
     return NULL;
 
-  Py_RETURN_NONE;
+  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
+  if (value)
+    return value;
+
+  PyErr_SetString(py_CppError,
+                  "Could not find any declaration with given name");
+  return NULL;
 }
 
 static PyObject *new_PyCpp_CppStruct(Structure *structure) {
@@ -261,6 +273,7 @@ static void Cpp_ModuleGC(PyObject *self) {
   free_Symbols(selfType->symbols);
 }
 
+// PyCpp.CppFunction.__call__
 PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
 
@@ -271,15 +284,19 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
         py_CppError,
         "Could not find function with given declaration with same name");
     return NULL;
+  } else if (funcNum == -2) {
+    PyErr_SetString(py_BindingError, "Type Convertion of given function "
+                                     "declaration is not implemented.");
   }
 
   FunctionType *funcType =
       qvector_getat(selfType->funcType->functionTypes, funcNum, false);
 
   // getting function
-  void *func = dlsym(selfType->so, qlist_getat(selfType->funcType->mangledNames,
-                                               funcNum, NULL, false));
-  // TODO: store the func* in FunctionType
+  void *func =
+      dlsym(selfType->so,
+            qlist_getat(selfType->funcType->mangledNames, funcNum, NULL,
+                        false)); // TODO: store the func* in FunctionType
   if (!func) {
     PyErr_SetString(py_CppError, dlerror());
     return NULL;
@@ -299,6 +316,10 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   ffi_args[args_count] = NULL;
 
   void **args_values = pyArgs_to_cppArgs(args, args_list);
+  if (!args_values) {
+    return NULL;
+  }
+
   if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, &funcType->returnType,
                    ffi_args) == FFI_OK) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
@@ -307,6 +328,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   return cppArg_to_pyArg(rc, funcType->returnType);
 }
 
+// PyCpp.CppFunction.__del__
 static void Cpp_FunctionGC(PyObject *self) {
   // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
