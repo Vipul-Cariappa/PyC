@@ -200,6 +200,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   return 0;
 }
 
+// PyCpp.CppModule.__get__
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
 
@@ -239,7 +240,13 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   else if (errno != 0)
     return NULL;
 
-  Py_RETURN_NONE;
+  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
+  if (value)
+    return value;
+
+  PyErr_SetString(py_CppError,
+                  "Could not find any declaration with given name");
+  return NULL;
 }
 
 static PyObject *new_PyCpp_CppStruct(Structure *structure) {
@@ -266,6 +273,7 @@ static void Cpp_ModuleGC(PyObject *self) {
   free_Symbols(selfType->symbols);
 }
 
+// PyCpp.CppFunction.__call__
 PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
 
@@ -285,9 +293,10 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
       qvector_getat(selfType->funcType->functionTypes, funcNum, false);
 
   // getting function
-  void *func = dlsym(selfType->so, qlist_getat(selfType->funcType->mangledNames,
-                                               funcNum, NULL, false));
-  // TODO: store the func* in FunctionType
+  void *func =
+      dlsym(selfType->so,
+            qlist_getat(selfType->funcType->mangledNames, funcNum, NULL,
+                        false)); // TODO: store the func* in FunctionType
   if (!func) {
     PyErr_SetString(py_CppError, dlerror());
     return NULL;
@@ -319,6 +328,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   return cppArg_to_pyArg(rc, funcType->returnType);
 }
 
+// PyCpp.CppFunction.__del__
 static void Cpp_FunctionGC(PyObject *self) {
   // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
