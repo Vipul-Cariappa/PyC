@@ -20,6 +20,8 @@ class TestBasic(unittest.TestCase):
 
     def test_simple_functions(self):
         # c
+        self.assertEqual(cModule.add_short(2, 4), 6)
+        self.assertEqual(cModule.increment_1(12), 13)
         self.assertEqual(cModule.add(24, 46), 70)
         self.assertAlmostEqual(cModule.pi(1_000_000), 3.14159, 4)
         self.assertEqual(
@@ -30,7 +32,7 @@ class TestBasic(unittest.TestCase):
         )
 
         # cpp
-        self.assertEqual(cppModule.add_short_1(2, 4), 6)
+        self.assertEqual(cppModule.add_short(2, 4), 6)
         self.assertEqual(cppModule.increment_1(12), 13)
         self.assertEqual(cppModule.add(24, 46), 70)
         self.assertEqual(cppModule.add("Vipul", 2), "VipulVipul")

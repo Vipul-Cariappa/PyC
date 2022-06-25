@@ -12,7 +12,7 @@ long increment_1(long x)
     return ++x;
 }
 
-short add_short_1(short x, short y)
+short add_short(short x, short y)
 {
     return x + y;
 }

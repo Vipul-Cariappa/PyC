@@ -9,6 +9,16 @@ int add(int x, int y)
     return x + y;
 }
 
+long increment_1(long x)
+{
+    return ++x;
+}
+
+short add_short(short x, short y)
+{
+    return x + y;
+}
+
 int copy_int(int *destination, int *source)
 {
     *destination = *source;
