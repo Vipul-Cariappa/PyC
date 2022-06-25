@@ -12,6 +12,11 @@ long increment_1(long x)
     return ++x;
 }
 
+short add_short_1(short x, short y)
+{
+    return x + y;
+}
+
 char *add(char *s, int n)
 {
     std::string *result = new std::string("");

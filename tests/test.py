@@ -30,6 +30,7 @@ class TestBasic(unittest.TestCase):
         )
 
         # cpp
+        self.assertEqual(cppModule.add_short_1(2, 4), 6)
         self.assertEqual(cppModule.increment_1(12), 13)
         self.assertEqual(cppModule.add(24, 46), 70)
         self.assertEqual(cppModule.add("Vipul", 2), "VipulVipul")
