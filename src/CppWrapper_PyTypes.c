@@ -39,7 +39,7 @@ PyTypeObject py_CppModuleType = {
     .tp_getattr = &Cpp_ModuleGet,
     .tp_setattr = &Cpp_ModuleSet,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppModule",
+    .tp_doc = CPP_MODULE_DOC_STRING,
     .tp_init = &Cpp_ModuleInit,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_ModuleGC,
@@ -51,7 +51,7 @@ PyTypeObject py_CppFunctionType = {
     .tp_itemsize = 0,
     .tp_call = &Cpp_FunctionCall,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppModule",
+    .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_FunctionGC,
 };
@@ -97,7 +97,7 @@ PyTypeObject py_c_int_type = {
     .tp_as_mapping = &c_int_as_mapping,
     .tp_getattr = &c_int_getattr,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.c_int",
+    .tp_doc = C_INT_DOC_STRING,
     .tp_iter = &c_int_iter,
     .tp_methods = c_int_methods,
     .tp_init = &c_int_init,
@@ -108,9 +108,9 @@ PyTypeObject py_c_int_type = {
 
 PyMethodDef PyC_Methods[] = {
     {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS,
-     "Load C/C++ shared object"},
+     LOAD_CPP_DOC_STRING},
     {"print_CppModule", (PyCFunction)print_PyC_CppModule, METH_VARARGS,
-     "print CppModule symbols"},
+     PRINT_CPPMODULE_DOC_STRING},
     {NULL, NULL, 0, NULL}};
 
 PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1,
