@@ -62,8 +62,8 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     data = (char *)PyUnicode_AsUTF8(arg);
     break;
   default:
-    // TODO: raise error "Could not convert Cpp type to Python type"
-    abort();
+    PyErr_SetString(py_BindingError,
+                    "Could not convert Cpp type to Python type");
   }
 
   return data;
@@ -98,14 +98,20 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type) {
   case FFI_TYPE_POINTER: // Assuming it is char pointer
     return PyUnicode_FromString(*(char **)arg);
   default:
-    // TODO: raise error "Could not convert Cpp type to Python type"
-    abort();
+    PyErr_SetString(py_BindingError,
+                    "Could not convert Cpp type to Python type");
+    return NULL;
   }
 }
 
 void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
-  // TODO: match arg count of both args and args_type
   size_t args_len = qvector_size(args_type);
+
+  if (PyTuple_Size(args) != args_len) {
+    PyErr_SetString(py_BindingError,
+                    "Arguments passed does not match function declaration");
+    return NULL;
+  }
 
   void **rvalue = (void **)malloc(sizeof(void *) * (args_len + 1));
 
@@ -168,8 +174,9 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
           break;
         }
       default:
-        // TODO: raise error "Could not convert Python type to Cpp type"
-        abort();
+        PyErr_SetString(py_BindingError,
+                        "Could not convert Python type to Cpp type");
+        return NULL;
       }
       rvalue[i] = x;
     } else if (PyUnicode_Check(pyArg)) {
@@ -194,8 +201,9 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
         // TODO: implement
       }
     } else {
-      // TODO: raise error "Could not convert Python type to Cpp type"
-      abort();
+      PyErr_SetString(py_BindingError,
+                      "Could not convert Python type to Cpp type");
+      return NULL;
     }
   }
   rvalue[args_len] = NULL;
@@ -267,8 +275,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           }
           break;
         default:
-          // TODO: raise exception "Could not find python type"
-          abort();
+          return -2;
         }
         if (funcNum == -1)
           break;
@@ -311,8 +318,7 @@ const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
     return "char*";
   default:
     // printf("%i", type);
-    // return "Could not figure out";
-    abort();
+    return "Could not figure out";
   }
 }
 
@@ -351,8 +357,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   case FFI_TYPE_POINTER:
     return "void*";
   default:
-    // return "Could not figure out";
-    abort();
+    return "Could not figure out";
   }
 }
 
@@ -391,7 +396,8 @@ ffi_type *get_ffi_type(CXType type) {
   // case CXType_Typedef:
   //     return get_ffi_type(type);
   default:
-    // TODO: raise error "Could not Identify the type"
-    abort();
+    PyErr_SetString(py_BindingError,
+                    "Could not identify necessary types from the translation unit");
+    return NULL;
   }
 }

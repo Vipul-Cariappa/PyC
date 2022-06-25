@@ -161,8 +161,10 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
       } else if (mode == Py_False) {
         mangled_name_getter_fn = &clang_getCursorSpelling;
       } else {
-        // TODO: raise "TypeError: Got non boolean value for mode"
-        abort();
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Expected boolen value. Got non boolean value for mode");
+        return -1;
       }
     }
     Py_DECREF(cpp);
@@ -176,8 +178,10 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   if (!Symbols_parse(selfType->symbols, header)) {
     free_Symbols(selfType->symbols);
 
-    PyErr_SetString(py_BindingError,
-                    "Unable to parse translation unit. Quitting.");
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(py_BindingError, "Unable to parse translation unit. "
+                                       "Possible reasons: file does not exist");
+    }
     return -1;
   }
 
@@ -186,8 +190,9 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   // opening the shared library
   void *so = dlopen(library, RTLD_NOW);
   if (!so) {
-    // TODO: raise error "Unable to load the shared library. Quitting."
-    abort();
+    PyErr_SetString(py_BindingError, "Unable to load the shared library. "
+                                     "Possible reasons: file does not exist");
+    return -1;
   }
 
   selfType->so = so;
@@ -271,6 +276,9 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
         py_CppError,
         "Could not find function with given declaration with same name");
     return NULL;
+  } else if (funcNum == -2) {
+    PyErr_SetString(py_BindingError, "Type Convertion of given function "
+                                     "declaration is not implemented.");
   }
 
   FunctionType *funcType =
@@ -299,6 +307,10 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   ffi_args[args_count] = NULL;
 
   void **args_values = pyArgs_to_cppArgs(args, args_list);
+  if (!args_values) {
+    return NULL;
+  }
+
   if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, &funcType->returnType,
                    ffi_args) == FFI_OK) {
     ffi_call(&cif, (void (*)())func, rc, args_values);

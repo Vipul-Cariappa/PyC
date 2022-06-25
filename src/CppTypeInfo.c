@@ -334,6 +334,9 @@ bool Symbols_parse(Symbols *sym, const char *header) {
   CXCursor cursor = clang_getTranslationUnitCursor(unit);
   clang_visitChildren(cursor, visitor, sym);
 
+  if (PyErr_Occurred())
+    return false;
+
   clang_disposeTranslationUnit(unit);
   clang_disposeIndex(index);
 
@@ -351,7 +354,13 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     const char *mangledName = clang_getCString(GET_MANGLED_NAME(cursor));
 
     FunctionType funcType;
-    funcType.returnType = *(get_ffi_type(clang_getCursorResultType(cursor)));
+
+    ffi_type *return_ffi_type = get_ffi_type(clang_getCursorResultType(cursor));
+    if (!return_ffi_type) {
+      goto raise_error;
+    }
+
+    funcType.returnType = *return_ffi_type;
     funcType.argsCount = clang_Cursor_getNumArguments(cursor);
     funcType.argsType =
         qvector(MAX_SIZE, sizeof(ffi_type),
@@ -369,7 +378,11 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       else
         funcType.argsUnderlyingType[i] = 0;
 
-      qvector_addlast(funcType.argsType, get_ffi_type(arg_type));
+      ffi_type *arg_ffi_type = get_ffi_type(arg_type);
+      if (!arg_ffi_type) {
+        goto raise_error;
+      }
+      qvector_addlast(funcType.argsType, arg_ffi_type);
     }
 
     Symbols_appendFunction(symbols, funcName, mangledName,
@@ -427,11 +440,20 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     Global global;
     global.name = clang_getCString(clang_getCursorSpelling(cursor));
-    global.type = *get_ffi_type(type);
+
+    ffi_type *type_ffi_type = get_ffi_type(type);
+    if (!type_ffi_type) {
+      goto raise_error;
+    }
+
+    global.type = *type_ffi_type;
     global.underlyingType = type.kind;
 
     Symbols_appendGlobal(symbols, global); // TODO: exception handling
   }
 
   return CXChildVisit_Continue;
+
+raise_error:
+  return CXChildVisit_Break;
 }
