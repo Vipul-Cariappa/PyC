@@ -60,3 +60,23 @@ static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
 static PyObject *new_PyCpp_CppStruct(Structure *structure);
 
 CXString GET_MANGLED_NAME(CXCursor cursor);
+
+// ----- Doc String -----
+
+#define CPP_MODULE_DOC_STRING "wrapper around C/C++ module"
+
+#define CPP_FUNCTION_DOC_STRING "wrapper around C/C++ function"
+
+#define C_INT_DOC_STRING "wrapper class around C/C++ int datatype"
+
+#define LOAD_CPP_DOC_STRING                                                    \
+  "loads given dynamic library to the application memory and parses the "      \
+  "header file for global declarations\n"                                      \
+  "Positional Arguments: \n"                                                   \
+  "    library: path to dynamic library\n"                                     \
+  "    header: path to header file\n"                                          \
+  "Keyword Argument:\n"                                                        \
+  "    cpp: boolean True of the file is cpp file. (Default: False)"
+
+#define PRINT_CPPMODULE_DOC_STRING                                             \
+  "prints all the global declarations parsed from translation unit to stdout"
