@@ -1,6 +1,9 @@
 #define PY_SSIZE_T_CLEAN
 #include "Py_C_Types.h"
+#include "PyC.h"
 #include "Python.h"
+#include "structmember.h"
+#include <stddef.h>
 
 // ----- c_int -----
 PyNumberMethods c_int_as_int = {
@@ -23,17 +26,25 @@ PyMethodDef c_int_methods[] = {
      "c_int.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
+PyMemberDef c_int_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_int, isPointer), READONLY,
+     "PyC.c_int.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_int, isArray), READONLY,
+     "PyC.c_int.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
 PyTypeObject py_c_int_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_int",
     .tp_basicsize = sizeof(PyC_c_int),
     .tp_itemsize = 0,
     .tp_as_number = &c_int_as_int,
     .tp_as_mapping = &c_int_as_mapping,
-    .tp_getattr = &c_int_getattr,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.c_int",
     .tp_iter = &c_int_iter,
+    .tp_iternext = &c_int_next,
     .tp_methods = c_int_methods,
+    .tp_members = c_int_members,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
     .tp_finalize =
@@ -51,41 +62,82 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  int value;
-  if (!PyArg_ParseTuple(args, "i", &value)) {
-    return -1;
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+
+  if (PyNumber_Check(arg_1)) {
+    int value = PyLong_AsLongLong(arg_1);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    return 0;
+
+  } else if (PyTuple_Check(arg_1)) {
+    size_t len = PyTuple_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PyTuple_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected tuple of intergers or interger");
+        return -1;
+      }
+
+      int value = PyLong_AsLongLong(element);
+      selfType->pointer[i] = value;
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
   }
 
-  selfType->value = value;
-  selfType->pointer = &(selfType->value);
-  selfType->isPointer = false;
-  selfType->isArray = false;
-  selfType->arraySize = 0;
-  selfType->arrayCapacity = 0;
-
-  return 0;
+  PyErr_SetString(PyExc_TypeError, "Expected tuple or interger");
+  return -1;
 }
 
 // PyC.c_int.__iter__
 static PyObject *c_int_iter(PyObject *self) {
-  // TODO: implement c_int_iter
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  Py_RETURN_NONE;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_int instance is not an array type instance");
+  return NULL;
 }
 
-// PyC.c_int.__getattr__
-static PyObject *c_int_getattr(PyObject *self, char *attr) {
-  // TODO: implement c_int_getattr
-
+static PyObject *c_int_next(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
+  PyObject *rvalue = NULL;
 
-  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
-  if (value)
-    return value;
+  size_t index = selfType->_i;
 
-  PyErr_Clear();
-  Py_RETURN_NONE;
+  if (selfType->arraySize > index) {
+    rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
 }
 
 // PyC.c_int.__del__
@@ -143,26 +195,63 @@ static PyObject *c_int_to_int(PyObject *self) {
 
 // PyC.c_int.__len__
 static Py_ssize_t c_int_len(PyObject *self) {
-  // TODO: implement c_int_len
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  return 0;
+  return selfType->arraySize;
 }
 
 // PyC.c_int.__getitem__
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr) {
-  // TODO: implement c_int_getitem
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_int is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    return PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return NULL;
 }
 
 // PyC.c_int.__setitem__
 static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value) {
-  // TODO: implement c_int_setitem
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  return 0;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_int is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    int int_value = PyLong_AsLongLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return -1;
 }
 
 // ----- c_double -----
@@ -558,11 +647,11 @@ static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->isPointer = true;
     selfType->isArray = true;
 
-    char *string = malloc(len+1);
+    char *string = malloc(len + 1);
     strcpy(string, value);
     selfType->pointer = string;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len+1;
+    selfType->arrayCapacity = len + 1;
   } else if (len == 0) {
     selfType->value = 0;
     selfType->pointer = &(selfType->value);
@@ -680,7 +769,7 @@ static Py_ssize_t c_char_len(PyObject *self) {
   // TODO: implement c_char_len
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  
+
   return selfType->arraySize;
 }
 

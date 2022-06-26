@@ -13,11 +13,12 @@ typedef struct PyC_c_int {
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
+  size_t _i; // for iteration purpose
 } PyC_c_int;
 
 static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_int_iter(PyObject *self);
-static PyObject *c_int_getattr(PyObject *self, char *attr);
+static PyObject *c_int_next(PyObject *self);
 static void c_int_finalizer(PyObject *self);
 static PyObject *c_int_append(PyObject *self, PyObject *args);
 static PyObject *c_int_pop(PyObject *self);

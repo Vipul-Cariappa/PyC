@@ -9,6 +9,7 @@ typedef struct RECT {
 
 int add(int x, int y);
 int copy_int(int *destination, int *source);
+int write_int(int *destination, int value);
 double copy_double(double *destination, double *source);
 char *concat(char *x, char *y);
 double pi(int n);

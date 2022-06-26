@@ -45,23 +45,43 @@ class TestBasic(unittest.TestCase):
         )
 
     def test_pointer_args_with_functions(self):
+        # c_int
         n1 = PyC.c_int(1)
         n2 = PyC.c_int(10)
         cModule.copy_int(n1, n2)
         self.assertEqual(n1.value(), 10)
         self.assertEqual(n2.value(), 10)
 
+        c_int_array = PyC.c_int((1, 2, 3))
+        cModule.write_int(c_int_array, 100)
+        c_int_array[1] = 200
+        c_int_array[2] = 300
+
+        self.assertEqual(c_int_array[0], 100)
+        self.assertEqual(c_int_array[1], 200)
+        self.assertEqual(c_int_array[2], 300)
+
+        self.assertFalse(n1.is_pointer)
+        self.assertFalse(n1.is_array)
+        
+        self.assertTrue(c_int_array.is_pointer)
+        self.assertTrue(c_int_array.is_array)
+        self.assertEqual(len(c_int_array), 3)
+
+        # c_double
         d1 = PyC.c_double(20.20)
         d2 = PyC.c_double(3.14)
         cModule.copy_double(d1, d2)
         self.assertAlmostEqual(d1.value(), 3.14, 4)
         self.assertAlmostEqual(d2.value(), 3.14, 4)
 
+        # c_bool
         b_true = PyC.c_bool(True)
         b_false = PyC.c_bool(0)
         self.assertTrue(bool(b_true))
         self.assertFalse(bool(b_false))
-
+        
+        # c_char
         string = "vipul "
         c_string_empty = PyC.c_char("")
         c_string_char = PyC.c_char("#")

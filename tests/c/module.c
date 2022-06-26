@@ -11,6 +11,11 @@ int copy_int(int *destination, int *source) {
   return *destination;
 }
 
+int write_int(int *destination, int value) {
+  *destination = value;
+  return *destination;
+}
+
 double copy_double(double *destination, double *source) {
   *destination = *source;
   return *destination;
