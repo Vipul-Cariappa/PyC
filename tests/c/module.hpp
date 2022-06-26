@@ -10,6 +10,7 @@ struct RECT {
 
 int add(int x, int y);
 char *add(char *s, int n);
+char *repeat_char(char s, int n);
 int copy_int(int *destination, int *source);
 char *concat(char *x, char *y);
 double pi(int n);

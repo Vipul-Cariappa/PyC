@@ -23,6 +23,22 @@ char *add(char *s, int n)
   return (char *)result->c_str();
 }
 
+char *repeat_char(char s, int n)
+{
+    std::string *result = new std::string("");
+    char x[2];
+    x[0] = s;
+    x[1] = 0;
+
+    std::string str = std::string(x);
+
+  for (int i = 0; i < n; i++) {
+    *result += str;
+  }
+
+  return (char *)result->c_str();
+}
+
 int copy_int(int *destination, int *source) {
   *destination = *source;
   return *destination;

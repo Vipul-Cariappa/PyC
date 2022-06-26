@@ -124,12 +124,15 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
       void *x = malloc(type.size);
       *(char *)x = 1;
       rvalue[i] = x;
+
     } else if (pyArg == Py_False) {
       void *x = malloc(type.size);
       memset(x, 0, type.size);
       rvalue[i] = x;
+
     } else if (PyNumber_Check(pyArg)) {
       void *x = malloc(type.size);
+
       switch (type.type) {
       case FFI_TYPE_INT:
         *(int *)x = (int)PyLong_AsDouble(PyNumber_Long(pyArg));
@@ -175,39 +178,61 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
           *tmp = ((PyC_c_int *)pyArg)->pointer;
           x = tmp;
           break;
+
         } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
           void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
           *tmp = ((PyC_c_int *)pyArg)->pointer;
           x = tmp;
           break;
         }
+
       default:
-        PyErr_SetString(py_BindingError,
-                        "Could not convert Python type to Cpp type");
+        // TODO: check for memory leaks
+        PyErr_SetString(
+            py_BindingError,
+            "Could not convert Python type to Cpp type"); // TODO: err msg
+
         return NULL;
       }
+
       rvalue[i] = x;
+
     } else if (PyUnicode_Check(pyArg)) {
-      if (type.type == FFI_TYPE_POINTER) // char pointer
-      {
+      if (type.type == FFI_TYPE_POINTER) {
+        // char pointer
+        // TODO: implement wchar
         PyObject *encodedString =
             PyUnicode_AsEncodedString(pyArg, "UTF-8", "strict");
+
         if (encodedString) {
           char *result = PyBytes_AsString(encodedString);
           if (result) {
             void **x = (void **)malloc(sizeof(char **));
             x[0] = result;
             rvalue[i] = x;
-          } else {
-            // raise error
-          }
-        } else {
-          // raise error
-        }
-      } else // char and wchar., etc
-      {
-        // TODO: implement
+
+          } // TODO: handle else part
+
+        } // TODO: handle else part
+
+      } else if ((type.type == FFI_TYPE_SINT8) ||
+                 (type.type == FFI_TYPE_UINT8)) {
+        // TODO: implement python string to c char
       }
+
+    } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type)) {
+      PyC_c_char *selfType = (PyC_c_char *)pyArg;
+
+      if (type.type == FFI_TYPE_POINTER) {
+        // char pointer
+        rvalue[i] = &(selfType->pointer);
+
+      } else if ((type.type == FFI_TYPE_SINT8) ||
+                 (type.type == FFI_TYPE_UINT8)) {
+        // TODO: verify not pointer
+        rvalue[i] = selfType->pointer;
+      }
+
     } else {
       PyErr_SetString(py_BindingError,
                       "Could not convert Python type to Cpp type");
@@ -232,11 +257,15 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         PyObject *pyArg = PyTuple_GetItem(args, j);
 
         switch (type_from_decl->type) {
-        case FFI_TYPE_INT:
         case FFI_TYPE_SINT8:
         case FFI_TYPE_UINT8:
+          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type)) {
+            funcNum = i;
+            continue;
+          }
         case FFI_TYPE_SINT16:
         case FFI_TYPE_UINT16:
+        case FFI_TYPE_INT:
         case FFI_TYPE_SINT32:
         case FFI_TYPE_UINT32:
         case FFI_TYPE_SINT64:
@@ -266,6 +295,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_POINTER:
           if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type) ||
               PyUnicode_Check(pyArg)) {
             funcNum = i;
             continue;
@@ -406,8 +436,9 @@ ffi_type *get_ffi_type(CXType type) {
   // case CXType_Typedef:
   //     return get_ffi_type(type);
   default:
-    PyErr_SetString(py_BindingError,
-                    "Could not identify necessary types from the translation unit");
+    PyErr_SetString(
+        py_BindingError,
+        "Could not identify necessary types from the translation unit");
     return NULL;
   }
 }
