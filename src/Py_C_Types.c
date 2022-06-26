@@ -499,3 +499,203 @@ static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
   return 0;
 }
+
+// ----- c_char -----
+
+PyMappingMethods c_char_as_mapping = {
+    .mp_length = &c_char_len,
+    .mp_subscript = &c_char_getitem,
+    .mp_ass_subscript = &c_char_setitem,
+};
+
+PyMethodDef c_char_methods[] = {
+    {"append", (PyCFunction)&c_char_append, METH_VARARGS, "c_char.append()"},
+    {"pop", (PyCFunction)&c_char_pop, METH_NOARGS, "c_char.pop()"},
+    {"value", (PyCFunction)&c_char_value, METH_NOARGS, "c_char.value()"},
+    {"donot_free", (PyCFunction)&c_char_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_char.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_char_to_pointer, METH_NOARGS,
+     "c_char.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyTypeObject py_c_char_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_char",
+    .tp_basicsize = sizeof(PyC_c_char),
+    .tp_itemsize = 0,
+    .tp_as_mapping = &c_char_as_mapping,
+    .tp_str = &c_char_to_str,
+    .tp_getattr = &c_char_getattr,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_char",
+    .tp_iter = &c_char_iter,
+    .tp_methods = c_char_methods,
+    .tp_init = &c_char_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize =
+        &c_char_finalizer, // TODO: use .tp_getset for PyC_c_char's attributes
+};
+
+// ----- c_char: functions and methods -----
+
+// PyC.c_char.__init__
+static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement init from PyTrue / PyFalse
+  // TODO: implement init from iter
+  // TODO: implement init from c_pointer
+  // TODO: implement keyword args: is_pointer, is_array
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  char *value;
+  if (!PyArg_ParseTuple(args, "s", &value)) {
+    return -1;
+  }
+
+  size_t len = strlen(value);
+
+  if (len > 1) {
+    selfType->value = 0;
+    selfType->isPointer = true;
+    selfType->isArray = true;
+
+    char *string = malloc(len+1);
+    strcpy(string, value);
+    selfType->pointer = string;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len+1;
+  } else if (len == 0) {
+    selfType->value = 0;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+  } else {
+    selfType->value = value[0];
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 1;
+    selfType->arrayCapacity = 0;
+  }
+
+  return 0;
+}
+
+// PyC.c_char.__iter__
+static PyObject *c_char_iter(PyObject *self) {
+  // TODO: implement c_char_iter
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.__getattr__
+static PyObject *c_char_getattr(PyObject *self, char *attr) {
+  // TODO: implement c_char_getattr
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
+  if (value)
+    return value;
+
+  PyErr_Clear();
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.__del__
+static void c_char_finalizer(PyObject *self) {
+  // TODO: implement c_char_finalizer
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  return;
+}
+
+// PyC.c_char.append
+static PyObject *c_char_append(PyObject *self, PyObject *args) {
+  // TODO: implement c_char_append
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.pop
+static PyObject *c_char_pop(PyObject *self) {
+  // TODO: implement c_char_pop
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.value
+static PyObject *c_char_value(PyObject *self) {
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  if (selfType->isPointer) {
+    return PyUnicode_FromString(selfType->pointer);
+  } else {
+    char string[2];
+    string[0] = selfType->value;
+    string[1] = 0;
+
+    return PyUnicode_FromString(string);
+  }
+}
+
+// PyC.c_char.donot_free
+static PyObject *c_char_donot_free(PyObject *self, PyObject *args,
+                                   PyObject *kwargs) {
+  // TODO: implement c_char_donot_free
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.to_pointer
+static PyObject *c_char_to_pointer(PyObject *self) {
+  // TODO: implement c_char_to_pointer
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.__char__
+static PyObject *c_char_to_str(PyObject *self) {
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  if (selfType->isPointer) {
+    return PyUnicode_FromString(selfType->pointer);
+  } else {
+    char string[2];
+    string[0] = selfType->value;
+    string[1] = 0;
+
+    return PyUnicode_FromString(string);
+  }
+}
+
+// PyC.c_char.__len__
+static Py_ssize_t c_char_len(PyObject *self) {
+  // TODO: implement c_char_len
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  
+  return selfType->arraySize;
+}
+
+// PyC.c_char.__getitem__
+static PyObject *c_char_getitem(PyObject *self, PyObject *attr) {
+  // TODO: implement c_char_getitem
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_char.__setitem__
+static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  // TODO: implement c_char_setitem
+
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  return 0;
+}

@@ -62,6 +62,19 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(bool(b_true))
         self.assertFalse(bool(b_false))
 
+        c_string_empty = PyC.c_char("")
+        c_string_char = PyC.c_char("#")
+        c_string = PyC.c_char("vipul cariappa")
+
+        self.assertEqual(len(c_string_empty), 0)
+        self.assertEqual(len(c_string_char), 1)
+        self.assertEqual(len(c_string), len("vipul cariappa"))
+
+        self.assertEqual(str(c_string_empty), "")
+        self.assertEqual(str(c_string_char), "#")
+        self.assertEqual(str(c_string), "vipul cariappa")
+
+
 
     def test_function_with_c_types(self):
         self.assertEqual(cModule.add(PyC.c_int(24), PyC.c_int(46)), 70)
