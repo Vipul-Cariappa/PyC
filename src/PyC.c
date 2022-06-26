@@ -96,6 +96,18 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
+  
+  // creating c_type: c_bool
+  if (PyType_Ready(&py_c_bool_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_bool_type);
+  if (PyModule_AddObject(m, "c_bool", (PyObject *)&py_c_bool_type) < 0) {
+    Py_DECREF(&py_c_bool_type);
+    Py_DECREF(m);
+    return NULL;
+  }
 
   PyC = m;
   return m;

@@ -57,6 +57,12 @@ class TestBasic(unittest.TestCase):
         self.assertAlmostEqual(d1.value(), 3.14, 4)
         self.assertAlmostEqual(d2.value(), 3.14, 4)
 
+        b_true = PyC.c_bool(True)
+        b_false = PyC.c_bool(0)
+        self.assertTrue(bool(b_true))
+        self.assertFalse(bool(b_false))
+
+
     def test_function_with_c_types(self):
         self.assertEqual(cModule.add(PyC.c_int(24), PyC.c_int(46)), 70)
         self.assertAlmostEqual(cModule.copy_double(

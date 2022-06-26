@@ -328,3 +328,174 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   PyC_c_double *selfType = (PyC_c_double *)self;
   return 0;
 }
+
+// ----- c_bool -----
+PyNumberMethods c_bool_as_bool = {
+    .nb_bool = &c_bool_to_bool,
+};
+
+PyMappingMethods c_bool_as_mapping = {
+    .mp_length = &c_bool_len,
+    .mp_subscript = &c_bool_getitem,
+    .mp_ass_subscript = &c_bool_setitem,
+};
+
+PyMethodDef c_bool_methods[] = {
+    {"append", (PyCFunction)&c_bool_append, METH_VARARGS, "c_bool.append()"},
+    {"pop", (PyCFunction)&c_bool_pop, METH_NOARGS, "c_bool.pop()"},
+    {"value", (PyCFunction)&c_bool_value, METH_NOARGS, "c_bool.value()"},
+    {"donot_free", (PyCFunction)&c_bool_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_bool.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_bool_to_pointer, METH_NOARGS,
+     "c_bool.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyTypeObject py_c_bool_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_bool",
+    .tp_basicsize = sizeof(PyC_c_bool),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_bool_as_bool,
+    .tp_as_mapping = &c_bool_as_mapping,
+    .tp_getattr = &c_bool_getattr,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_bool",
+    .tp_iter = &c_bool_iter,
+    .tp_methods = c_bool_methods,
+    .tp_init = &c_bool_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize =
+        &c_bool_finalizer, // TODO: use .tp_getset for PyC_c_bool's attributes
+};
+
+// ----- c_bool: functions and methods -----
+
+// PyC.c_bool.__init__
+static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement init from PyTrue / PyFalse
+  // TODO: implement init from iter
+  // TODO: implement init from c_pointer
+  // TODO: implement keyword args: is_pointer, is_array
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  int value;
+  if (!PyArg_ParseTuple(args, "p", &value)) {
+    return -1;
+  }
+
+  selfType->value = (bool)value;
+  selfType->pointer = &(selfType->value);
+  selfType->isPointer = false;
+  selfType->isArray = false;
+  selfType->arraySize = 0;
+  selfType->arrayCapacity = 0;
+
+  return 0;
+}
+
+// PyC.c_bool.__iter__
+static PyObject *c_bool_iter(PyObject *self) {
+  // TODO: implement c_bool_iter
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.__getattr__
+static PyObject *c_bool_getattr(PyObject *self, char *attr) {
+  // TODO: implement c_bool_getattr
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
+  if (value)
+    return value;
+
+  PyErr_Clear();
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.__del__
+static void c_bool_finalizer(PyObject *self) {
+  // TODO: implement c_bool_finalizer
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  return;
+}
+
+// PyC.c_bool.append
+static PyObject *c_bool_append(PyObject *self, PyObject *args) {
+  // TODO: implement c_bool_append
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.pop
+static PyObject *c_bool_pop(PyObject *self) {
+  // TODO: implement c_bool_pop
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.value
+static PyObject *c_bool_value(PyObject *self) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (selfType->value) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
+}
+
+// PyC.c_bool.donot_free
+static PyObject *c_bool_donot_free(PyObject *self, PyObject *args,
+                                   PyObject *kwargs) {
+  // TODO: implement c_bool_donot_free
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.to_pointer
+static PyObject *c_bool_to_pointer(PyObject *self) {
+  // TODO: implement c_bool_to_pointer
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.__bool__
+static int c_bool_to_bool(PyObject *self) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (selfType->value) {
+    return 1;
+  }
+  return 0;
+}
+
+// PyC.c_bool.__len__
+static Py_ssize_t c_bool_len(PyObject *self) {
+  // TODO: implement c_bool_len
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  return 0;
+}
+
+// PyC.c_bool.__getitem__
+static PyObject *c_bool_getitem(PyObject *self, PyObject *attr) {
+  // TODO: implement c_bool_getitem
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_bool.__setitem__
+static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  // TODO: implement c_bool_setitem
+
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+  return 0;
+}

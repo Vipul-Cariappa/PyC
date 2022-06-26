@@ -43,7 +43,6 @@ typedef struct PyC_c_double {
   size_t arrayCapacity;
 } PyC_c_double;
 
-
 static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_double_iter(PyObject *self);
 static PyObject *c_double_getattr(PyObject *self, char *attr);
@@ -52,9 +51,37 @@ static PyObject *c_double_append(PyObject *self, PyObject *args);
 static PyObject *c_double_pop(PyObject *self);
 static PyObject *c_double_value(PyObject *self);
 static PyObject *c_double_donot_free(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+                                     PyObject *kwargs);
 static PyObject *c_double_to_pointer(PyObject *self);
 static PyObject *c_double_to_float(PyObject *self);
 static Py_ssize_t c_double_len(PyObject *self);
 static PyObject *c_double_getitem(PyObject *self, PyObject *attr);
 static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
+// c_type: c_bool
+extern PyTypeObject py_c_bool_type;
+
+typedef struct PyC_c_bool {
+  PyObject_HEAD;
+  bool value;
+  bool *pointer;
+  bool isPointer;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+} PyC_c_bool;
+
+static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_bool_iter(PyObject *self);
+static PyObject *c_bool_getattr(PyObject *self, char *attr);
+static void c_bool_finalizer(PyObject *self);
+static PyObject *c_bool_append(PyObject *self, PyObject *args);
+static PyObject *c_bool_pop(PyObject *self);
+static PyObject *c_bool_value(PyObject *self);
+static PyObject *c_bool_donot_free(PyObject *self, PyObject *args,
+                                   PyObject *kwargs);
+static PyObject *c_bool_to_pointer(PyObject *self);
+static int c_bool_to_bool(PyObject *self);
+static Py_ssize_t c_bool_len(PyObject *self);
+static PyObject *c_bool_getitem(PyObject *self, PyObject *attr);
+static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value);
