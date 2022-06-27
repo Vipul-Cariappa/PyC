@@ -145,23 +145,76 @@ static void c_int_finalizer(PyObject *self) {
   // TODO: implement c_int_finalizer
 
   PyC_c_int *selfType = (PyC_c_int *)self;
-  return;
+  free(selfType->pointer);
 }
 
 // PyC.c_int.append
 static PyObject *c_int_append(PyObject *self, PyObject *args) {
-  // TODO: implement c_int_append
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_int is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  int value = PyLong_AsLongLong(item);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arraySize * 2) * sizeof(int);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(int);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  Py_INCREF(item);
+  return item;
 }
 
 // PyC.c_int.pop
 static PyObject *c_int_pop(PyObject *self) {
-  // TODO: implement c_int_pop
-
   PyC_c_int *selfType = (PyC_c_int *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_int is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
+  selfType->pointer[(selfType->arraySize) - 1] = 0;
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
 }
 
 // PyC.c_int.value
