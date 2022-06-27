@@ -7,11 +7,11 @@
 
 int add(int x, int y) { return x + y; }
 
-bool invert(bool x) { 
+bool invert(bool x) {
   if (x)
     return false;
   return true;
- }
+}
 
 int copy_int(int *destination, int *source) {
   *destination = *source;
@@ -28,15 +28,9 @@ double copy_double(double *destination, double *source) {
   return *destination;
 }
 
-long increment_1(long x)
-{
-    return ++x;
-}
+long increment_1(long x) { return ++x; }
 
-short add_short(short x, short y)
-{
-    return x + y;
-}
+short add_short(short x, short y) { return x + y; }
 
 char *concat(char *x, char *y) {
   size_t len_x = strlen(x);

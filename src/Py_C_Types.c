@@ -47,16 +47,13 @@ PyTypeObject py_c_int_type = {
     .tp_members = c_int_members,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize =
-        &c_int_finalizer, // TODO: use .tp_getset for PyC_c_int's attributes
+    .tp_finalize = &c_int_finalizer,
 };
 
 // ----- c_int: functions and methods -----
 
 // PyC.c_int.__init__
 static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from Pyint
-  // TODO: implement init from iter
   // TODO: implement init from c_pointer
   // TODO: implement keyword args: is_pointer, is_array
 
@@ -144,7 +141,7 @@ static PyObject *c_int_next(PyObject *self) {
 // PyC.c_int.__del__
 static void c_int_finalizer(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
-  
+
   free(selfType->pointer);
 }
 
@@ -350,16 +347,13 @@ PyTypeObject py_c_double_type = {
     .tp_members = c_double_members,
     .tp_init = &c_double_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_double_finalizer, // TODO: use .tp_getset for
-                                        // PyC_c_double's attributes
+    .tp_finalize = &c_double_finalizer,
 };
 
 // ----- c_double: functions and methods -----
 
 // PyC.c_double.__init__
 static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from PyDouble
-  // TODO: implement init from iter
   // TODO: implement init from c_pointer
   // TODO: implement keyword args: is_pointer, is_array
 
@@ -395,8 +389,7 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PyTuple_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError,
-                        "Expected tuple of floats or float");
+        PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
         return -1;
       }
 
@@ -447,7 +440,7 @@ static PyObject *c_double_next(PyObject *self) {
 // PyC.c_double.__del__
 static void c_double_finalizer(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
-  
+
   free(selfType->pointer);
 }
 
@@ -464,8 +457,7 @@ static PyObject *c_double_append(PyObject *self, PyObject *args) {
   PyObject *item = PyTuple_GetItem(args, 0);
 
   if (!(PyNumber_Check(item))) {
-    PyErr_SetString(PyExc_TypeError,
-                    "Expected float type got some other type");
+    PyErr_SetString(PyExc_TypeError, "Expected float type got some other type");
     return NULL;
   }
 
@@ -566,8 +558,7 @@ static PyObject *c_double_getitem(PyObject *self, PyObject *attr) {
   }
 
   if (!(PyNumber_Check(attr))) {
-    PyErr_SetString(PyExc_TypeError,
-                    "Expected float type got some other type");
+    PyErr_SetString(PyExc_TypeError, "Expected float type got some other type");
     return NULL;
   }
 
@@ -584,7 +575,7 @@ static PyObject *c_double_getitem(PyObject *self, PyObject *attr) {
 // PyC.c_double.__setitem__
 static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   PyC_c_double *selfType = (PyC_c_double *)self;
-  
+
   if (!(selfType->isArray)) {
     PyErr_SetString(py_CppError,
                     "given instance of c_double is not an array type instance");
@@ -652,7 +643,6 @@ PyTypeObject py_c_bool_type = {
 
 // PyC.c_bool.__init__
 static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from PyTrue / PyFalse
   // TODO: implement init from iter
   // TODO: implement init from c_pointer
   // TODO: implement keyword args: is_pointer, is_array
@@ -820,8 +810,6 @@ PyTypeObject py_c_char_type = {
 
 // PyC.c_char.__init__
 static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from PyTrue / PyFalse
-  // TODO: implement init from iter
   // TODO: implement init from c_pointer
   // TODO: implement keyword args: is_pointer, is_array
 
