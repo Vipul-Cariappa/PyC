@@ -42,11 +42,12 @@ typedef struct PyC_c_double {
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
+  size_t _i; // for iteration purpose
 } PyC_c_double;
 
 static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_double_iter(PyObject *self);
-static PyObject *c_double_getattr(PyObject *self, char *attr);
+static PyObject *c_double_next(PyObject *self);
 static void c_double_finalizer(PyObject *self);
 static PyObject *c_double_append(PyObject *self, PyObject *args);
 static PyObject *c_double_pop(PyObject *self);

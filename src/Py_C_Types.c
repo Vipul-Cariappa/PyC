@@ -125,6 +125,7 @@ static PyObject *c_int_iter(PyObject *self) {
   return NULL;
 }
 
+// PyC.c_int.__next__
 static PyObject *c_int_next(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
   PyObject *rvalue = NULL;
@@ -142,9 +143,8 @@ static PyObject *c_int_next(PyObject *self) {
 
 // PyC.c_int.__del__
 static void c_int_finalizer(PyObject *self) {
-  // TODO: implement c_int_finalizer
-
   PyC_c_int *selfType = (PyC_c_int *)self;
+  
   free(selfType->pointer);
 }
 
@@ -329,17 +329,25 @@ PyMethodDef c_double_methods[] = {
      "c_double.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
+PyMemberDef c_double_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_double, isPointer), READONLY,
+     "PyC.c_double.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_double, isArray), READONLY,
+     "PyC.c_double.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
 PyTypeObject py_c_double_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_double",
     .tp_basicsize = sizeof(PyC_c_double),
     .tp_itemsize = 0,
     .tp_as_number = &c_double_as_double,
     .tp_as_mapping = &c_double_as_mapping,
-    .tp_getattr = &c_double_getattr,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.c_double",
     .tp_iter = &c_double_iter,
+    .tp_iternext = &c_double_next,
     .tp_methods = c_double_methods,
+    .tp_members = c_double_members,
     .tp_init = &c_double_init,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &c_double_finalizer, // TODO: use .tp_getset for
@@ -357,65 +365,159 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   PyC_c_double *selfType = (PyC_c_double *)self;
 
-  double value;
-  if (!PyArg_ParseTuple(args, "d", &value)) {
-    return -1;
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+
+  if (PyNumber_Check(arg_1)) {
+    double value = PyFloat_AsDouble(arg_1);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    return 0;
+
+  } else if (PyTuple_Check(arg_1)) {
+    size_t len = PyTuple_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PyTuple_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected tuple of floats or float");
+        return -1;
+      }
+
+      double value = PyFloat_AsDouble(element);
+      selfType->pointer[i] = value;
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
   }
 
-  selfType->value = value;
-  selfType->pointer = &(selfType->value);
-  selfType->isPointer = false;
-  selfType->isArray = false;
-  selfType->arraySize = 0;
-  selfType->arrayCapacity = 0;
-
-  return 0;
+  PyErr_SetString(PyExc_TypeError, "Expected tuple or float");
+  return -1;
 }
 
 // PyC.c_double.__iter__
 static PyObject *c_double_iter(PyObject *self) {
-  // TODO: implement c_double_iter
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  Py_RETURN_NONE;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_double instance is not an array type instance");
+  return NULL;
 }
 
-// PyC.c_double.__getattr__
-static PyObject *c_double_getattr(PyObject *self, char *attr) {
-  // TODO: implement c_double_getattr
+// PyC.c_double.__next__
+static PyObject *c_double_next(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyObject *rvalue = NULL;
 
-  PyC_c_double *selfType = (PyC_c_double *)self;
+  size_t index = selfType->_i;
 
-  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
-  if (value)
-    return value;
+  if (selfType->arraySize > index) {
+    rvalue = PyFloat_FromDouble((selfType->pointer)[index]);
+  }
 
-  PyErr_Clear();
-  Py_RETURN_NONE;
+  (selfType->_i)++;
+
+  return rvalue;
 }
 
 // PyC.c_double.__del__
 static void c_double_finalizer(PyObject *self) {
-  // TODO: implement c_double_finalizer
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  return;
+  
+  free(selfType->pointer);
 }
 
 // PyC.c_double.append
 static PyObject *c_double_append(PyObject *self, PyObject *args) {
-  // TODO: implement c_double_append
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_double is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected float type got some other type");
+    return NULL;
+  }
+
+  double value = PyFloat_AsDouble(item);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arraySize * 2) * sizeof(double);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(double);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  Py_INCREF(item);
+  return item;
 }
 
 // PyC.c_double.pop
 static PyObject *c_double_pop(PyObject *self) {
-  // TODO: implement c_double_pop
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_double is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      PyFloat_FromDouble(selfType->pointer[(selfType->arraySize) - 1]);
+  selfType->pointer[(selfType->arraySize) - 1] = 0;
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
 }
 
 // PyC.c_double.value
@@ -449,26 +551,63 @@ static PyObject *c_double_to_float(PyObject *self) {
 
 // PyC.c_double.__len__
 static Py_ssize_t c_double_len(PyObject *self) {
-  // TODO: implement c_double_len
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  return 0;
+  return selfType->arraySize;
 }
 
 // PyC.c_double.__getitem__
 static PyObject *c_double_getitem(PyObject *self, PyObject *attr) {
-  // TODO: implement c_double_getitem
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  Py_RETURN_NONE;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_double is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected float type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    return PyFloat_FromDouble((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return NULL;
 }
 
 // PyC.c_double.__setitem__
 static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
-  // TODO: implement c_double_setitem
-
   PyC_c_double *selfType = (PyC_c_double *)self;
-  return 0;
+  
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_double is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    double int_value = PyFloat_AsDouble(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return -1;
 }
 
 // ----- c_bool -----
