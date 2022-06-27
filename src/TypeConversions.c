@@ -428,6 +428,7 @@ ffi_type *get_ffi_type(CXType type) {
   case CXType_ULongLong:
     return &ffi_type_uint64;
   case CXType_Char_U:
+  case CXType_Bool:
     return &ffi_type_uchar;
   case CXType_Char_S:
     return &ffi_type_schar;

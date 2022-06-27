@@ -23,6 +23,8 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(cModule.add_short(2, 4), 6)
         self.assertEqual(cModule.increment_1(12), 13)
         self.assertEqual(cModule.add(24, 46), 70)
+        self.assertTrue(cModule.invert(0))
+        self.assertFalse(cModule.invert(True))
         self.assertAlmostEqual(cModule.pi(1_000_000), 3.14159, 4)
         self.assertEqual(
             cModule.concat(

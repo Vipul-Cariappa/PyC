@@ -1,10 +1,17 @@
 #include "module.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int add(int x, int y) { return x + y; }
+
+bool invert(bool x) { 
+  if (x)
+    return false;
+  return true;
+ }
 
 int copy_int(int *destination, int *source) {
   *destination = *source;
