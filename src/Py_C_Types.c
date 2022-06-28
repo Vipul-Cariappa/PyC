@@ -171,7 +171,7 @@ static PyObject *c_int_append(PyObject *self, PyObject *args) {
 
     selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arraySize * 2) * sizeof(int);
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(int);
     selfType->pointer = realloc(selfType->pointer, new_capacity);
     selfType->arrayCapacity = new_capacity / sizeof(int);
 
@@ -469,7 +469,7 @@ static PyObject *c_double_append(PyObject *self, PyObject *args) {
 
     selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arraySize * 2) * sizeof(double);
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(double);
     selfType->pointer = realloc(selfType->pointer, new_capacity);
     selfType->arrayCapacity = new_capacity / sizeof(double);
 
