@@ -19,6 +19,11 @@ short add_short(short x, short y)
     return x + y;
 }
 
+long long add_long_long(long long x, long long y)
+{
+    return x + y;
+}
+
 int copy_int(int *destination, int *source)
 {
     *destination = *source;
