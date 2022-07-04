@@ -28,12 +28,6 @@ long long add_long_long(long long x, long long y)
     return x + y;
 }
 
-int copy_int(int *destination, int *source)
-{
-    *destination = *source;
-    return *destination;
-}
-
 double copy_double(double *destination, double *source) {
   *destination = *source;
   return *destination;

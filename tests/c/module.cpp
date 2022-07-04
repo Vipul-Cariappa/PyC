@@ -24,17 +24,6 @@ long long add_long_long(long long x, long long y)
     return x + y;
 }
 
-char *add(char *s, int n) {
-  std::string *result = new std::string("");
-  std::string str = std::string(s);
-
-  for (int i = 0; i < n; i++) {
-    *result += str;
-  }
-
-  return (char *)result->c_str();
-}
-
 char *repeat_char(char s, int n) {
   std::string *result = new std::string("");
   char x[2];
