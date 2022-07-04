@@ -96,7 +96,43 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
+  // creating c_type: c_float
+  if (PyType_Ready(&py_c_float_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_float_type);
+  if (PyModule_AddObject(m, "c_float", (PyObject *)&py_c_float_type) < 0) {
+    Py_DECREF(&py_c_float_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_short
+  if (PyType_Ready(&py_c_short_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_short_type);
+  if (PyModule_AddObject(m, "c_short", (PyObject *)&py_c_short_type) < 0) {
+    Py_DECREF(&py_c_short_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_long
+  if (PyType_Ready(&py_c_long_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_long_type);
+  if (PyModule_AddObject(m, "c_long", (PyObject *)&py_c_long_type) < 0) {
+    Py_DECREF(&py_c_long_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
   // creating c_type: c_bool
   if (PyType_Ready(&py_c_bool_type) < 0) {
     return NULL;

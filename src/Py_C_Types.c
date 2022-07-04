@@ -601,6 +601,302 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+// ----- c_float -----
+PyNumberMethods c_float_as_float = {
+    .nb_float = &c_float_to_float,
+};
+
+PyMappingMethods c_float_as_mapping = {
+    .mp_length = &c_float_len,
+    .mp_subscript = &c_float_getitem,
+    .mp_ass_subscript = &c_float_setitem,
+};
+
+PyMethodDef c_float_methods[] = {
+    {"append", (PyCFunction)&c_float_append, METH_VARARGS, "c_float.append()"},
+    {"pop", (PyCFunction)&c_float_pop, METH_NOARGS, "c_float.pop()"},
+    {"value", (PyCFunction)&c_float_value, METH_NOARGS, "c_float.value()"},
+    {"donot_free", (PyCFunction)&c_float_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_float.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_float_to_pointer, METH_NOARGS,
+     "c_float.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyMemberDef c_float_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_float, isPointer), READONLY,
+     "PyC.c_float.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_float, isArray), READONLY,
+     "PyC.c_float.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyTypeObject py_c_float_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_float",
+    .tp_basicsize = sizeof(PyC_c_float),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_float_as_float,
+    .tp_as_mapping = &c_float_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_float",
+    .tp_iter = &c_float_iter,
+    .tp_iternext = &c_float_next,
+    .tp_methods = c_float_methods,
+    .tp_members = c_float_members,
+    .tp_init = &c_float_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_float_finalizer,
+};
+
+// ----- c_float: functions and methods -----
+
+// PyC.c_float.__init__
+static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement init from c_pointer
+  // TODO: implement keyword args: is_pointer, is_array
+
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+
+  if (PyNumber_Check(arg_1)) {
+    float value = PyFloat_AsDouble(arg_1);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    return 0;
+
+  } else if (PyTuple_Check(arg_1)) {
+    size_t len = PyTuple_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PyTuple_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
+        return -1;
+      }
+
+      float value = PyFloat_AsDouble(element);
+      selfType->pointer[i] = value;
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected tuple or float");
+  return -1;
+}
+
+// PyC.c_float.__iter__
+static PyObject *c_float_iter(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_float instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_float.__next__
+static PyObject *c_float_next(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    rvalue = PyFloat_FromDouble((selfType->pointer)[index]);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_float.__del__
+static void c_float_finalizer(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  free(selfType->pointer);
+}
+
+// PyC.c_float.append
+static PyObject *c_float_append(PyObject *self, PyObject *args) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_float is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError, "Expected float type got some other type");
+    return NULL;
+  }
+
+  float value = PyFloat_AsDouble(item);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(float);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(float);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_float.pop
+static PyObject *c_float_pop(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_float is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      PyFloat_FromDouble(selfType->pointer[(selfType->arraySize) - 1]);
+  selfType->pointer[(selfType->arraySize) - 1] = 0;
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_float.value
+static PyObject *c_float_value(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  return PyFloat_FromDouble(selfType->value);
+}
+
+// PyC.c_float.donot_free
+static PyObject *c_float_donot_free(PyObject *self, PyObject *args,
+                                    PyObject *kwargs) {
+  // TODO: implement c_float_donot_free
+
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_float.to_pointer
+static PyObject *c_float_to_pointer(PyObject *self) {
+  // TODO: implement c_float_to_pointer
+
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_float.__float__
+static PyObject *c_float_to_float(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  return PyFloat_FromDouble(selfType->value);
+}
+
+// PyC.c_float.__len__
+static Py_ssize_t c_float_len(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_float.__getitem__
+static PyObject *c_float_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_float is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError, "Expected float type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    return PyFloat_FromDouble((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_float.__setitem__
+static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_float is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    float int_value = PyFloat_AsDouble(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return -1;
+}
+
 // ----- c_bool -----
 PyNumberMethods c_bool_as_bool = {
     .nb_bool = &c_bool_to_bool,
@@ -638,6 +934,598 @@ PyTypeObject py_c_bool_type = {
     .tp_finalize =
         &c_bool_finalizer, // TODO: use .tp_getset for PyC_c_bool's attributes
 };
+
+// ----- c_short -----
+PyNumberMethods c_short_as_short = {
+    .nb_int = &c_short_to_int,
+};
+
+PyMappingMethods c_short_as_mapping = {
+    .mp_length = &c_short_len,
+    .mp_subscript = &c_short_getitem,
+    .mp_ass_subscript = &c_short_setitem,
+};
+
+PyMethodDef c_short_methods[] = {
+    {"append", (PyCFunction)&c_short_append, METH_VARARGS, "c_short.append()"},
+    {"pop", (PyCFunction)&c_short_pop, METH_NOARGS, "c_short.pop()"},
+    {"value", (PyCFunction)&c_short_value, METH_NOARGS, "c_short.value()"},
+    {"donot_free", (PyCFunction)&c_short_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_short.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_short_to_pointer, METH_NOARGS,
+     "c_short.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyMemberDef c_short_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_short, isPointer), READONLY,
+     "PyC.c_short.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_short, isArray), READONLY,
+     "PyC.c_short.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyTypeObject py_c_short_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_short",
+    .tp_basicsize = sizeof(PyC_c_short),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_short_as_short,
+    .tp_as_mapping = &c_short_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_short",
+    .tp_iter = &c_short_iter,
+    .tp_iternext = &c_short_next,
+    .tp_methods = c_short_methods,
+    .tp_members = c_short_members,
+    .tp_init = &c_short_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_short_finalizer,
+};
+
+// ----- c_short: functions and methods -----
+
+// PyC.c_short.__init__
+static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement init from c_pointer
+  // TODO: implement keyword args: is_pointer, is_array
+
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+
+  if (PyNumber_Check(arg_1)) {
+    short value = PyLong_AsLong(arg_1);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    return 0;
+
+  } else if (PyTuple_Check(arg_1)) {
+    size_t len = PyTuple_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PyTuple_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
+        return -1;
+      }
+
+      short value = PyLong_AsLong(element);
+      selfType->pointer[i] = value;
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected tuple or int");
+  return -1;
+}
+
+// PyC.c_short.__iter__
+static PyObject *c_short_iter(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_short instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_short.__next__
+static PyObject *c_short_next(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_short.__del__
+static void c_short_finalizer(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  free(selfType->pointer);
+}
+
+// PyC.c_short.append
+static PyObject *c_short_append(PyObject *self, PyObject *args) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_short is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError, "Expected short type got some other type");
+    return NULL;
+  }
+
+  short value = PyLong_AsLong(item);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(short);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(short);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_short.pop
+static PyObject *c_short_pop(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_short is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
+  selfType->pointer[(selfType->arraySize) - 1] = 0;
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_short.value
+static PyObject *c_short_value(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+  return PyLong_FromLongLong(selfType->value);
+}
+
+// PyC.c_short.donot_free
+static PyObject *c_short_donot_free(PyObject *self, PyObject *args,
+                                    PyObject *kwargs) {
+  // TODO: implement c_short_donot_free
+
+  PyC_c_short *selfType = (PyC_c_short *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_short.to_pointer
+static PyObject *c_short_to_pointer(PyObject *self) {
+  // TODO: implement c_short_to_pointer
+
+  PyC_c_short *selfType = (PyC_c_short *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_short.__short__
+static PyObject *c_short_to_int(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+  return PyLong_FromLong(selfType->value);
+}
+
+// PyC.c_short.__len__
+static Py_ssize_t c_short_len(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_short.__getitem__
+static PyObject *c_short_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_short is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError, "Expected int type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    return PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_short.__setitem__
+static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_short is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    short int_value = PyLong_AsLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return -1;
+}
+
+// ----- c_long -----
+PyNumberMethods c_long_as_long = {
+    .nb_int = &c_long_to_int,
+};
+
+PyMappingMethods c_long_as_mapping = {
+    .mp_length = &c_long_len,
+    .mp_subscript = &c_long_getitem,
+    .mp_ass_subscript = &c_long_setitem,
+};
+
+PyMethodDef c_long_methods[] = {
+    {"append", (PyCFunction)&c_long_append, METH_VARARGS, "c_long.append()"},
+    {"pop", (PyCFunction)&c_long_pop, METH_NOARGS, "c_long.pop()"},
+    {"value", (PyCFunction)&c_long_value, METH_NOARGS, "c_long.value()"},
+    {"donot_free", (PyCFunction)&c_long_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_long.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_long_to_pointer, METH_NOARGS,
+     "c_long.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyMemberDef c_long_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_long, isPointer), READONLY,
+     "PyC.c_long.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_long, isArray), READONLY,
+     "PyC.c_long.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyTypeObject py_c_long_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_long",
+    .tp_basicsize = sizeof(PyC_c_long),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_long_as_long,
+    .tp_as_mapping = &c_long_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_long",
+    .tp_iter = &c_long_iter,
+    .tp_iternext = &c_long_next,
+    .tp_methods = c_long_methods,
+    .tp_members = c_long_members,
+    .tp_init = &c_long_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_long_finalizer,
+};
+
+// ----- c_long: functions and methods -----
+
+// PyC.c_long.__init__
+static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement init from c_pointer
+  // TODO: implement keyword args: is_pointer, is_array
+
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+
+  if (PyNumber_Check(arg_1)) {
+    long value = PyLong_AsLong(arg_1);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    return 0;
+
+  } else if (PyTuple_Check(arg_1)) {
+    size_t len = PyTuple_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PyTuple_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
+        return -1;
+      }
+
+      long value = PyLong_AsLong(element);
+      selfType->pointer[i] = value;
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected tuple or int");
+  return -1;
+}
+
+// PyC.c_long.__iter__
+static PyObject *c_long_iter(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_long instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_long.__next__
+static PyObject *c_long_next(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    rvalue = PyLong_FromLong((selfType->pointer)[index]);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_long.__del__
+static void c_long_finalizer(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  free(selfType->pointer);
+}
+
+// PyC.c_long.append
+static PyObject *c_long_append(PyObject *self, PyObject *args) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_long is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError, "Expected long type got some other type");
+    return NULL;
+  }
+
+  long value = PyLong_AsLong(item);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(long);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(long);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_long.pop
+static PyObject *c_long_pop(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_long is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      PyLong_FromLong(selfType->pointer[(selfType->arraySize) - 1]);
+  selfType->pointer[(selfType->arraySize) - 1] = 0;
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_long.value
+static PyObject *c_long_value(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+  return PyLong_FromLong(selfType->value);
+}
+
+// PyC.c_long.donot_free
+static PyObject *c_long_donot_free(PyObject *self, PyObject *args,
+                                   PyObject *kwargs) {
+  // TODO: implement c_long_donot_free
+
+  PyC_c_long *selfType = (PyC_c_long *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_long.to_pointer
+static PyObject *c_long_to_pointer(PyObject *self) {
+  // TODO: implement c_long_to_pointer
+
+  PyC_c_long *selfType = (PyC_c_long *)self;
+  Py_RETURN_NONE;
+}
+
+// PyC.c_long.__long__
+static PyObject *c_long_to_int(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+  return PyLong_FromLong(selfType->value);
+}
+
+// PyC.c_long.__len__
+static Py_ssize_t c_long_len(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_long.__getitem__
+static PyObject *c_long_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_long is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError, "Expected int type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    return PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_long.__setitem__
+static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_long is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    long int_value = PyLong_AsLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(py_CppError, "Index out of range");
+  return -1;
+}
 
 // ----- c_bool: functions and methods -----
 
