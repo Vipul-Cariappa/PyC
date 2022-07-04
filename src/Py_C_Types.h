@@ -4,6 +4,7 @@
 
 // c_type: c_int
 extern PyTypeObject py_c_int_type;
+extern PyTypeObject py_c_uint_type;
 
 typedef struct PyC_c_int {
   PyObject_HEAD;
@@ -147,6 +148,7 @@ static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
 // c_type: c_short
 extern PyTypeObject py_c_short_type;
+extern PyTypeObject py_c_ushort_type;
 
 typedef struct PyC_c_short {
   PyObject_HEAD;
@@ -176,6 +178,7 @@ static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
 // c_type: c_long
 extern PyTypeObject py_c_long_type;
+extern PyTypeObject py_c_ulong_type;
 
 typedef struct PyC_c_long {
   PyObject_HEAD;
