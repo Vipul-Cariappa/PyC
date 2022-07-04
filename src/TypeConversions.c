@@ -273,7 +273,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
   for (int i = 0; i < funcCount; i++) {
     FunctionType *funcType = qvector_getat(funcs->functionTypes, i, false);
     size_t funcTypeArgsCount = funcType->argsCount;
-    if (argsCount == funcTypeArgsCount) {
+    if ((argsCount == funcTypeArgsCount) && (argsCount != 0)) {
       for (int j = 0; j < argsCount; j++) {
         ffi_type *type_from_decl = qvector_getat(funcType->argsType, j, false);
         PyObject *pyArg = PyTuple_GetItem(args, j);
@@ -350,6 +350,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
       }
       if (funcNum != -1)
         return funcNum;
+    } else {
+      funcNum = i;
     }
   }
 

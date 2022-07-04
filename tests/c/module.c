@@ -23,6 +23,21 @@ int write_int(int *destination, int value) {
   return *destination;
 }
 
+long *returns_pointer() {
+  long *result = malloc(sizeof(long));
+  *result = 0;
+
+  *result = (*result << 8) + 0;
+  *result = (*result << 8) + 'l';
+  *result = (*result << 8) + 'u';
+  *result = (*result << 8) + 'p';
+  *result = (*result << 8) + 'i';
+  *result = (*result << 8) + 'v';
+
+  printf("%li\n", *result);
+  return result;
+}
+
 double copy_double(double *destination, double *source) {
   *destination = *source;
   return *destination;

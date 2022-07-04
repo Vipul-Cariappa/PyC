@@ -12,6 +12,7 @@ typedef struct RECT {
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);
+long *returns_pointer();
 int write_int(int *destination, int value);
 double copy_double(double *destination, double *source);
 char *concat(char *x, char *y);
