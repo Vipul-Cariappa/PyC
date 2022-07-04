@@ -10,11 +10,6 @@ int product_int(int x, int y)
     return x * y;
 }
 
-long increment_1(long x)
-{
-    return ++x;
-}
-
 long increment_1(long x) { return ++x; }
 
 short add_short(short x, short y) { return x + y; }
