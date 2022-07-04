@@ -20,6 +20,7 @@ class TestBasic(unittest.TestCase):
 
     def test_simple_functions(self):
         # c
+        self.assertEqual(cModule.product_int(2, 4), 8)
         self.assertEqual(cModule. add_long_long(23, 40), 63)
         self.assertEqual(cModule.add_short(2, 4), 6)
         self.assertEqual(cModule.increment_1(12), 13)
@@ -35,7 +36,7 @@ class TestBasic(unittest.TestCase):
         )
 
         # cpp
-        
+        self.assertEqual(cppModule.product_int(2, 4), 8)
         self.assertEqual(cppModule. add_long_long(23, 40), 63)
         self.assertEqual(cppModule.add_short(2, 4), 6)
         self.assertEqual(cppModule.increment_1(12), 13)

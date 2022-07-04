@@ -13,6 +13,11 @@ bool invert(bool x) {
   return true;
 }
 
+int product_int(int x, int y)
+{
+    return x * y;
+}
+
 int copy_int(int *destination, int *source) {
   *destination = *source;
   return *destination;
