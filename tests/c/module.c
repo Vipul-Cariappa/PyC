@@ -23,6 +23,11 @@ int write_int(int *destination, int value) {
   return *destination;
 }
 
+long long add_long_long(long long x, long long y)
+{
+    return x + y;
+}
+
 double copy_double(double *destination, double *source) {
   *destination = *source;
   return *destination;

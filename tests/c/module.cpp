@@ -19,6 +19,11 @@ char *add(char *s, int n) {
   return (char *)result->c_str();
 }
 
+long long add_long_long(long long x, long long y)
+{
+    return x + y;
+}
+
 char *repeat_char(char s, int n) {
   std::string *result = new std::string("");
   char x[2];
