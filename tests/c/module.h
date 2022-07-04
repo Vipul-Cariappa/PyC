@@ -1,15 +1,19 @@
+#include <stdbool.h>
+
 extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
-typedef struct RECT
-{
-    int x;
-    int y;
+typedef struct RECT {
+  int x;
+  int y;
 } RECT;
 
 int add(int x, int y);
+bool invert(bool x);
 int copy_int(int *destination, int *source);
+int write_int(int *destination, int value);
+double copy_double(double *destination, double *source);
 char *concat(char *x, char *y);
 double pi(int n);
 long increment_1(long x);

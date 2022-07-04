@@ -1,22 +1,26 @@
+#include "module.h"
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "module.h"
 
-int add(int x, int y)
-{
-    return x + y;
+int add(int x, int y) { return x + y; }
+
+bool invert(bool x) {
+  if (x)
+    return false;
+  return true;
 }
 
-long increment_1(long x)
-{
-    return ++x;
+int copy_int(int *destination, int *source) {
+  *destination = *source;
+  return *destination;
 }
 
-short add_short(short x, short y)
-{
-    return x + y;
+int write_int(int *destination, int value) {
+  *destination = value;
+  return *destination;
 }
 
 long long add_long_long(long long x, long long y)
@@ -30,31 +34,37 @@ int copy_int(int *destination, int *source)
     return *destination;
 }
 
-char *concat(char *x, char *y)
-{
-    size_t len_x = strlen(x);
-    size_t len = len_x + strlen(y) + 1;
-    char *result = (char *)malloc(len);
-    strcpy(result, x);
-    stpcpy(result + len_x, y);
-
-    return result;
+double copy_double(double *destination, double *source) {
+  *destination = *source;
+  return *destination;
 }
 
-double pi(int n)
-{
-    long int i;
-    double sum = 0.0, term, pi;
+long increment_1(long x) { return ++x; }
 
-    /* Applying Leibniz Formula */
-    for (i = 0; i < n; i++)
-    {
-        term = pow(-1, i) / (2 * i + 1);
-        sum += term;
-    }
-    pi = 4 * sum;
+short add_short(short x, short y) { return x + y; }
 
-    return pi;
+char *concat(char *x, char *y) {
+  size_t len_x = strlen(x);
+  size_t len = len_x + strlen(y) + 1;
+  char *result = (char *)malloc(len);
+  strcpy(result, x);
+  stpcpy(result + len_x, y);
+
+  return result;
+}
+
+double pi(int n) {
+  long int i;
+  double sum = 0.0, term, pi;
+
+  /* Applying Leibniz Formula */
+  for (i = 0; i < n; i++) {
+    term = pow(-1, i) / (2 * i + 1);
+    sum += term;
+  }
+  pi = 4 * sum;
+
+  return pi;
 }
 
 // RECT *get_rect(int x, int y)

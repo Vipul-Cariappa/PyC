@@ -1,20 +1,22 @@
-#include <string>
-#include <cmath>
 #include "module.hpp"
+#include <cmath>
+#include <string>
 
-int add(int x, int y)
-{
-    return x + y;
-}
+int add(int x, int y) { return x + y; }
 
-long increment_1(long x)
-{
-    return ++x;
-}
+long increment_1(long x) { return ++x; }
 
-short add_short(short x, short y)
-{
-    return x + y;
+short add_short(short x, short y) { return x + y; }
+
+char *add(char *s, int n) {
+  std::string *result = new std::string("");
+  std::string str = std::string(s);
+
+  for (int i = 0; i < n; i++) {
+    *result += str;
+  }
+
+  return (char *)result->c_str();
 }
 
 long long add_long_long(long long x, long long y)
@@ -22,47 +24,56 @@ long long add_long_long(long long x, long long y)
     return x + y;
 }
 
-char *add(char *s, int n)
-{
-    std::string *result = new std::string("");
-    std::string str = std::string(s);
+char *add(char *s, int n) {
+  std::string *result = new std::string("");
+  std::string str = std::string(s);
 
-    for (int i = 0; i < n; i++)
-    {
-        *result += str;
-    }
+  for (int i = 0; i < n; i++) {
+    *result += str;
+  }
 
-    return (char*)result->c_str();
+  return (char *)result->c_str();
 }
 
-int copy_int(int *destination, int *source)
-{
-    *destination = *source;
-    return *destination;
+char *repeat_char(char s, int n) {
+  std::string *result = new std::string("");
+  char x[2];
+  x[0] = s;
+  x[1] = 0;
+
+  std::string str = std::string(x);
+
+  for (int i = 0; i < n; i++) {
+    *result += str;
+  }
+
+  return (char *)result->c_str();
 }
 
-char *concat(char* x, char* y)
-{
-    std::string a = std::string(x);
-    std::string b = std::string(y);
-    std::string *result = new std::string(a + b);
-    return (char*)result->c_str();
+int copy_int(int *destination, int *source) {
+  *destination = *source;
+  return *destination;
 }
 
-double pi(int n)
-{
-    long int i;
-    double sum = 0.0, term, pi;
+char *concat(char *x, char *y) {
+  std::string a = std::string(x);
+  std::string b = std::string(y);
+  std::string *result = new std::string(a + b);
+  return (char *)result->c_str();
+}
 
-    /* Applying Leibniz Formula */
-    for (i = 0; i < n; i++)
-    {
-        term = pow(-1, i) / (2 * i + 1);
-        sum += term;
-    }
-    pi = 4 * sum;
+double pi(int n) {
+  long int i;
+  double sum = 0.0, term, pi;
 
-    return pi;
+  /* Applying Leibniz Formula */
+  for (i = 0; i < n; i++) {
+    term = pow(-1, i) / (2 * i + 1);
+    sum += term;
+  }
+  pi = 4 * sum;
+
+  return pi;
 }
 
 // RECT *get_rect(int x, int y)
