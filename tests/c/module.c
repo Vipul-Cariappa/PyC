@@ -32,6 +32,14 @@ long increment_1(long x) { return ++x; }
 
 short add_short(short x, short y) { return x + y; }
 
+unsigned long long invert_bit(unsigned long long x, unsigned long long pos)
+{
+  unsigned long long num = 1;
+  num <<= pos;
+  unsigned long long result = x ^ num;
+  return result;
+}
+
 char *concat(char *x, char *y) {
   size_t len_x = strlen(x);
   size_t len = len_x + strlen(y) + 1;

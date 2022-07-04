@@ -76,6 +76,28 @@ class TestBasic(unittest.TestCase):
         cModule.copy_double(d1, d2)
         self.assertAlmostEqual(d1.value(), 3.14, 4)
         self.assertAlmostEqual(d2.value(), 3.14, 4)
+        
+        # c_float
+        f1 = PyC.c_float(20.20)
+        f2 = PyC.c_float(3.14)
+        cModule.copy_double(f1, f2)
+        self.assertAlmostEqual(f1.value(), 3.14, 4)
+        self.assertAlmostEqual(f2.value(), 3.14, 4)
+
+        # c_long
+        l1 = PyC.c_long(1)
+        l2 = PyC.c_long(4)
+        cModule.copy_int(l1, l2)
+        self.assertEqual(l1.value(), 4)
+        self.assertEqual(l2.value(), 4)
+        self.assertEqual(cModule.invert_bit(l1, 2), 0)
+        
+        # c_short
+        s1 = PyC.c_short(1)
+        s2 = PyC.c_short(10)
+        cModule.copy_int(s1, s2)
+        self.assertEqual(s1.value(), 10)
+        self.assertEqual(s2.value(), 10)
 
         # c_bool
         b_true = PyC.c_bool(True)

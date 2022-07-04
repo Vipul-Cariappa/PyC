@@ -18,6 +18,7 @@ char *concat(char *x, char *y);
 double pi(int n);
 long increment_1(long x);
 short add_short(short x, short y);
+unsigned long long invert_bit(unsigned long long x, unsigned long long pos);
 
 // RECT *get_rect(int x, int y);
 // RECT *rect_add(RECT *a, RECT *b);

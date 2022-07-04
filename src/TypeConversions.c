@@ -135,7 +135,8 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
 
       switch (type.type) {
       case FFI_TYPE_INT:
-        *(int *)x = (int)PyLong_AsDouble(PyNumber_Long(pyArg));
+        *(int *)x = (int)PyLong_AsDouble(PyNumber_Long(
+            pyArg)); // TODO: decrement the reference count of PyNumber_Long
         break;
       case FFI_TYPE_SINT8:
         *(int8_t *)x = (int8_t)PyLong_AsDouble(PyNumber_Long(pyArg));
@@ -181,9 +182,30 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
 
         } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
           void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
-          *tmp = ((PyC_c_int *)pyArg)->pointer;
+          *tmp = ((PyC_c_double *)pyArg)->pointer;
           x = tmp;
           break;
+        } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type)) {
+          void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
+          *tmp = ((PyC_c_float *)pyArg)->pointer;
+          x = tmp;
+          break;
+        } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_short_type)) {
+          void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
+          *tmp = ((PyC_c_short *)pyArg)->pointer;
+          x = tmp;
+          break;
+        } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type)) {
+          void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
+          *tmp = ((PyC_c_long *)pyArg)->pointer;
+          x = tmp;
+          break;
+        } else {
+          PyErr_SetString(py_BindingError,
+                          "Could not convert Python type to Cpp type (cpp "
+                          "module expected pointer)"); // TODO: err msg
+
+          return NULL;
         }
 
       default:
@@ -272,7 +294,9 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_UINT64:
           if ((pyArg == Py_True) || (pyArg == Py_False) ||
               PyNumber_Check(pyArg) ||
-              PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type)) {
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_short_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type)) {
             funcNum = i;
             continue;
           } else {
@@ -284,7 +308,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_DOUBLE:
         case FFI_TYPE_LONGDOUBLE:
           if (PyFloat_Check(pyArg) ||
-              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type)) {
             funcNum = i;
             continue;
           } else {
@@ -293,9 +318,12 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           }
           break;
         case FFI_TYPE_POINTER:
-          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
+          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_short_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
-              PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type) ||
               PyUnicode_Check(pyArg)) {
             funcNum = i;
             continue;
