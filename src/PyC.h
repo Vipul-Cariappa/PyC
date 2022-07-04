@@ -14,16 +14,6 @@ extern PyTypeObject py_CppModuleType;
 extern PyTypeObject py_CppFunctionType;
 extern PyTypeObject py_CppStructType;
 extern PyModuleDef PyC_Module;
-extern PyTypeObject py_c_int_type;
-
-typedef struct PyC_c_int {
-  PyObject_HEAD int value;
-  int *pointer;
-  bool isPointer;
-  bool isArray;
-  size_t arraySize;
-  size_t arrayCapacity;
-} PyC_c_int;
 
 const char *ffi_type_To_char_p(ffi_type type);
 const char *CXTypeKind_TO_char_p(enum CXTypeKind type);

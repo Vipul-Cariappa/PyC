@@ -1,7 +1,7 @@
 #define PY_SSIZE_T_CLEAN
-#include "Python.h"
-
 #include "PyC.h"
+#include "Py_C_Types.h"
+#include "Python.h"
 
 PyObject *PyC;
 
@@ -81,6 +81,42 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   Py_INCREF(&py_c_int_type);
   if (PyModule_AddObject(m, "c_int", (PyObject *)&py_c_int_type) < 0) {
     Py_DECREF(&py_c_int_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_double
+  if (PyType_Ready(&py_c_double_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_double_type);
+  if (PyModule_AddObject(m, "c_double", (PyObject *)&py_c_double_type) < 0) {
+    Py_DECREF(&py_c_double_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+  
+  // creating c_type: c_bool
+  if (PyType_Ready(&py_c_bool_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_bool_type);
+  if (PyModule_AddObject(m, "c_bool", (PyObject *)&py_c_bool_type) < 0) {
+    Py_DECREF(&py_c_bool_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+  
+  // creating c_type: c_char
+  if (PyType_Ready(&py_c_char_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_char_type);
+  if (PyModule_AddObject(m, "c_char", (PyObject *)&py_c_char_type) < 0) {
+    Py_DECREF(&py_c_char_type);
     Py_DECREF(m);
     return NULL;
   }

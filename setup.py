@@ -11,6 +11,7 @@ module = Extension(
         "src/CppWrapper_PyTypes.c",
         "src/PyC.c",
         "src/TypeConversions.c",
+        "src/Py_C_Types.c"
     ],
     include_dirs=[
         "src/",

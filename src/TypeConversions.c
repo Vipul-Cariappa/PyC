@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include "PyC.h"
+#include "Py_C_Types.h"
 #include "Python.h"
 #include "ffi.h"
 #include "qlibc.h"
@@ -123,83 +124,115 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
       void *x = malloc(type.size);
       *(char *)x = 1;
       rvalue[i] = x;
+
     } else if (pyArg == Py_False) {
       void *x = malloc(type.size);
       memset(x, 0, type.size);
       rvalue[i] = x;
+
     } else if (PyNumber_Check(pyArg)) {
       void *x = malloc(type.size);
+
       switch (type.type) {
       case FFI_TYPE_INT:
-        *(int *)x = (int)PyFloat_AsDouble(pyArg);
+        *(int *)x = (int)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_SINT8:
-        *(int8_t *)x = (int8_t)PyFloat_AsDouble(pyArg);
+        *(int8_t *)x = (int8_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_UINT8:
-        *(uint8_t *)x = (uint8_t)PyFloat_AsDouble(pyArg);
+        *(uint8_t *)x = (uint8_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_SINT16:
-        *(int16_t *)x = (int16_t)PyFloat_AsDouble(pyArg);
+        *(int16_t *)x = (int16_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_UINT16:
-        *(uint16_t *)x = (uint16_t)PyFloat_AsDouble(pyArg);
+        *(uint16_t *)x = (uint16_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_SINT32:
-        *(int32_t *)x = (int32_t)PyFloat_AsDouble(pyArg);
+        *(int32_t *)x = (int32_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_UINT32:
-        *(uint32_t *)x = (uint32_t)PyFloat_AsDouble(pyArg);
+        *(uint32_t *)x = (uint32_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_SINT64:
-        *(int64_t *)x = (int64_t)PyFloat_AsDouble(pyArg);
+        *(int64_t *)x = (int64_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_UINT64:
-        *(uint64_t *)x = (uint64_t)PyFloat_AsDouble(pyArg);
+        *(uint64_t *)x = (uint64_t)PyLong_AsDouble(PyNumber_Long(pyArg));
         break;
       case FFI_TYPE_FLOAT:
-        *(float *)x = (float)PyFloat_AsDouble(pyArg);
+        *(float *)x = (float)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
       case FFI_TYPE_DOUBLE:
-        *(double *)x = (double)PyFloat_AsDouble(pyArg);
+        *(double *)x = (double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
       case FFI_TYPE_LONGDOUBLE:
-        *(long double *)x = (long double)PyFloat_AsDouble(pyArg);
+        *(long double *)x =
+            (long double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
       case FFI_TYPE_POINTER:
+        // TODO: verify what is it pointing to from UnderlyingType
         if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type)) {
           void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
-          *tmp = &(((PyC_c_int *)pyArg)->value);
+          *tmp = ((PyC_c_int *)pyArg)->pointer;
+          x = tmp;
+          break;
+
+        } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
+          void **tmp = malloc(sizeof(void *)); // TODO: free this malloc
+          *tmp = ((PyC_c_int *)pyArg)->pointer;
           x = tmp;
           break;
         }
+
       default:
-        PyErr_SetString(py_BindingError,
-                        "Could not convert Python type to Cpp type");
+        // TODO: check for memory leaks
+        PyErr_SetString(
+            py_BindingError,
+            "Could not convert Python type to Cpp type"); // TODO: err msg
+
         return NULL;
       }
+
       rvalue[i] = x;
+
     } else if (PyUnicode_Check(pyArg)) {
-      if (type.type == FFI_TYPE_POINTER) // char pointer
-      {
+      if (type.type == FFI_TYPE_POINTER) {
+        // char pointer
+        // TODO: implement wchar
         PyObject *encodedString =
             PyUnicode_AsEncodedString(pyArg, "UTF-8", "strict");
+
         if (encodedString) {
           char *result = PyBytes_AsString(encodedString);
           if (result) {
             void **x = (void **)malloc(sizeof(char **));
             x[0] = result;
             rvalue[i] = x;
-          } else {
-            // raise error
-          }
-        } else {
-          // raise error
-        }
-      } else // char and wchar., etc
-      {
-        // TODO: implement
+
+          } // TODO: handle else part
+
+        } // TODO: handle else part
+
+      } else if ((type.type == FFI_TYPE_SINT8) ||
+                 (type.type == FFI_TYPE_UINT8)) {
+        // TODO: implement python string to c char
       }
+
+    } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type)) {
+      PyC_c_char *selfType = (PyC_c_char *)pyArg;
+
+      if (type.type == FFI_TYPE_POINTER) {
+        // char pointer
+        rvalue[i] = &(selfType->pointer);
+
+      } else if ((type.type == FFI_TYPE_SINT8) ||
+                 (type.type == FFI_TYPE_UINT8)) {
+        // TODO: verify not pointer
+        rvalue[i] = selfType->pointer;
+      }
+
     } else {
       PyErr_SetString(py_BindingError,
                       "Could not convert Python type to Cpp type");
@@ -224,11 +257,15 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         PyObject *pyArg = PyTuple_GetItem(args, j);
 
         switch (type_from_decl->type) {
-        case FFI_TYPE_INT:
         case FFI_TYPE_SINT8:
         case FFI_TYPE_UINT8:
+          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type)) {
+            funcNum = i;
+            continue;
+          }
         case FFI_TYPE_SINT16:
         case FFI_TYPE_UINT16:
+        case FFI_TYPE_INT:
         case FFI_TYPE_SINT32:
         case FFI_TYPE_UINT32:
         case FFI_TYPE_SINT64:
@@ -246,7 +283,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_FLOAT:
         case FFI_TYPE_DOUBLE:
         case FFI_TYPE_LONGDOUBLE:
-          if (PyFloat_Check(pyArg)) {
+          if (PyFloat_Check(pyArg) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type)) {
             funcNum = i;
             continue;
           } else {
@@ -256,6 +294,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           break;
         case FFI_TYPE_POINTER:
           if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type) ||
               PyUnicode_Check(pyArg)) {
             funcNum = i;
             continue;
@@ -388,6 +428,7 @@ ffi_type *get_ffi_type(CXType type) {
   case CXType_ULongLong:
     return &ffi_type_uint64;
   case CXType_Char_U:
+  case CXType_Bool:
     return &ffi_type_uchar;
   case CXType_Char_S:
     return &ffi_type_schar;
@@ -396,8 +437,9 @@ ffi_type *get_ffi_type(CXType type) {
   // case CXType_Typedef:
   //     return get_ffi_type(type);
   default:
-    PyErr_SetString(py_BindingError,
-                    "Could not identify necessary types from the translation unit");
+    PyErr_SetString(
+        py_BindingError,
+        "Could not identify necessary types from the translation unit");
     return NULL;
   }
 }
