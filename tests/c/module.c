@@ -34,7 +34,6 @@ long *returns_pointer() {
   *result = (*result << 8) + 'i';
   *result = (*result << 8) + 'v';
 
-  printf("%li\n", *result);
   return result;
 }
 

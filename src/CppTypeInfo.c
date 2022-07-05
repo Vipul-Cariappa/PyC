@@ -358,12 +358,20 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     FunctionType funcType;
 
-    ffi_type *return_ffi_type = get_ffi_type(clang_getCursorResultType(cursor));
+    CXType returnType = clang_getCursorResultType(cursor);
+    ffi_type *return_ffi_type = get_ffi_type(returnType);
     if (!return_ffi_type) {
       return CXChildVisit_Break;
     }
 
     funcType.returnType = *return_ffi_type;
+
+    if (returnType.kind == CXType_Pointer) {
+      funcType.returnsUnderlyingType = clang_getPointeeType(returnType).kind;
+    } else {
+      funcType.returnsUnderlyingType = 0;
+    }
+
     funcType.argsCount = clang_Cursor_getNumArguments(cursor);
     funcType.argsType =
         qvector(MAX_SIZE, sizeof(ffi_type),
@@ -451,7 +459,12 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     }
 
     global.type = *type_ffi_type;
-    global.underlyingType = type.kind;
+
+    if (type.kind == CXType_Pointer) {
+      global.underlyingType = clang_getPointeeType(type).kind;
+    } else {
+      global.underlyingType = 0;
+    }
 
     if (!Symbols_appendGlobal(symbols, global)) {
       return CXChildVisit_Break;

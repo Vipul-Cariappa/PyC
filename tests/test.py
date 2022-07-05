@@ -122,7 +122,6 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(cppModule.add(string, 2), string+string)
         self.assertEqual(cppModule.repeat_char(c_string_char, 2), "##")
 
-    @unittest.skip("Not Implemented")
     def test_pointer_return_funcs(self):
         self.assertEqual(cModule.returns_pointer().value(), 465826769270)
 

@@ -193,7 +193,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
       return NULL;
     }
 
-    return cppArg_to_pyArg(var, globalVar->type);
+    return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType);
   } else if (errno != 0)
     return NULL;
 
@@ -289,7 +289,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(rc, funcType->returnType);
+  return cppArg_to_pyArg(rc, funcType->returnType, funcType->returnsUnderlyingType);
 }
 
 // PyCpp.CppFunction.__del__

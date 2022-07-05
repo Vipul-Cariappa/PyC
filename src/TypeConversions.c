@@ -70,7 +70,8 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   return data;
 }
 
-PyObject *cppArg_to_pyArg(void *arg, ffi_type type) {
+PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
+                          enum CXTypeKind underlying_type) {
   switch (type.type) {
   case FFI_TYPE_INT:
     return PyLong_FromLongLong(*(int *)arg);
@@ -97,7 +98,98 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type) {
   case FFI_TYPE_LONGDOUBLE:
     return PyFloat_FromDouble(*(long double *)arg);
   case FFI_TYPE_POINTER: // Assuming it is char pointer
-    return PyUnicode_FromString(*(char **)arg);
+    switch (underlying_type) {
+    case CXType_Int: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(int **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_int");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_UInt: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(unsigned int **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_uint");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_Long: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(long **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_long");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_ULong: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(unsigned long **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_ulong");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_Short: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(short **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_short");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_UShort: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(unsigned short **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_ushort");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_Float: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(float **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_float");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_Double: {
+      PyObject *kwargs = PyDict_New(); // TODO: decrease reference count
+      PyDict_SetItem(kwargs, PyUnicode_FromFormat("pointer"),
+                     PyLong_FromLongLong(*(double **)arg));
+
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_double");
+      if (obj) {
+        return PyObject_Call(obj, NULL, kwargs);
+      }
+    }
+    case CXType_Char_U:
+    case CXType_Char_S:
+      return PyUnicode_FromString(*(char **)arg);
+
+    default:
+      PyErr_SetString(
+          py_BindingError,
+          "Could not convert Cpp type (pointer type) to Python type");
+      return NULL;
+    }
+
   default:
     PyErr_SetString(py_BindingError,
                     "Could not convert Cpp type to Python type");
