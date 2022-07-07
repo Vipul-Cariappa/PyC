@@ -7,6 +7,81 @@
 
 // TODO: better error msg fro c_utypes (unsigned types)
 
+// ----- c_void -----
+
+PyMethodDef c_void_methods[] = {{"do_free", (PyCFunction)&c_void_do_free,
+                                 METH_VARARGS | METH_KEYWORDS,
+                                 "c_int.do_free()"},
+                                {NULL, NULL, 0, NULL}};
+
+PyTypeObject py_c_void_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_void",
+    .tp_basicsize = sizeof(PyC_c_void),
+    .tp_itemsize = 0,
+    // .tp_as_mapping = &c_void_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_void",
+    // .tp_iter = &c_void_iter,
+    // .tp_iternext = &c_void_next,
+    .tp_methods = c_void_methods,
+    // .tp_members = c_void_members,
+    .tp_init = &c_void_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_void_finalizer,
+};
+
+// ----- c_void: functions and methods -----
+
+// PyC.c_void.__init__
+static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  if (kwargs) {
+    PyC_c_void *selfType = (PyC_c_void *)self;
+
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+      void *pointer = (void *)PyLong_AsLongLong(pointer_value);
+
+      selfType->pointer = pointer;
+      selfType->freeOnDel = true;
+
+      return 0;
+    }
+    Py_DECREF(key);
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected pointer");
+  return -1;
+}
+
+// PyC.c_void.__del__
+static void c_void_finalizer(PyObject *self) {
+  PyC_c_void *selfType = (PyC_c_void *)self;
+
+  if ((selfType->freeOnDel) && (selfType->pointer))
+    free(selfType->pointer);
+}
+
+// PyC.c_void.donot_free
+static PyObject *c_void_do_free(PyObject *self, PyObject *args,
+                                PyObject *kwargs) {
+  PyC_c_void *selfType = (PyC_c_void *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = true;
+  Py_RETURN_NONE;
+}
+
 // ----- c_int -----
 PyNumberMethods c_int_as_int = {
     .nb_int = &c_int_to_int,
@@ -77,7 +152,6 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   // TODO: implement keyword args: is_pointer, is_array
 
   PyC_c_int *selfType = (PyC_c_int *)self;
-
 
   if (kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
@@ -185,7 +259,8 @@ static PyObject *c_int_next(PyObject *self) {
 static void c_int_finalizer(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  free(selfType->pointer);
+  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+    free(selfType->pointer);
 }
 
 // PyC.c_int.append
@@ -277,9 +352,20 @@ static PyObject *c_int_value(PyObject *self) {
 // PyC.c_int.donot_free
 static PyObject *c_int_donot_free(PyObject *self, PyObject *args,
                                   PyObject *kwargs) {
-  // TODO: implement c_int_donot_free
-
   PyC_c_int *selfType = (PyC_c_int *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = false;
   Py_RETURN_NONE;
 }
 
@@ -524,7 +610,8 @@ static PyObject *c_double_next(PyObject *self) {
 static void c_double_finalizer(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
 
-  free(selfType->pointer);
+  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+    free(selfType->pointer);
 }
 
 // PyC.c_double.append
@@ -604,9 +691,20 @@ static PyObject *c_double_value(PyObject *self) {
 // PyC.c_double.donot_free
 static PyObject *c_double_donot_free(PyObject *self, PyObject *args,
                                      PyObject *kwargs) {
-  // TODO: implement c_double_donot_free
-
   PyC_c_double *selfType = (PyC_c_double *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = false;
   Py_RETURN_NONE;
 }
 
@@ -742,7 +840,7 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      float *pointer = (float*)PyLong_AsLongLong(pointer_value);
+      float *pointer = (float *)PyLong_AsLongLong(pointer_value);
 
       selfType->value = *pointer;
       selfType->pointer = pointer;
@@ -839,7 +937,8 @@ static PyObject *c_float_next(PyObject *self) {
 static void c_float_finalizer(PyObject *self) {
   PyC_c_float *selfType = (PyC_c_float *)self;
 
-  free(selfType->pointer);
+  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+    free(selfType->pointer);
 }
 
 // PyC.c_float.append
@@ -919,9 +1018,20 @@ static PyObject *c_float_value(PyObject *self) {
 // PyC.c_float.donot_free
 static PyObject *c_float_donot_free(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
-  // TODO: implement c_float_donot_free
-
   PyC_c_float *selfType = (PyC_c_float *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = false;
   Py_RETURN_NONE;
 }
 
@@ -1347,7 +1457,8 @@ static PyObject *c_short_next(PyObject *self) {
 static void c_short_finalizer(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
-  free(selfType->pointer);
+  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+    free(selfType->pointer);
 }
 
 // PyC.c_short.append
@@ -1438,9 +1549,20 @@ static PyObject *c_short_value(PyObject *self) {
 // PyC.c_short.donot_free
 static PyObject *c_short_donot_free(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
-  // TODO: implement c_short_donot_free
-
   PyC_c_short *selfType = (PyC_c_short *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = false;
   Py_RETURN_NONE;
 }
 
@@ -1704,7 +1826,8 @@ static PyObject *c_long_next(PyObject *self) {
 static void c_long_finalizer(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
-  free(selfType->pointer);
+  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+    free(selfType->pointer);
 }
 
 // PyC.c_long.append
@@ -1795,9 +1918,20 @@ static PyObject *c_long_value(PyObject *self) {
 // PyC.c_long.donot_free
 static PyObject *c_long_donot_free(PyObject *self, PyObject *args,
                                    PyObject *kwargs) {
-  // TODO: implement c_long_donot_free
-
   PyC_c_long *selfType = (PyC_c_long *)self;
+  int value;
+
+  if (args) {
+    PyArg_ParseTuple(args, "p", &value);
+
+    if (value)
+      selfType->freeOnDel = true;
+    else
+      selfType->freeOnDel = false;
+
+    Py_RETURN_NONE;
+  }
+  selfType->freeOnDel = false;
   Py_RETURN_NONE;
 }
 

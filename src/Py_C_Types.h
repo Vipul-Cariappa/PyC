@@ -2,6 +2,25 @@
 #include "Python.h"
 #include <stdbool.h>
 
+// c_type: c_void
+extern PyTypeObject py_c_void_type;
+// extern PyTypeObject py_c_pointer_type;
+
+typedef struct PyC_c_void {
+  PyObject_HEAD;
+  void *pointer;
+  bool freeOnDel;
+  // bool isArray;
+  // size_t arraySize;
+  // size_t arrayCapacity;
+  // size_t _i; // for iteration purpose
+} PyC_c_void;
+
+static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static void c_void_finalizer(PyObject *self);
+static PyObject *c_void_do_free(PyObject *self, PyObject *args,
+                               PyObject *kwargs);
+
 // c_type: c_int
 extern PyTypeObject py_c_int_type;
 extern PyTypeObject py_c_uint_type;
@@ -10,6 +29,7 @@ typedef struct PyC_c_int {
   PyObject_HEAD;
   int value;
   int *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -39,6 +59,7 @@ typedef struct PyC_c_double {
   PyObject_HEAD;
   double value;
   double *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -68,6 +89,7 @@ typedef struct PyC_c_bool {
   PyObject_HEAD;
   bool value;
   bool *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -96,6 +118,7 @@ typedef struct PyC_c_char {
   PyObject_HEAD;
   char value;
   char *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -124,6 +147,7 @@ typedef struct PyC_c_float {
   PyObject_HEAD;
   float value;
   float *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -154,6 +178,7 @@ typedef struct PyC_c_short {
   PyObject_HEAD;
   short value;
   short *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
@@ -184,6 +209,7 @@ typedef struct PyC_c_long {
   PyObject_HEAD;
   long value;
   long *pointer;
+  bool freeOnDel;
   bool isPointer;
   bool isArray;
   size_t arraySize;
