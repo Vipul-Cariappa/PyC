@@ -28,6 +28,20 @@ int write_int(int *destination, int value) {
   return *destination;
 }
 
+long *returns_pointer() {
+  long *result = malloc(sizeof(long));
+  *result = 0;
+
+  *result = (*result << 8) + 0;
+  *result = (*result << 8) + 'l';
+  *result = (*result << 8) + 'u';
+  *result = (*result << 8) + 'p';
+  *result = (*result << 8) + 'i';
+  *result = (*result << 8) + 'v';
+
+  return result;
+}
+
 long long add_long_long(long long x, long long y)
 {
     return x + y;
@@ -41,6 +55,14 @@ double copy_double(double *destination, double *source) {
 long increment_1(long x) { return ++x; }
 
 short add_short(short x, short y) { return x + y; }
+
+unsigned long long invert_bit(unsigned long long x, unsigned long long pos)
+{
+  unsigned long long num = 1;
+  num <<= pos;
+  unsigned long long result = x ^ num;
+  return result;
+}
 
 char *concat(char *x, char *y) {
   size_t len_x = strlen(x);

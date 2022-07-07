@@ -84,6 +84,18 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
+  
+  // creating c_type: c_uint
+  if (PyType_Ready(&py_c_uint_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_uint_type);
+  if (PyModule_AddObject(m, "c_uint", (PyObject *)&py_c_uint_type) < 0) {
+    Py_DECREF(&py_c_uint_type);
+    Py_DECREF(m);
+    return NULL;
+  }
 
   // creating c_type: c_double
   if (PyType_Ready(&py_c_double_type) < 0) {
@@ -96,7 +108,67 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
+
+  // creating c_type: c_float
+  if (PyType_Ready(&py_c_float_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_float_type);
+  if (PyModule_AddObject(m, "c_float", (PyObject *)&py_c_float_type) < 0) {
+    Py_DECREF(&py_c_float_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_short
+  if (PyType_Ready(&py_c_short_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_short_type);
+  if (PyModule_AddObject(m, "c_short", (PyObject *)&py_c_short_type) < 0) {
+    Py_DECREF(&py_c_short_type);
+    Py_DECREF(m);
+    return NULL;
+  }
   
+  // creating c_type: c_ushort
+  if (PyType_Ready(&py_c_ushort_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_ushort_type);
+  if (PyModule_AddObject(m, "c_ushort", (PyObject *)&py_c_ushort_type) < 0) {
+    Py_DECREF(&py_c_ushort_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating c_type: c_long
+  if (PyType_Ready(&py_c_long_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_long_type);
+  if (PyModule_AddObject(m, "c_long", (PyObject *)&py_c_long_type) < 0) {
+    Py_DECREF(&py_c_long_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+  
+  // creating c_type: c_ulong
+  if (PyType_Ready(&py_c_ulong_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_ulong_type);
+  if (PyModule_AddObject(m, "c_ulong", (PyObject *)&py_c_ulong_type) < 0) {
+    Py_DECREF(&py_c_ulong_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
   // creating c_type: c_bool
   if (PyType_Ready(&py_c_bool_type) < 0) {
     return NULL;
