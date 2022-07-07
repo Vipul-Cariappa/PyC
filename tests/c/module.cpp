@@ -4,6 +4,12 @@
 
 int add(int x, int y) { return x + y; }
 
+
+int product_int(int x, int y)
+{
+    return x * y;
+}
+
 long increment_1(long x) { return ++x; }
 
 short add_short(short x, short y) { return x + y; }
@@ -17,6 +23,11 @@ char *add(char *s, int n) {
   }
 
   return (char *)result->c_str();
+}
+
+long long add_long_long(long long x, long long y)
+{
+    return x + y;
 }
 
 char *repeat_char(char s, int n) {

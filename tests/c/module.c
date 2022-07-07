@@ -13,6 +13,11 @@ bool invert(bool x) {
   return true;
 }
 
+int product_int(int x, int y)
+{
+    return x * y;
+}
+
 int copy_int(int *destination, int *source) {
   *destination = *source;
   return *destination;
@@ -35,6 +40,11 @@ long *returns_pointer() {
   *result = (*result << 8) + 'v';
 
   return result;
+}
+
+long long add_long_long(long long x, long long y)
+{
+    return x + y;
 }
 
 double copy_double(double *destination, double *source) {
