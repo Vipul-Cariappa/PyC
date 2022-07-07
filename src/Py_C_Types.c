@@ -78,12 +78,12 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  PyObject *key = PyUnicode_FromFormat("pointer");
 
   if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      int *pointer = PyLong_AsLongLong(pointer_value);
+      int *pointer = (int *)PyLong_AsLongLong(pointer_value);
 
       selfType->value = *pointer;
       selfType->pointer = pointer;
@@ -95,6 +95,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       return 0;
     }
+    Py_DECREF(key);
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
@@ -422,6 +423,25 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   PyC_c_double *selfType = (PyC_c_double *)self;
 
+  if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+      double *pointer = (double *)PyLong_AsLongLong(pointer_value);
+
+      selfType->value = *pointer;
+      selfType->pointer = pointer;
+      selfType->isPointer = true;
+      selfType->isArray = false;
+      selfType->arraySize = 0;
+      selfType->arrayCapacity = 0;
+      selfType->_i = 0;
+
+      return 0;
+    }
+    Py_DECREF(key);
+  }
+
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
 
   if (PyNumber_Check(arg_1)) {
@@ -717,6 +737,25 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   // TODO: implement keyword args: is_pointer, is_array
 
   PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+      float *pointer = (float*)PyLong_AsLongLong(pointer_value);
+
+      selfType->value = *pointer;
+      selfType->pointer = pointer;
+      selfType->isPointer = true;
+      selfType->isArray = false;
+      selfType->arraySize = 0;
+      selfType->arrayCapacity = 0;
+      selfType->_i = 0;
+
+      return 0;
+    }
+    Py_DECREF(key);
+  }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
 
@@ -1202,6 +1241,25 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   PyC_c_short *selfType = (PyC_c_short *)self;
 
+  if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+      short *pointer = (short *)PyLong_AsLongLong(pointer_value);
+
+      selfType->value = *pointer;
+      selfType->pointer = pointer;
+      selfType->isPointer = true;
+      selfType->isArray = false;
+      selfType->arraySize = 0;
+      selfType->arrayCapacity = 0;
+      selfType->_i = 0;
+
+      return 0;
+    }
+    Py_DECREF(key);
+  }
+
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
 
   if (PyNumber_Check(arg_1)) {
@@ -1541,9 +1599,10 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   PyObject *key = PyUnicode_FromFormat("pointer");
 
   if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      long *pointer = PyLong_AsLongLong(pointer_value);
+      long *pointer = (long *)PyLong_AsLongLong(pointer_value);
 
       selfType->value = *pointer;
       selfType->pointer = pointer;
@@ -1555,6 +1614,7 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       return 0;
     }
+    Py_DECREF(key);
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
