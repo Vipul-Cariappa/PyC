@@ -346,6 +346,38 @@ bool Symbols_parse(Symbols *sym, const char *header) {
   return true;
 }
 
+enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
+                                       CXClientData client_data) {
+  if (clang_getCursorKind(cursor) == CXCursor_FieldDecl) {
+    const char *name = clang_getCString(clang_getCursorSpelling(cursor));
+    CXType type = clang_getCursorType(cursor);
+
+    Structure *obj = (Structure *)client_data;
+
+    qlist_addlast(obj->attrNames, name, strlen(name) + 1);
+    qvector_addlast(obj->attrTypes, get_ffi_type(type));
+
+    obj->attrCount++;
+
+    // get underlying types if pointer type
+    if (obj->attrCount == 1) {
+      obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+    } else {
+      obj->attrUnderlyingType = realloc(
+          obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
+    }
+
+    if (type.kind == CXType_Pointer) {
+      obj->attrUnderlyingType[obj->attrCount - 1] =
+          clang_getPointeeType(type).kind;
+    } else {
+      obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+    }
+  }
+
+  return CXChildVisit_Continue;
+}
+
 enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                 CXClientData client_data) {
   Symbols *symbols = client_data;
@@ -403,47 +435,38 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
   // struct
   else if (clang_getCursorKind(cursor) == CXCursor_StructDecl) {
-    // TODO: implement parseing struct
+    const char *name = clang_getCString(clang_getCursorSpelling(cursor));
 
-    // std::string name = clang_getCString(clang_getCursorSpelling(cursor));
+    Structure obj;
+    obj.name = name;
+    obj.attrNames = qlist(0);
+    obj.attrTypes =
+        qvector(MAX_SIZE, sizeof(ffi_type),
+                QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
+    obj.attrUnderlyingType = NULL;
+    obj.offsets = NULL;
+    obj.type = (ffi_type){0, 0, 0, NULL};
+    obj.attrCount = 0;
+    obj.structSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
 
-    // Structure *obj = new Structure(name, clang_getCursorType(cursor));
+    clang_visitChildren(cursor, struct_visitor, &obj);
 
-    // clang_visitChildren(
-    //     cursor,
-    //     [](CXCursor cursor, CXCursor parent, CXClientData client_data)
-    //     {
-    //         if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
-    //         {
-    //             std::string name =
-    //             clang_getCString(clang_getCursorSpelling(cursor)); CXType
-    //             type = clang_getCursorType(cursor);
+    // offset
+    obj.offsets = malloc(sizeof(long long) * obj.attrCount);
+    for (int i; i < obj.attrCount; i++) {
+      obj.offsets[i] =
+          clang_Type_getOffsetOf(clang_getCursorType(cursor),
+                                 qlist_getat(obj.attrNames, i, NULL, false));
+    }
 
-    //             Structure *obj = (Structure *)client_data;
-    //             obj->types_count++;
-    //             obj->attr_names.push_back(name);
-    //             obj->types.push_back(get_ffi_type(type));
-
-    //             // std::cout << "Name: " << name << " Type: " <<
-    //             clang_getTypeSpelling(type) << "\n";
-    //         }
-
-    //         return CXChildVisit_Continue;
-    //     },
-    //     obj); // change field_visitor to lambda function
-
-    // obj->struct_size = clang_Type_getSizeOf(clang_getCursorType(cursor));
-    // obj->type = obj->create_ffi_struct_type(obj->types);
-    // symbols->append_struct(obj);
+    Symbols_appendStructure(symbols, obj);
   }
+
   // typedef
   else if (clang_getCursorKind(cursor) == CXCursor_TypedefDecl) {
     // TODO: implement parseing typedef
     CXType underlying_type = clang_getTypedefDeclUnderlyingType(cursor);
     CXString name = clang_getCursorSpelling(cursor);
-
-    // std::cout << "Name: " << name << " Type: " <<
-    // clang_getTypeSpelling(underlying_type) << "\n";
   }
 
   // global variables

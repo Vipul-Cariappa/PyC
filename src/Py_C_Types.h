@@ -1,4 +1,5 @@
 #pragma once
+#include "PyC.h"
 #include "Python.h"
 #include <stdbool.h>
 
@@ -19,7 +20,7 @@ typedef struct PyC_c_void {
 static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static void c_void_finalizer(PyObject *self);
 static PyObject *c_void_do_free(PyObject *self, PyObject *args,
-                               PyObject *kwargs);
+                                PyObject *kwargs);
 
 // c_type: c_int
 extern PyTypeObject py_c_int_type;
@@ -231,3 +232,36 @@ static PyObject *c_long_to_int(PyObject *self);
 static Py_ssize_t c_long_len(PyObject *self);
 static PyObject *c_long_getitem(PyObject *self, PyObject *attr);
 static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
+// c_struct
+extern PyTypeObject py_c_struct_type;
+
+typedef struct PyC_c_struct {
+  PyObject_HEAD;
+  Structure *structure;
+  void *pointer;
+  size_t size;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i;            // for iteration purpose
+  PyObject *pyDictRepr; // python dict representation of struct:
+                        // key: attr name value: c_type
+} PyC_c_struct;         // TODO: update with new struct design
+
+static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_struct_getattr(PyObject *self, char *attr);
+static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue);
+static void c_struct_finalizer(PyObject *self);
+static PyObject *c_struct_iter(PyObject *self);
+static PyObject *c_struct_next(PyObject *self);
+static PyObject *c_struct_append(PyObject *self, PyObject *args);
+static PyObject *c_struct_pop(PyObject *self);
+static PyObject *c_struct_donot_free(PyObject *self, PyObject *args,
+                                     PyObject *kwargs);
+static PyObject *c_struct_to_pointer(PyObject *self);
+static Py_ssize_t c_struct_len(PyObject *self);
+static PyObject *c_struct_getitem(PyObject *self, PyObject *attr);
+static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value);
+PyObject *create_py_c_struct(
+    Structure *structure); // helper function; TODO: try and remove

@@ -22,7 +22,8 @@ typedef struct Structure {
   const char *name;
   qlist_t *attrNames;            // vector of attribute names
   qvector_t *attrTypes;          // vector of attribute's ffi_type
-  qvector_t *attrUnderlyingType; // vector of CXTypeKind
+  enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
+  long long *offsets;            // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
   size_t structSize;

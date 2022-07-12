@@ -4,10 +4,10 @@ extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
-typedef struct RECT {
+struct RECT {
   int x;
   int y;
-} RECT;
+};
 
 int add(int x, int y);
 bool invert(bool x);

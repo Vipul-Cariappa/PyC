@@ -57,19 +57,6 @@ PyTypeObject py_CppFunctionType = {
     .tp_finalize = &Cpp_FunctionGC,
 };
 
-PyTypeObject py_CppStructType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppStruct",
-    .tp_basicsize = sizeof(PyC_CppStruct),
-    .tp_itemsize = 0,
-    .tp_getattr = &Cpp_StructGet,
-    .tp_setattr = &Cpp_StructSet,
-    .tp_call = &Cpp_StructCall,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppStruct",
-    .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_StructGC,
-};
-
 PyMethodDef PyC_Methods[] = {
     {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS,
      LOAD_CPP_DOC_STRING},
@@ -199,8 +186,10 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
-  if (structVar)
-    return new_PyCpp_CppStruct(structVar);
+  if (structVar) {
+    return create_py_c_struct(structVar);
+  }
+
   else if (errno != 0)
     return NULL;
 
@@ -210,19 +199,6 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   PyErr_SetString(py_CppError,
                   "Could not find any declaration with given name");
-  return NULL;
-}
-
-static PyObject *new_PyCpp_CppStruct(Structure *structure) {
-  PyObject *obj = PyObject_GetAttrString(PyC, "CppStruct");
-  if (obj) {
-    PyC_CppStruct *result = (PyC_CppStruct *)PyObject_CallObject(obj, NULL);
-    result->structType = structure;
-    result->data = malloc(structure->structSize);
-
-    return (PyObject *)result;
-  }
-  PyErr_SetString(py_BindingError, "Unable to access PyCpp.CppStruct");
   return NULL;
 }
 
@@ -289,7 +265,8 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(rc, funcType->returnType, funcType->returnsUnderlyingType);
+  return cppArg_to_pyArg(rc, funcType->returnType,
+                         funcType->returnsUnderlyingType);
 }
 
 // PyCpp.CppFunction.__del__

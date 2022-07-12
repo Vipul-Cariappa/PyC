@@ -58,8 +58,6 @@ static Py_ssize_t c_int_len(PyObject *self);
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
 static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
-static PyObject *new_PyCpp_CppStruct(Structure *structure);
-
 CXString GET_MANGLED_NAME(CXCursor cursor);
 
 // ----- Doc String -----

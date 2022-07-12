@@ -134,18 +134,19 @@ class TestBasic(unittest.TestCase):
         self.assertAlmostEqual(cModule.copy_double(
             PyC.c_double(3.14), PyC.c_double(3.14)), 3.14, 4)
 
-    # def test_structs(self):
-    #     r = cModule.RECT
-    #     print(r)
+    def test_structs(self):
+        # r = cModule.RECT
 
+        # print(r)
         # print(r.x)
         # print(r.y)
-
+        
         # r.x = 99
         # r.y = 100
 
         # print(r.x)
         # print(r.y)
+        ...
 
 
 if __name__ == "__main__":
