@@ -13,10 +13,7 @@ bool invert(bool x) {
   return true;
 }
 
-int product_int(int x, int y)
-{
-    return x * y;
-}
+int product_int(int x, int y) { return x * y; }
 
 int copy_int(int *destination, int *source) {
   *destination = *source;
@@ -42,10 +39,7 @@ long *returns_pointer() {
   return result;
 }
 
-long long add_long_long(long long x, long long y)
-{
-    return x + y;
-}
+long long add_long_long(long long x, long long y) { return x + y; }
 
 double copy_double(double *destination, double *source) {
   *destination = *source;
@@ -56,8 +50,7 @@ long increment_1(long x) { return ++x; }
 
 short add_short(short x, short y) { return x + y; }
 
-unsigned long long invert_bit(unsigned long long x, unsigned long long pos)
-{
+unsigned long long invert_bit(unsigned long long x, unsigned long long pos) {
   unsigned long long num = 1;
   num <<= pos;
   unsigned long long result = x ^ num;
@@ -88,28 +81,20 @@ double pi(int n) {
   return pi;
 }
 
-// RECT *get_rect(int x, int y)
-// {
-//     RECT *result = (RECT *)malloc(sizeof(RECT));
-//     result->x = x;
-//     result->y = y;
-//     return result;
-// }
+struct RECT *get_rect(int x, int y) {
+  struct RECT *result = (struct RECT *)malloc(sizeof(struct RECT));
+  result->x = x;
+  result->y = y;
+  return result;
+}
 
-// RECT *rect_add(RECT *a, RECT *b)
-// {
-//     RECT *result = (RECT *)malloc(sizeof(RECT));
-//     result->x = a->x + b->x;
-//     result->y = a->y + b->y;
-//     return result;
-// }
+struct RECT *rect_add(struct RECT *a, struct RECT *b) {
+  struct RECT *result = (struct RECT *)malloc(sizeof(struct RECT));
+  result->x = a->x + b->x;
+  result->y = a->y + b->y;
+  return result;
+}
 
-// int get_area(RECT a)
-// {
-//     return a.x * a.y;
-// }
+int get_area(struct RECT a) { return a.x * a.y; }
 
-// int get_periment(RECT a)
-// {
-//     return 2 * (a.x + a.y);
-// }
+int get_perimeter(struct RECT a) { return 2 * (a.x + a.y); }

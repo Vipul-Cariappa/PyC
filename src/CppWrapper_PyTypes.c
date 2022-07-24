@@ -227,6 +227,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   } else if (funcNum == -2) {
     PyErr_SetString(py_BindingError, "Type Convertion of given function "
                                      "declaration is not implemented.");
+    return NULL;
   }
 
   FunctionType *funcType =
@@ -274,58 +275,4 @@ static void Cpp_FunctionGC(PyObject *self) {
   // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
   return;
-}
-
-static PyObject *Cpp_StructGet(PyObject *self, char *attr) {
-  // PyC_CppStruct *selfType = (PyC_CppStruct *)self;
-  // int index = 0;
-  // for (std::string &i : selfType->structType->attr_names)
-  // {
-  //     if (i == attr)
-  //     {
-  //         long long offset =
-  //         clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
-  //         char *data = (char *)selfType->data;
-  //         return cppArg_to_pyArg(data + offset,
-  //         selfType->structType->types.at(index));
-  //     }
-  //     index++;
-  // }
-
-  // TODO: implement Cpp_StructGet
-  Py_RETURN_NONE;
-}
-
-static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue) {
-  // PyC_CppStruct *selfType = (PyC_CppStruct *)self;
-  // int index = 0;
-  // for (std::string &i : selfType->structType->attr_names)
-  // {
-  //     if (i == attr)
-  //     {
-  //         long long offset =
-  //         clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
-  //         ffi_type type = selfType->structType->types.at(index);
-  //         char *data = (char *)selfType->data;
-  //         void *value = pyArg_to_cppArg(pValue, type);
-  //         memcpy(data+offset, value, type.size);
-  //         free(value);
-  //         return 0;
-  //     }
-  //     index++;
-  // }
-  // PyErr_SetString(py_CppError, "Struct with given attribute not found");
-  // return -1;
-
-  // TODO: implement Cpp_StructSet
-  return 0;
-}
-
-PyObject *Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs) {
-  return self;
-}
-
-static void Cpp_StructGC(PyObject *self) {
-  // TODO: implement Cpp_StructGC
-  PyC_CppStruct *selfType = (PyC_CppStruct *)self;
 }

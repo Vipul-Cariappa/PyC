@@ -236,6 +236,18 @@ raise_error:
 }
 
 bool Symbols_appendStructure(Symbols *sym, Structure s) {
+
+  // createing ffi_type for the given struct
+  s.type.size = 0;
+  s.type.alignment = 0;
+  s.type.type = FFI_TYPE_STRUCT;
+  s.type.elements = calloc(s.attrCount + 1, sizeof(ffi_type *));
+
+  for (size_t i = 0; i < s.attrCount; i++) {
+    s.type.elements[i] = qvector_getat(s.attrTypes, i, false);
+  }
+  s.type.elements[s.attrCount] = NULL;
+
   if (!qlist_addlast(sym->structsNames, s.name, strlen(s.name) + 1))
     goto raise_error;
 
@@ -355,7 +367,9 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
     Structure *obj = (Structure *)client_data;
 
     qlist_addlast(obj->attrNames, name, strlen(name) + 1);
-    qvector_addlast(obj->attrTypes, get_ffi_type(type));
+    qvector_addlast(
+        obj->attrTypes,
+        get_ffi_type(type, NULL, NULL)); // TODO: update with new args
 
     obj->attrCount++;
 
@@ -391,12 +405,21 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     FunctionType funcType;
 
     CXType returnType = clang_getCursorResultType(cursor);
-    ffi_type *return_ffi_type = get_ffi_type(returnType);
+    ffi_type *return_ffi_type = get_ffi_type(returnType, symbols, funcName);
     if (!return_ffi_type) {
       return CXChildVisit_Break;
     }
 
     funcType.returnType = *return_ffi_type;
+
+    // printf("%s\n", clang_getCString(clang_getTypeSpelling(
+    //                    clang_getCursorResultType(cursor))));
+
+    // const char *return_type_name = clang_getCString(
+    //     clang_getTypeSpelling(clang_getCursorResultType(cursor)));
+    //   size_t len = strlen(return_type_name + 7);
+    //   funcType.returnTypeName = malloc(len);
+    //   strcpy(funcType.returnTypeName, return_type_name + 7);
 
     if (returnType.kind == CXType_Pointer) {
       funcType.returnsUnderlyingType = clang_getPointeeType(returnType).kind;
@@ -421,7 +444,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       else
         funcType.argsUnderlyingType[i] = 0;
 
-      ffi_type *arg_ffi_type = get_ffi_type(arg_type);
+      ffi_type *arg_ffi_type = get_ffi_type(
+          arg_type, symbols, clang_getCString(clang_getTypeSpelling(arg_type)));
       if (!arg_ffi_type) {
         return CXChildVisit_Break;
       }
@@ -476,7 +500,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     Global global;
     global.name = clang_getCString(clang_getCursorSpelling(cursor));
 
-    ffi_type *type_ffi_type = get_ffi_type(type);
+    ffi_type *type_ffi_type = get_ffi_type(type, symbols, global.name);
     if (!type_ffi_type) {
       return CXChildVisit_Break;
     }

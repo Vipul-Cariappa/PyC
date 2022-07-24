@@ -183,6 +183,10 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     case CXType_Char_S:
       return PyUnicode_FromString(*(char **)arg);
 
+    case CXType_Elaborated: // TODO: case of CXType_Record, use
+                            // clang_Type_getNamedType
+      // TODO: implement
+
     default:
       PyErr_SetString(
           py_BindingError,
@@ -299,7 +303,6 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
 
           return NULL;
         }
-
       default:
         // TODO: check for memory leaks
         PyErr_SetString(
@@ -346,7 +349,13 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
         // TODO: verify not pointer
         rvalue[i] = selfType->pointer;
       }
-
+    } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) {
+      PyC_c_struct *selfType = (PyC_c_struct *)pyArg;
+      if (type.type == FFI_TYPE_STRUCT) {
+        rvalue[i] = selfType->pointer;
+      } else if (type.type == FFI_TYPE_POINTER) {
+        rvalue[i] = &(selfType->pointer);
+      }
     } else {
       PyErr_SetString(py_BindingError,
                       "Could not convert Python type to Cpp type");
@@ -416,7 +425,18 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type) ||
               PyUnicode_Check(pyArg)) {
+            funcNum = i;
+            continue;
+          } else {
+            funcNum = -1;
+            break;
+          }
+          break;
+        case FFI_TYPE_STRUCT:
+          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) {
+            // TODO: check if they are the same structs
             funcNum = i;
             continue;
           } else {
@@ -523,7 +543,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   }
 }
 
-ffi_type *get_ffi_type(CXType type) {
+ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
   switch (type.kind) {
   case CXType_Void:
     return &ffi_type_void;
@@ -556,8 +576,8 @@ ffi_type *get_ffi_type(CXType type) {
     return &ffi_type_schar;
   case CXType_Pointer:
     return &ffi_type_pointer;
-  // case CXType_Typedef:
-  //     return get_ffi_type(type);
+  case CXType_Elaborated: // CXType_Record
+    return &Symbols_getStructure(sym, name + 7)->type;
   default:
     PyErr_SetString(
         py_BindingError,

@@ -2249,6 +2249,7 @@ PyTypeObject py_c_struct_type = {
     .tp_getattr = &c_struct_getattr,
     .tp_setattr = &c_struct_setattr,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_call = c_struct_call,
     .tp_doc = "PyCpp.c_struct",
     .tp_iter = &c_struct_iter,
     .tp_iternext = &c_struct_next,
@@ -2315,6 +2316,25 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_struct_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
+}
+
+// PyC.c_struct.__call__
+static PyObject *c_struct_call(PyObject *self, PyObject *args,
+                               PyObject *kwargs) {
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyObject *obj = PyObject_GetAttrString(PyC, selfType->structure->name);
+  if (obj) {
+    PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
+    result->structure = selfType->structure;
+    result->pointer = malloc(selfType->structure->structSize);
+
+    return (PyObject *)result;
+  }
+  PyErr_SetString(py_BindingError,
+                  "Unable to access PyCpp.c_struct base class");
+  return NULL;
 }
 
 // helper function; TODO: try and remove

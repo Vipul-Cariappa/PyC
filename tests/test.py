@@ -135,18 +135,29 @@ class TestBasic(unittest.TestCase):
             PyC.c_double(3.14), PyC.c_double(3.14)), 3.14, 4)
 
     def test_structs(self):
-        # r = cModule.RECT
-
-        # print(r)
-        # print(r.x)
-        # print(r.y)
+        r = cModule.RECT
         
-        # r.x = 99
-        # r.y = 100
+        r1 = r()
+        r1.x = 200
+        r1.y = 100
+        
+        r2 = r()
+        r2.x = 250
+        r2.y = 140
 
-        # print(r.x)
-        # print(r.y)
-        ...
+        self.assertEqual(r1.x, 200)
+        self.assertEqual(r1.y, 100)
+        self.assertEqual(r2.x, 250)
+        self.assertEqual(r2.y, 140)
+
+        self.assertEqual(cModule.get_area(r1), 200*100)
+        self.assertEqual(cModule.get_perimeter(r1), 2*(200+100))
+        
+        self.assertEqual(cModule.get_area(r2), 250*140)
+        self.assertEqual(cModule.get_perimeter(r2), 2*(250+140))
+
+        # print(cModule.get_rect(1, 2))
+        
 
 
 if __name__ == "__main__":

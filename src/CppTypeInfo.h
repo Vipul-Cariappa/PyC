@@ -5,8 +5,8 @@
 
 typedef struct FunctionType {
   ffi_type returnType;
-  qvector_t *argsType;                 // vector of ffi_type
-  enum CXTypeKind *argsUnderlyingType; // array of CXTypeKind
+  qvector_t *argsType;                   // vector of ffi_type
+  enum CXTypeKind *argsUnderlyingType;   // array of CXTypeKind
   enum CXTypeKind returnsUnderlyingType; //  CXTypeKind
   size_t argsCount;
 } FunctionType;
@@ -20,10 +20,10 @@ typedef struct Function {
 
 typedef struct Structure {
   const char *name;
-  qlist_t *attrNames;            // vector of attribute names
-  qvector_t *attrTypes;          // vector of attribute's ffi_type
+  qlist_t *attrNames;                  // vector of attribute names
+  qvector_t *attrTypes;                // vector of attribute's ffi_type
   enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
-  long long *offsets;            // record the offsets of attributes
+  long long *offsets;                  // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
   size_t structSize;
