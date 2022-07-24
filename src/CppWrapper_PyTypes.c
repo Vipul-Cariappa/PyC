@@ -20,11 +20,13 @@ typedef struct PyC_CppModule {
   void *so;
   Symbols *symbols;
   int loaded;
+  PyObject *cache_dict; // cache created function wrappers and structs
 } PyC_CppModule;
 
 typedef struct PyC_CppFunction {
   PyObject_HEAD Function *funcType;
   void *so;
+  PyObject *parentModule;
 } PyC_CppFunction;
 
 typedef struct PyC_CppStruct // FIXME: modify it with new design
@@ -148,12 +150,28 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->so = so;
 
+  // create dict for caching
+  selfType->cache_dict = PyDict_New();
+
   return 0;
 }
 
 // PyCpp.CppModule.__get__
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
+
+  PyObject *py_attr_name =
+      PyUnicode_FromString(attr); // TODO: decrement refrence count
+
+  int cached = PyDict_Contains(selfType->cache_dict, py_attr_name);
+  if (cached == 1) {
+    PyObject *result = PyDict_GetItem(selfType->cache_dict, py_attr_name);
+    Py_INCREF(result);
+    Py_DECREF(py_attr_name);
+    return result;
+  } else if (cached == -1) {
+    return NULL;
+  }
 
   Function *funcType = Symbols_getFunction(selfType->symbols, attr);
 
@@ -164,6 +182,12 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
           (PyC_CppFunction *)PyObject_CallObject(obj, NULL);
       pyCppFunction->funcType = funcType;
       pyCppFunction->so = selfType->so;
+      pyCppFunction->parentModule = self;
+
+      if (PyDict_SetItem(selfType->cache_dict, py_attr_name,
+                         (PyObject *)pyCppFunction)) {
+        return NULL;
+      }
 
       return (PyObject *)pyCppFunction;
     }
@@ -180,14 +204,20 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
       return NULL;
     }
 
-    return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType);
+    return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
+                           NULL, self); // TODO: update NULL for global structs
   } else if (errno != 0)
     return NULL;
 
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
   if (structVar) {
-    return create_py_c_struct(structVar);
+    PyObject *result = create_py_c_struct(structVar);
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      return NULL;
+    }
+
+    return result;
   }
 
   else if (errno != 0)
@@ -266,8 +296,9 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(rc, funcType->returnType,
-                         funcType->returnsUnderlyingType);
+  return cppArg_to_pyArg(
+      rc, funcType->returnType, funcType->returnsUnderlyingType,
+      funcType->returnUnderlyingStruct, selfType->parentModule);
 }
 
 // PyCpp.CppFunction.__del__
