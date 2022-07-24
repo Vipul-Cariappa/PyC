@@ -156,7 +156,16 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(cModule.get_area(r2), 250*140)
         self.assertEqual(cModule.get_perimeter(r2), 2*(250+140))
 
-        # print(cModule.get_rect(1, 2))
+        self.assertFalse(cModule.same_rects(r1, r2))
+        self.assertTrue(cModule.same_rects(r1, r1))
+        
+        t = cModule.get_rect(1, 2)
+        f = cModule.rect_add(r1, r2)
+        
+        self.assertEqual(t.x, 1)
+        self.assertEqual(t.y, 2)
+        self.assertEqual(f.x, 200+250)
+        self.assertEqual(f.y, 100+140)
         
 
 

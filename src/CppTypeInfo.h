@@ -3,20 +3,12 @@
 #include "qlibc.h"
 #include "clang-c/Index.h"
 
-typedef struct FunctionType {
-  ffi_type returnType;
-  qvector_t *argsType;                   // vector of ffi_type
-  enum CXTypeKind *argsUnderlyingType;   // array of CXTypeKind
-  enum CXTypeKind returnsUnderlyingType; //  CXTypeKind
-  size_t argsCount;
-} FunctionType;
-
-typedef struct Function {
+typedef struct Global {
   const char *name;
-  qlist_t *mangledNames;    // vector of mangled names
-  qvector_t *functionTypes; // vector of struct FunctionTypes
-  size_t funcCount;
-} Function;
+  // const char *mangledName;
+  ffi_type type;
+  enum CXTypeKind underlyingType;
+} Global;
 
 typedef struct Structure {
   const char *name;
@@ -29,16 +21,27 @@ typedef struct Structure {
   size_t structSize;
 } Structure;
 
-typedef struct Global {
-  const char *name;
-  // const char *mangledName;
-  ffi_type type;
-  enum CXTypeKind underlyingType;
-} Global;
-
 typedef struct Class {
   // TODO: Implement
 } Class;
+
+typedef struct FunctionType {
+  ffi_type returnType;
+  qvector_t *argsType;                   // vector of ffi_type
+  enum CXTypeKind *argsUnderlyingType;   // array of CXTypeKind
+  enum CXTypeKind returnsUnderlyingType; //  CXTypeKind
+  // Structure **argsUnderlyingStructs;   // for checking for proper struct
+  // matching
+  Structure *returnUnderlyingStruct; // for type convertion
+  size_t argsCount;
+} FunctionType;
+
+typedef struct Function {
+  const char *name;
+  qlist_t *mangledNames;    // vector of mangled names
+  qvector_t *functionTypes; // vector of struct FunctionTypes
+  size_t funcCount;
+} Function;
 
 typedef struct Symbols {
   const char *name;

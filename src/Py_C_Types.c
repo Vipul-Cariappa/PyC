@@ -2282,7 +2282,8 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
       return cppArg_to_pyArg(
           (selfType->pointer) + (selfType->structure->offsets[i] / 8),
           *(ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false),
-          selfType->structure->attrUnderlyingType[i]);
+          selfType->structure->attrUnderlyingType[i], NULL,
+          NULL); // TODO: update for structs and module
     }
   }
 

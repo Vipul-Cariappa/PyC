@@ -81,11 +81,8 @@ double pi(int n) {
   return pi;
 }
 
-struct RECT *get_rect(int x, int y) {
-  struct RECT *result = (struct RECT *)malloc(sizeof(struct RECT));
-  result->x = x;
-  result->y = y;
-  return result;
+struct RECT get_rect(int x, int y) {
+  return (struct RECT){x, y};
 }
 
 struct RECT *rect_add(struct RECT *a, struct RECT *b) {
@@ -98,3 +95,9 @@ struct RECT *rect_add(struct RECT *a, struct RECT *b) {
 int get_area(struct RECT a) { return a.x * a.y; }
 
 int get_perimeter(struct RECT a) { return 2 * (a.x + a.y); }
+
+bool same_rects(struct RECT *a, struct RECT *b) {
+  if ((a->x == b->x) && (a->y == b->y))
+    return true;
+  return false;
+}

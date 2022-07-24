@@ -410,8 +410,9 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     FunctionType funcType;
 
     CXType returnType = clang_getCursorResultType(cursor);
-    ffi_type *return_ffi_type = get_ffi_type(
-        returnType, symbols, clang_getCString(clang_getTypeSpelling(returnType)));
+    ffi_type *return_ffi_type =
+        get_ffi_type(returnType, symbols,
+                     clang_getCString(clang_getTypeSpelling(returnType)));
     if (!return_ffi_type) {
       return CXChildVisit_Break;
     }
@@ -432,9 +433,27 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       if (clang_getPointeeType(returnType).kind == CXType_Elaborated) {
         funcType.returnsUnderlyingType =
             clang_Type_getNamedType(clang_getPointeeType(returnType)).kind;
+
+        if (clang_Type_getNamedType(clang_getPointeeType(returnType)).kind ==
+            CXType_Record) {
+          const char *struct_name = clang_getCString(clang_getTypeSpelling(
+              clang_Type_getNamedType(clang_getPointeeType(returnType))));
+
+          funcType.returnUnderlyingStruct =
+              Symbols_getStructure(symbols, struct_name + 7);
+        }
       }
     } else {
       funcType.returnsUnderlyingType = 0;
+
+      if (returnType.kind == CXType_Elaborated) {
+        if (clang_Type_getNamedType(returnType).kind == CXType_Record) {
+          const char *struct_name = clang_getCString(
+              clang_getTypeSpelling(clang_Type_getNamedType(returnType)));
+          funcType.returnUnderlyingStruct =
+              Symbols_getStructure(symbols, struct_name + 7);
+        }
+      }
     }
 
     funcType.argsCount = clang_Cursor_getNumArguments(cursor);

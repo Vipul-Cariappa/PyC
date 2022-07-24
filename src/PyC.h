@@ -21,7 +21,8 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name);
 void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type);
 int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
-                          enum CXTypeKind underlying_type);
+                          enum CXTypeKind underlying_type,
+                          Structure *underlying_struct, PyObject *module);
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type);
 
 static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs);

@@ -72,7 +72,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_uint
   if (PyType_Ready(&py_c_uint_type) < 0) {
     return NULL;
@@ -120,7 +120,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_ushort
   if (PyType_Ready(&py_c_ushort_type) < 0) {
     return NULL;
@@ -144,7 +144,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_ulong
   if (PyType_Ready(&py_c_ulong_type) < 0) {
     return NULL;
@@ -168,7 +168,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_char
   if (PyType_Ready(&py_c_char_type) < 0) {
     return NULL;

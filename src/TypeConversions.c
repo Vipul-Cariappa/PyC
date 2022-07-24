@@ -71,7 +71,8 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
 }
 
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
-                          enum CXTypeKind underlying_type) {
+                          enum CXTypeKind underlying_type,
+                          Structure *underlying_struct, PyObject *module) {
   switch (type.type) {
   case FFI_TYPE_INT:
     return PyLong_FromLongLong(*(int *)arg);
@@ -183,13 +184,57 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     case CXType_Char_S:
       return PyUnicode_FromString(*(char **)arg);
 
+    case CXType_Record: {
+      const char *struct_name = underlying_struct->name;
+      PyObject *obj = PyObject_GetAttrString(module, struct_name);
+
+      if (obj) {
+        PyObject *result = PyObject_CallObject(obj, NULL);
+        PyC_c_struct *resultStruct = (PyC_c_struct *)result;
+        free(resultStruct->pointer);
+        resultStruct->pointer = *(void **)arg;
+        return result;
+      } else {
+        return NULL;
+      }
+    }
+
     default:
       PyErr_SetString(
           py_BindingError,
           "Could not convert Cpp type (pointer type) to Python type");
       return NULL;
     }
+  case FFI_TYPE_STRUCT: {
+    const char *struct_name = underlying_struct->name;
+    PyObject *obj = PyObject_GetAttrString(module, struct_name);
+    if (obj) {
+      PyObject *result = PyObject_CallObject(obj, NULL);
+      char *arg_data = arg;
 
+      for (size_t i = 0; i < underlying_struct->attrCount; i++) {
+        PyObject *attr_name = PyUnicode_FromString(
+            qlist_getat(underlying_struct->attrNames, i, NULL,
+                        false)); // TODO: decrement reference count
+        PyObject *item = cppArg_to_pyArg(
+            (void *)arg_data + (underlying_struct->offsets[i] / 8),
+            *(ffi_type *)qvector_getat(underlying_struct->attrTypes, i, false),
+            underlying_struct->attrUnderlyingType[i], NULL, module);
+        // TODO: decrement reference count
+
+        // printf("%s\n", qlist_getat(underlying_struct->attrNames, i, NULL,
+        // false));
+
+        if (PyObject_SetAttr(result, attr_name, item)) {
+          return NULL;
+        }
+      }
+
+      return result;
+    } else {
+      return NULL;
+    }
+  }
   default:
     PyErr_SetString(py_BindingError,
                     "Could not convert Cpp type to Python type");
@@ -491,7 +536,7 @@ const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
   case CXType_ULongLong:
     return "u_int64_t*";
   case CXType_Record:
-    return "struct*";   // TODO: specify struct
+    return "struct*"; // TODO: specify struct
   case CXType_Char_S:
     return "char*";
   default:
@@ -529,7 +574,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   case FFI_TYPE_SINT64:
     return "int64_t";
   case FFI_TYPE_STRUCT:
-    return "struct";  // TODO: specify struct name
+    return "struct"; // TODO: specify struct name
   case FFI_TYPE_COMPLEX:
     return "complex";
   case FFI_TYPE_POINTER:

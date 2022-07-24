@@ -23,7 +23,8 @@ unsigned long long invert_bit(unsigned long long x, unsigned long long pos);
 int product_int(int x, int y);
 long long add_long_long(long long x, long long y);
 
-struct RECT *get_rect(int x, int y);
+struct RECT get_rect(int x, int y);
 struct RECT *rect_add(struct RECT *a, struct RECT *b);
 int get_area(struct RECT a);
 int get_perimeter(struct RECT a);
+bool same_rects(struct RECT *a, struct RECT *b);
