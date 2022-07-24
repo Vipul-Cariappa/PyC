@@ -183,10 +183,6 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     case CXType_Char_S:
       return PyUnicode_FromString(*(char **)arg);
 
-    case CXType_Elaborated: // TODO: case of CXType_Record, use
-                            // clang_Type_getNamedType
-      // TODO: implement
-
     default:
       PyErr_SetString(
           py_BindingError,
@@ -495,7 +491,7 @@ const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
   case CXType_ULongLong:
     return "u_int64_t*";
   case CXType_Record:
-    return "struct*";
+    return "struct*";   // TODO: specify struct
   case CXType_Char_S:
     return "char*";
   default:
@@ -533,7 +529,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   case FFI_TYPE_SINT64:
     return "int64_t";
   case FFI_TYPE_STRUCT:
-    return "struct";
+    return "struct";  // TODO: specify struct name
   case FFI_TYPE_COMPLEX:
     return "complex";
   case FFI_TYPE_POINTER:
@@ -576,8 +572,16 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
     return &ffi_type_schar;
   case CXType_Pointer:
     return &ffi_type_pointer;
-  case CXType_Elaborated: // CXType_Record
-    return &Symbols_getStructure(sym, name + 7)->type;
+  case CXType_Elaborated:
+    if (clang_Type_getNamedType(type).kind == CXType_Record) {
+      return &Symbols_getStructure(sym, name + 7)->type;
+    }
+    if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
+      if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==
+          CXType_Record) {
+        return &ffi_type_pointer;
+      }
+    }
   default:
     PyErr_SetString(
         py_BindingError,

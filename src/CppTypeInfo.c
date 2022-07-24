@@ -26,7 +26,12 @@ void print_Function(Function func) {
     FunctionType type =
         *((FunctionType *)qvector_getat(func.functionTypes, i, false));
 
-    printf("      %s %s(", ffi_type_To_char_p(type.returnType), mangledName);
+    if (type.returnsUnderlyingType != CXType_Invalid) {
+      printf("      %s %s(", CXTypeKind_TO_char_p(type.returnsUnderlyingType),
+             mangledName);
+    } else {
+      printf("      %s %s(", ffi_type_To_char_p(type.returnType), mangledName);
+    }
 
     assert(type.argsCount == qvector_size(type.argsType));
     // assert(type.argsCount == qvector_size(type.argsUnderlyingType));
@@ -405,7 +410,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     FunctionType funcType;
 
     CXType returnType = clang_getCursorResultType(cursor);
-    ffi_type *return_ffi_type = get_ffi_type(returnType, symbols, funcName);
+    ffi_type *return_ffi_type = get_ffi_type(
+        returnType, symbols, clang_getCString(clang_getTypeSpelling(returnType)));
     if (!return_ffi_type) {
       return CXChildVisit_Break;
     }
@@ -423,6 +429,10 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     if (returnType.kind == CXType_Pointer) {
       funcType.returnsUnderlyingType = clang_getPointeeType(returnType).kind;
+      if (clang_getPointeeType(returnType).kind == CXType_Elaborated) {
+        funcType.returnsUnderlyingType =
+            clang_Type_getNamedType(clang_getPointeeType(returnType)).kind;
+      }
     } else {
       funcType.returnsUnderlyingType = 0;
     }
@@ -439,10 +449,15 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       CXCursor arg = clang_Cursor_getArgument(cursor, i);
       CXType arg_type = clang_getCursorType(arg);
 
-      if (arg_type.kind == CXType_Pointer)
+      if (arg_type.kind == CXType_Pointer) {
         funcType.argsUnderlyingType[i] = clang_getPointeeType(arg_type).kind;
-      else
+        if (clang_getPointeeType(arg_type).kind == CXType_Elaborated) {
+          funcType.argsUnderlyingType[i] =
+              clang_Type_getNamedType(clang_getPointeeType(arg_type)).kind;
+        }
+      } else {
         funcType.argsUnderlyingType[i] = 0;
+      }
 
       ffi_type *arg_ffi_type = get_ffi_type(
           arg_type, symbols, clang_getCString(clang_getTypeSpelling(arg_type)));
