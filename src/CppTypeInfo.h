@@ -12,10 +12,12 @@ typedef struct Global {
 
 typedef struct Structure {
   const char *name;
-  qlist_t *attrNames;                  // vector of attribute names
-  qvector_t *attrTypes;                // vector of attribute's ffi_type
-  enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
-  long long *offsets;                  // record the offsets of attributes
+  qlist_t *attrNames;                       // vector of attribute names
+  qvector_t *attrTypes;                     // vector of attribute's ffi_type
+  enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
+  struct Structure **attrUnderlyingStructs; // array of underlying
+                                            // struct type for pointers
+  long long *offsets;                       // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
   size_t structSize;

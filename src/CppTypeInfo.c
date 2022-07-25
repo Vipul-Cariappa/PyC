@@ -369,21 +369,30 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
     const char *name = clang_getCString(clang_getCursorSpelling(cursor));
     CXType type = clang_getCursorType(cursor);
 
-    Structure *obj = (Structure *)client_data;
+    void **info = client_data;
+    Structure *obj = (Structure *)info[0];
+    Symbols *sym = (Symbols *)info[1];
 
     qlist_addlast(obj->attrNames, name, strlen(name) + 1);
-    qvector_addlast(
-        obj->attrTypes,
-        get_ffi_type(type, NULL, NULL)); // TODO: update with new args
+
+    const char *type_name = clang_getCString(clang_getTypeSpelling(type));
+
+    qvector_addlast(obj->attrTypes, get_ffi_type(type, sym, type_name));
 
     obj->attrCount++;
 
     // get underlying types if pointer type
     if (obj->attrCount == 1) {
       obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+
+      obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
+
     } else {
       obj->attrUnderlyingType = realloc(
           obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
+
+      obj->attrUnderlyingStructs = realloc(
+          obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
     }
 
     if (type.kind == CXType_Pointer) {
@@ -391,6 +400,34 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
           clang_getPointeeType(type).kind;
     } else {
       obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+    }
+
+    if (type.kind == CXType_Elaborated) {
+      if (clang_Type_getNamedType(type).kind == CXType_Record) {
+        obj->attrUnderlyingStructs[obj->attrCount - 1] =
+            Symbols_getStructure(sym, type_name + 7);
+      }
+      if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
+        if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==
+            CXType_Record) {
+          size_t len = strlen(type_name);
+          char *updated_type_name = malloc(len);
+          strcpy(updated_type_name, type_name + 7);
+          for (int i = 0; i < strlen(updated_type_name); i++) {
+            if ((updated_type_name[i] == ' ') ||
+                (updated_type_name[i] == '*')) {
+              updated_type_name[i] = 0;
+              break;
+            }
+          }
+
+          obj->attrUnderlyingStructs[obj->attrCount - 1] =
+              Symbols_getStructure(sym, updated_type_name);
+          free(updated_type_name);
+        }
+      }
+    } else {
+      obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
     }
   }
 
@@ -507,11 +544,12 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     obj.attrCount = 0;
     obj.structSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
 
-    clang_visitChildren(cursor, struct_visitor, &obj);
+    void *info[] = {&obj, symbols};
+    clang_visitChildren(cursor, struct_visitor, info);
 
     // offset
     obj.offsets = malloc(sizeof(long long) * obj.attrCount);
-    for (int i; i < obj.attrCount; i++) {
+    for (int i = 0; i < obj.attrCount; i++) {
       obj.offsets[i] =
           clang_Type_getOffsetOf(clang_getCursorType(cursor),
                                  qlist_getat(obj.attrNames, i, NULL, false));

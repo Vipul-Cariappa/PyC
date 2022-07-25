@@ -2282,8 +2282,9 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
       return cppArg_to_pyArg(
           (selfType->pointer) + (selfType->structure->offsets[i] / 8),
           *(ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false),
-          selfType->structure->attrUnderlyingType[i], NULL,
-          NULL); // TODO: update for structs and module
+          selfType->structure->attrUnderlyingType[i],
+          selfType->structure->attrUnderlyingStructs[i],
+          selfType->parentModule); // TODO: update for structs and module
     }
   }
 
@@ -2302,9 +2303,15 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
       ffi_type *type =
           (ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false);
       void *data = pyArg_to_cppArg(pValue, *type);
-      memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8), data,
-             type->size);
-      free(data);
+
+      if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
+        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+               data, ((PyC_c_struct *)pValue)->structure->structSize);
+      } else {
+        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+               data, type->size);
+      }
+      // free(data);
       return 0;
     }
   }
@@ -2330,6 +2337,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = selfType->structure;
     result->pointer = malloc(selfType->structure->structSize);
+    result->parentModule = selfType->parentModule;
 
     return (PyObject *)result;
   }
@@ -2339,7 +2347,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
 }
 
 // helper function; TODO: try and remove
-PyObject *create_py_c_struct(Structure *structure) {
+PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   // TODO: implement
   typedef struct PyC_c_new {
     PyC_c_struct super;
@@ -2380,6 +2388,7 @@ PyObject *create_py_c_struct(Structure *structure) {
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = structure;
     result->pointer = malloc(structure->structSize);
+    result->parentModule = module;
 
     return (PyObject *)result;
   }

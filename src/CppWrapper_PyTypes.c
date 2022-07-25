@@ -212,7 +212,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
   if (structVar) {
-    PyObject *result = create_py_c_struct(structVar);
+    PyObject *result = create_py_c_struct(structVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
       return NULL;
     }

@@ -9,6 +9,11 @@ struct RECT {
   int y;
 };
 
+struct Cuboid {
+  struct RECT r;
+  int z;
+};
+
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);

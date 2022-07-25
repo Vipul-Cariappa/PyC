@@ -166,6 +166,14 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(t.y, 2)
         self.assertEqual(f.x, 200+250)
         self.assertEqual(f.y, 100+140)
+
+        c = cModule.Cuboid()
+        c.z = 20
+        c.r = r1
+        self.assertEqual(c.r.x, 200)
+        self.assertEqual(c.r.y, 100)
+        self.assertEqual(c.z, 20)
+        
         
 
 
