@@ -14,6 +14,14 @@ struct Cuboid {
   int z;
 };
 
+union Number {
+  char c;
+  int i;
+  long l;
+  float f;
+  double d;
+};
+
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);
