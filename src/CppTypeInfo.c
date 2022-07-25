@@ -182,6 +182,24 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name) {
   return NULL;
 }
 
+Union *Symbols_getUnion(Symbols *sym, const char *name) {
+  Union *u = qhashtbl_get(sym->unions, name, NULL, false);
+  if (u) {
+    return u;
+  } else if (errno == ENOENT) {
+    errno = 0;
+    return NULL;
+  }
+
+  if (errno == EINVAL)
+    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
+
+  if (errno == ENOMEM)
+    PyErr_NoMemory();
+
+  return NULL;
+}
+
 Global *Symbols_getGlobal(Symbols *sym, const char *name) {
   Global *global = qhashtbl_get(sym->globals, name, NULL, false);
   if (global) {
@@ -695,8 +713,6 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     obj.type = (ffi_type){0, 0, 0, NULL};
     obj.attrCount = 0;
     obj.unionSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
-
-    // printf("Name: %s Size: %lu\n", name, obj.unionSize);
 
     void *info[] = {&obj, symbols};
     clang_visitChildren(cursor, union_visitor, info);

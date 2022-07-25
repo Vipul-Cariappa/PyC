@@ -2311,7 +2311,7 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
         memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
                data, type->size);
       }
-      // free(data);
+      free(data);
       return 0;
     }
   }
@@ -2439,6 +2439,222 @@ static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
 }
 
 static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  // TODO: implement
+  return 0;
+}
+
+// ----- c_union -----
+
+PyMappingMethods c_union_as_mapping = {
+    .mp_length = &c_union_len,
+    .mp_subscript = &c_union_getitem,
+    .mp_ass_subscript = &c_union_setitem,
+};
+
+PyMemberDef c_union_members[] = {
+    {"is_array", T_BOOL, offsetof(PyC_c_union, isArray), READONLY,
+     "PyC.c_union.is_array"},
+    {"__python_representation", T_OBJECT, offsetof(PyC_c_union, pyDictRepr),
+     READONLY, "PyC.c_union.__python_representation"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyMethodDef c_union_methods[] = {
+    {"append", (PyCFunction)&c_union_append, METH_VARARGS, "c_union.append()"},
+    {"pop", (PyCFunction)&c_union_pop, METH_NOARGS, "c_union.pop()"},
+    {"donot_free", (PyCFunction)&c_union_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_union.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_union_to_pointer, METH_NOARGS,
+     "c_union.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyTypeObject py_c_union_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_union",
+    .tp_basicsize = sizeof(PyC_c_union),
+    .tp_itemsize = 0,
+    .tp_getattr = &c_union_getattr,
+    .tp_setattr = &c_union_setattr,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_call = c_union_call,
+    .tp_doc = "PyCpp.c_union",
+    .tp_iter = &c_union_iter,
+    .tp_iternext = &c_union_next,
+    .tp_methods = c_union_methods,
+    .tp_members = c_union_members,
+    .tp_init = &c_union_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_union_finalizer,
+};
+
+// c_union methods
+
+// PyC.c_union.__init__
+static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement
+  return 0;
+}
+
+// PyC.c_union.__getattr__
+static PyObject *c_union_getattr(PyObject *self, char *attr) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  for (size_t i = 0; i < selfType->u->attrCount; i++) {
+    if (!(strcmp(attr, qlist_getat(selfType->u->attrNames, i, NULL, false)))) {
+      char *data = (char *)selfType->pointer;
+
+      return cppArg_to_pyArg(
+          (selfType->pointer),
+          *(ffi_type *)qvector_getat(selfType->u->attrTypes, i, false),
+          selfType->u->attrUnderlyingType[i],
+          // selfType->u->attrUnderlyingStructs[i],
+          NULL,
+          selfType->parentModule); // TODO: update for structs and module
+    }
+  }
+
+  Py_RETURN_NONE;
+}
+
+// PyC.c_union.__setattr__
+static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  for (size_t i = 0; i < selfType->u->attrCount; i++) {
+    if (!(strcmp(attr, qlist_getat(selfType->u->attrNames, i, NULL, false)))) {
+      ffi_type *type =
+          (ffi_type *)qvector_getat(selfType->u->attrTypes, i, false);
+
+      // size_t *copy_size;
+      void *data = pyArg_to_cppArg(pValue, *type);
+
+      if (PyObject_IsInstance(pValue, (PyObject *)&py_c_union_type)) {
+        memcpy((selfType->pointer), data, selfType->u->unionSize);
+      } else {
+        memcpy((selfType->pointer), data, type->size);
+      }
+      free(data);
+      return 0;
+    }
+  }
+
+  PyErr_SetString(py_CppError, "union with given attribute not found");
+  return -1;
+}
+
+// PyC.c_union.__del__
+static void c_union_finalizer(PyObject *self) {
+  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+}
+
+// PyC.c_union.__call__
+static PyObject *c_union_call(PyObject *self, PyObject *args,
+                              PyObject *kwargs) {
+  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyObject *obj = PyObject_GetAttrString(PyC, selfType->u->name);
+  if (obj) {
+    PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
+    result->u = selfType->u;
+    result->pointer = malloc(selfType->u->unionSize);
+    result->parentModule = selfType->parentModule;
+
+    return (PyObject *)result;
+  }
+  PyErr_SetString(py_BindingError, "Unable to access PyCpp.c_union base class");
+  return NULL;
+}
+
+// helper function; TODO: try and remove
+PyObject *create_py_c_union(Union *u, PyObject *module) {
+  typedef struct PyC_c_new {
+    PyC_c_union super;
+    // PyObject_HEAD;
+  } PyC_c_new;
+
+  PyTypeObject *py_c_new_type =
+      malloc(sizeof(PyTypeObject)); // TODO: free this malloc
+
+  char *struct_name = malloc(7 + strlen(u->name)); // TODO: free this malloc
+  strcpy(struct_name, "PyCpp.");
+  strcat(struct_name, u->name);
+
+  *py_c_new_type = (PyTypeObject){
+      PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
+      .tp_basicsize = sizeof(PyC_c_new),
+      .tp_itemsize = 0,
+      .tp_flags = Py_TPFLAGS_DEFAULT,
+      .tp_doc = struct_name,
+      .tp_new = PyType_GenericNew,
+      .tp_base = &py_c_union_type,
+  };
+
+  if (PyType_Ready(py_c_new_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(py_c_new_type);
+  if (PyModule_AddObject(PyC, u->name, (PyObject *)py_c_new_type) < 0) {
+    Py_DECREF(py_c_new_type);
+    Py_DECREF(PyC);
+    return NULL;
+  }
+
+  PyObject *obj = PyObject_GetAttrString(PyC, u->name);
+  if (obj) {
+    PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
+    result->u = u;
+    result->pointer = malloc(u->unionSize);
+    result->parentModule = module;
+
+    return (PyObject *)result;
+  }
+  PyErr_SetString(py_BindingError, "Unable to access PyCpp.c_union base class");
+  return NULL;
+}
+
+static PyObject *c_union_iter(PyObject *self) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_union_next(PyObject *self) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_union_append(PyObject *self, PyObject *args) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_union_pop(PyObject *self) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_union_donot_free(PyObject *self, PyObject *args,
+                                    PyObject *kwargs) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_union_to_pointer(PyObject *self) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static Py_ssize_t c_union_len(PyObject *self) {
+  // TODO: implement
+  return 0;
+}
+
+static PyObject *c_union_getitem(PyObject *self, PyObject *attr) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   // TODO: implement
   return 0;
 }

@@ -174,6 +174,25 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(c.r.y, 100)
         self.assertEqual(c.z, 20)
         
+    def test_unions(self):
+        num = cModule.Number()
+        
+        num.c = 10
+        self.assertEqual(num.c, 10)
+        
+        num.i = 200
+        self.assertEqual(num.i, 200)
+        
+        num.l = 3000
+        self.assertEqual(num.l, 3000)
+        
+        num.f = 3.14
+        self.assertAlmostEqual(num.f, 3.14, 4)
+        
+        num.d = cModule.pi(50000)
+        self.assertAlmostEqual(num.d, 3.1415, 3)
+
+
         
 
 

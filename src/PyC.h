@@ -12,7 +12,6 @@ extern PyObject *py_BindingError; // python Exception BindingError
 
 extern PyTypeObject py_CppModuleType;
 extern PyTypeObject py_CppFunctionType;
-extern PyTypeObject py_CppStructType;
 extern PyModuleDef PyC_Module;
 
 const char *ffi_type_To_char_p(ffi_type type);

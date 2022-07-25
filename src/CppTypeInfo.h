@@ -88,7 +88,7 @@ void print_Symbols(Symbols *symbols);
 
 Function *Symbols_getFunction(Symbols *sym, const char *name);
 Structure *Symbols_getStructure(Symbols *sym, const char *name);
-Structure *Symbols_getUnion(Symbols *sym, const char *name);
+Union *Symbols_getUnion(Symbols *sym, const char *name);
 Global *Symbols_getGlobal(Symbols *sym, const char *name);
 Class *Symbols_getClass(Symbols *sym, const char *name);
 

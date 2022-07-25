@@ -222,6 +222,20 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   else if (errno != 0)
     return NULL;
+  
+  Union *unionVar = Symbols_getUnion(selfType->symbols, attr);
+
+  if (unionVar) {
+    PyObject *result = create_py_c_union(unionVar, self);
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      return NULL;
+    }
+
+    return result;
+  }
+
+  else if (errno != 0)
+    return NULL;
 
   PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
   if (value)

@@ -269,3 +269,39 @@ static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value);
 PyObject *
 create_py_c_struct(Structure *structure,
                    PyObject *module); // helper function; TODO: try and remove
+
+// c_union
+extern PyTypeObject py_c_union_type;
+
+typedef struct PyC_c_union {
+  PyObject_HEAD;
+  Union *u;
+  void *pointer;
+  size_t size;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i;              // for iteration purpose
+  PyObject *pyDictRepr;   // python dict representation of union:
+                          // key: attr name value: c_type
+  PyObject *parentModule; //
+} PyC_c_union;            // TODO: update with new struct design
+
+static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_union_getattr(PyObject *self, char *attr);
+static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue);
+static void c_union_finalizer(PyObject *self);
+static PyObject *c_union_call(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_union_iter(PyObject *self);
+static PyObject *c_union_next(PyObject *self);
+static PyObject *c_union_append(PyObject *self, PyObject *args);
+static PyObject *c_union_pop(PyObject *self);
+static PyObject *c_union_donot_free(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
+static PyObject *c_union_to_pointer(PyObject *self);
+static Py_ssize_t c_union_len(PyObject *self);
+static PyObject *c_union_getitem(PyObject *self, PyObject *attr);
+static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value);
+PyObject *
+create_py_c_union(Union *u,
+                  PyObject *module); // helper function; TODO: try and remove
