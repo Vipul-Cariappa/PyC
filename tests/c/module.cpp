@@ -4,11 +4,7 @@
 
 int add(int x, int y) { return x + y; }
 
-
-int product_int(int x, int y)
-{
-    return x * y;
-}
+int product_int(int x, int y) { return x * y; }
 
 long increment_1(long x) { return ++x; }
 
@@ -25,10 +21,7 @@ char *add(char *s, int n) {
   return (char *)result->c_str();
 }
 
-long long add_long_long(long long x, long long y)
-{
-    return x + y;
-}
+long long add_long_long(long long x, long long y) { return x + y; }
 
 char *repeat_char(char s, int n) {
   std::string *result = new std::string("");

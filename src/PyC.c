@@ -41,18 +41,6 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
-  // creating CppStructType
-  if (PyType_Ready(&py_CppStructType) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_CppStructType);
-  if (PyModule_AddObject(m, "CppStruct", (PyObject *)&py_CppStructType) < 0) {
-    Py_DECREF(&py_CppStructType);
-    Py_DECREF(m);
-    return NULL;
-  }
-
   // creating Exception CppError
   py_CppError = PyErr_NewException("PyCpp.CppError", NULL, NULL);
   Py_XINCREF(py_CppError);
@@ -84,7 +72,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_uint
   if (PyType_Ready(&py_c_uint_type) < 0) {
     return NULL;
@@ -132,7 +120,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_ushort
   if (PyType_Ready(&py_c_ushort_type) < 0) {
     return NULL;
@@ -156,7 +144,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_ulong
   if (PyType_Ready(&py_c_ulong_type) < 0) {
     return NULL;
@@ -180,7 +168,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating c_type: c_char
   if (PyType_Ready(&py_c_char_type) < 0) {
     return NULL;
@@ -189,6 +177,18 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   Py_INCREF(&py_c_char_type);
   if (PyModule_AddObject(m, "c_char", (PyObject *)&py_c_char_type) < 0) {
     Py_DECREF(&py_c_char_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
+  // creating py_c_struct_type
+  if (PyType_Ready(&py_c_struct_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_struct_type);
+  if (PyModule_AddObject(m, "c_struct", (PyObject *)&py_c_struct_type) < 0) {
+    Py_DECREF(&py_c_struct_type);
     Py_DECREF(m);
     return NULL;
   }

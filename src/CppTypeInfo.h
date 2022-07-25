@@ -3,11 +3,38 @@
 #include "qlibc.h"
 #include "clang-c/Index.h"
 
+typedef struct Global {
+  const char *name;
+  // const char *mangledName;
+  ffi_type type;
+  enum CXTypeKind underlyingType;
+} Global;
+
+typedef struct Structure {
+  const char *name;
+  qlist_t *attrNames;                       // vector of attribute names
+  qvector_t *attrTypes;                     // vector of attribute's ffi_type
+  enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
+  struct Structure **attrUnderlyingStructs; // array of underlying
+                                            // struct type for pointers
+  long long *offsets;                       // record the offsets of attributes
+  ffi_type type;
+  size_t attrCount;
+  size_t structSize;
+} Structure;
+
+typedef struct Class {
+  // TODO: Implement
+} Class;
+
 typedef struct FunctionType {
   ffi_type returnType;
-  qvector_t *argsType;                 // vector of ffi_type
-  enum CXTypeKind *argsUnderlyingType; // array of CXTypeKind
+  qvector_t *argsType;                   // vector of ffi_type
+  enum CXTypeKind *argsUnderlyingType;   // array of CXTypeKind
   enum CXTypeKind returnsUnderlyingType; //  CXTypeKind
+  // Structure **argsUnderlyingStructs;   // for checking for proper struct
+  // matching
+  Structure *returnUnderlyingStruct; // for type convertion
   size_t argsCount;
 } FunctionType;
 
@@ -17,27 +44,6 @@ typedef struct Function {
   qvector_t *functionTypes; // vector of struct FunctionTypes
   size_t funcCount;
 } Function;
-
-typedef struct Structure {
-  const char *name;
-  qlist_t *attrNames;            // vector of attribute names
-  qvector_t *attrTypes;          // vector of attribute's ffi_type
-  qvector_t *attrUnderlyingType; // vector of CXTypeKind
-  ffi_type type;
-  size_t attrCount;
-  size_t structSize;
-} Structure;
-
-typedef struct Global {
-  const char *name;
-  // const char *mangledName;
-  ffi_type type;
-  enum CXTypeKind underlyingType;
-} Global;
-
-typedef struct Class {
-  // TODO: Implement
-} Class;
 
 typedef struct Symbols {
   const char *name;

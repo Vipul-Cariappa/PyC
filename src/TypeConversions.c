@@ -59,19 +59,51 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     memcpy(data, &i, sizeof(long double));
     break;
   }
-  case FFI_TYPE_POINTER: // Assuming it is char pointer
-    data = (char *)PyUnicode_AsUTF8(arg);
+  case FFI_TYPE_POINTER:
+    data = malloc(sizeof(void *));
+    if ((PyObject_IsInstance(arg, (PyObject *)&py_c_int_type)) ||
+        (PyObject_IsInstance(arg, (PyObject *)&py_c_uint_type))) {
+      *(void **)data = ((PyC_c_int *)arg)->pointer;
+      break;
+
+    } else if ((PyObject_IsInstance(arg, (PyObject *)&py_c_short_type)) ||
+               (PyObject_IsInstance(arg, (PyObject *)&py_c_ushort_type))) {
+      *(void **)data = ((PyC_c_short *)arg)->pointer;
+      break;
+    } else if ((PyObject_IsInstance(arg, (PyObject *)&py_c_long_type)) ||
+               (PyObject_IsInstance(arg, (PyObject *)&py_c_ulong_type))) {
+      *(void **)data = ((PyC_c_long *)arg)->pointer;
+      break;
+    } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_double_type)) {
+      *(void **)data = ((PyC_c_double *)arg)->pointer;
+      break;
+    } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_float_type)) {
+      *(void **)data = ((PyC_c_float *)arg)->pointer;
+      break;
+    } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
+      *(void **)data = ((PyC_c_struct *)arg)->pointer;
+      break;
+    } else { // assume char*; TODO: check type info
+      *(char **)data = (char *)PyUnicode_AsUTF8(arg);
+      break;
+    }
+  case FFI_TYPE_STRUCT: {
+    PyC_c_struct *py_struct_type = (PyC_c_struct *)arg;
+    data = malloc(py_struct_type->size);
+    memcpy(data, py_struct_type->pointer,
+           py_struct_type->structure->structSize);
     break;
+  }
   default:
     PyErr_SetString(py_BindingError,
                     "Could not convert Cpp type to Python type");
   }
-
   return data;
 }
 
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
-                          enum CXTypeKind underlying_type) {
+                          enum CXTypeKind underlying_type,
+                          Structure *underlying_struct, PyObject *module) {
   switch (type.type) {
   case FFI_TYPE_INT:
     return PyLong_FromLongLong(*(int *)arg);
@@ -183,13 +215,59 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     case CXType_Char_S:
       return PyUnicode_FromString(*(char **)arg);
 
+    case CXType_Record: {
+      const char *struct_name = underlying_struct->name;
+      PyObject *obj = PyObject_GetAttrString(module, struct_name);
+
+      if (obj) {
+        PyObject *result = PyObject_CallObject(obj, NULL);
+        PyC_c_struct *resultStruct = (PyC_c_struct *)result;
+        free(resultStruct->pointer);
+        resultStruct->pointer = *(void **)arg;
+        return result;
+      } else {
+        return NULL;
+      }
+    }
+
     default:
       PyErr_SetString(
           py_BindingError,
           "Could not convert Cpp type (pointer type) to Python type");
       return NULL;
     }
+  case FFI_TYPE_STRUCT: {
+    const char *struct_name = underlying_struct->name;
+    PyObject *obj = PyObject_GetAttrString(module, struct_name);
+    if (obj) {
+      PyObject *result = PyObject_CallObject(obj, NULL);
+      char *arg_data = arg;
 
+      for (size_t i = 0; i < underlying_struct->attrCount; i++) {
+        PyObject *attr_name = PyUnicode_FromString(
+            qlist_getat(underlying_struct->attrNames, i, NULL,
+                        false)); // TODO: decrement reference count
+        PyObject *item = cppArg_to_pyArg(
+            (void *)arg_data + (underlying_struct->offsets[i] / 8),
+            *(ffi_type *)qvector_getat(underlying_struct->attrTypes, i, false),
+            underlying_struct->attrUnderlyingType[i], NULL, module);
+        // TODO: decrement reference count
+
+        // printf("%s\n", qlist_getat(underlying_struct->attrNames, i, NULL,
+        // false));
+
+        if (PyObject_SetAttr(result, attr_name, item)) {
+          return NULL;
+        }
+      }
+
+      return result;
+    } else {
+      return NULL;
+    }
+  }
+  case FFI_TYPE_VOID:
+    Py_RETURN_NONE;
   default:
     PyErr_SetString(py_BindingError,
                     "Could not convert Cpp type to Python type");
@@ -299,7 +377,6 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
 
           return NULL;
         }
-
       default:
         // TODO: check for memory leaks
         PyErr_SetString(
@@ -346,7 +423,13 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
         // TODO: verify not pointer
         rvalue[i] = selfType->pointer;
       }
-
+    } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) {
+      PyC_c_struct *selfType = (PyC_c_struct *)pyArg;
+      if (type.type == FFI_TYPE_STRUCT) {
+        rvalue[i] = selfType->pointer;
+      } else if (type.type == FFI_TYPE_POINTER) {
+        rvalue[i] = &(selfType->pointer);
+      }
     } else {
       PyErr_SetString(py_BindingError,
                       "Could not convert Python type to Cpp type");
@@ -399,7 +482,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_FLOAT:
         case FFI_TYPE_DOUBLE:
         case FFI_TYPE_LONGDOUBLE:
-          if (PyFloat_Check(pyArg) ||
+          if (PyFloat_Check(pyArg) || PyNumber_Check(pyArg) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type)) {
             funcNum = i;
@@ -416,7 +499,18 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type) ||
               PyUnicode_Check(pyArg)) {
+            funcNum = i;
+            continue;
+          } else {
+            funcNum = -1;
+            break;
+          }
+          break;
+        case FFI_TYPE_STRUCT:
+          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) {
+            // TODO: check if they are the same structs
             funcNum = i;
             continue;
           } else {
@@ -475,7 +569,7 @@ const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
   case CXType_ULongLong:
     return "u_int64_t*";
   case CXType_Record:
-    return "struct*";
+    return "struct*"; // TODO: specify struct
   case CXType_Char_S:
     return "char*";
   default:
@@ -513,7 +607,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   case FFI_TYPE_SINT64:
     return "int64_t";
   case FFI_TYPE_STRUCT:
-    return "struct";
+    return "struct"; // TODO: specify struct name
   case FFI_TYPE_COMPLEX:
     return "complex";
   case FFI_TYPE_POINTER:
@@ -523,7 +617,7 @@ const char *ffi_type_To_char_p(ffi_type type) {
   }
 }
 
-ffi_type *get_ffi_type(CXType type) {
+ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
   switch (type.kind) {
   case CXType_Void:
     return &ffi_type_void;
@@ -549,15 +643,24 @@ ffi_type *get_ffi_type(CXType type) {
     return &ffi_type_sint64;
   case CXType_ULongLong:
     return &ffi_type_uint64;
-  case CXType_Char_U:
+  case CXType_UChar:
+  case CXType_SChar:
   case CXType_Bool:
     return &ffi_type_uchar;
   case CXType_Char_S:
     return &ffi_type_schar;
   case CXType_Pointer:
     return &ffi_type_pointer;
-  // case CXType_Typedef:
-  //     return get_ffi_type(type);
+  case CXType_Elaborated:
+    if (clang_Type_getNamedType(type).kind == CXType_Record) {
+      return &Symbols_getStructure(sym, name + 7)->type;
+    }
+    if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
+      if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==
+          CXType_Record) {
+        return &ffi_type_pointer;
+      }
+    }
   default:
     PyErr_SetString(
         py_BindingError,

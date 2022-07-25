@@ -134,18 +134,47 @@ class TestBasic(unittest.TestCase):
         self.assertAlmostEqual(cModule.copy_double(
             PyC.c_double(3.14), PyC.c_double(3.14)), 3.14, 4)
 
-    # def test_structs(self):
-    #     r = cModule.RECT
-    #     print(r)
+    def test_structs(self):
+        r = cModule.RECT
+        
+        r1 = r()
+        r1.x = 200
+        r1.y = 100
+        
+        r2 = r()
+        r2.x = 250
+        r2.y = 140
 
-        # print(r.x)
-        # print(r.y)
+        self.assertEqual(r1.x, 200)
+        self.assertEqual(r1.y, 100)
+        self.assertEqual(r2.x, 250)
+        self.assertEqual(r2.y, 140)
 
-        # r.x = 99
-        # r.y = 100
+        self.assertEqual(cModule.get_area(r1), 200*100)
+        self.assertEqual(cModule.get_perimeter(r1), 2*(200+100))
+        
+        self.assertEqual(cModule.get_area(r2), 250*140)
+        self.assertEqual(cModule.get_perimeter(r2), 2*(250+140))
 
-        # print(r.x)
-        # print(r.y)
+        self.assertFalse(cModule.same_rects(r1, r2))
+        self.assertTrue(cModule.same_rects(r1, r1))
+        
+        t = cModule.get_rect(1, 2)
+        f = cModule.rect_add(r1, r2)
+        
+        self.assertEqual(t.x, 1)
+        self.assertEqual(t.y, 2)
+        self.assertEqual(f.x, 200+250)
+        self.assertEqual(f.y, 100+140)
+
+        c = cModule.Cuboid()
+        c.z = 20
+        c.r = r1
+        self.assertEqual(c.r.x, 200)
+        self.assertEqual(c.r.y, 100)
+        self.assertEqual(c.z, 20)
+        
+        
 
 
 if __name__ == "__main__":

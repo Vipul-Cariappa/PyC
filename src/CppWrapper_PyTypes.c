@@ -20,11 +20,13 @@ typedef struct PyC_CppModule {
   void *so;
   Symbols *symbols;
   int loaded;
+  PyObject *cache_dict; // cache created function wrappers and structs
 } PyC_CppModule;
 
 typedef struct PyC_CppFunction {
   PyObject_HEAD Function *funcType;
   void *so;
+  PyObject *parentModule;
 } PyC_CppFunction;
 
 typedef struct PyC_CppStruct // FIXME: modify it with new design
@@ -55,19 +57,6 @@ PyTypeObject py_CppFunctionType = {
     .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
     .tp_finalize = &Cpp_FunctionGC,
-};
-
-PyTypeObject py_CppStructType = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppStruct",
-    .tp_basicsize = sizeof(PyC_CppStruct),
-    .tp_itemsize = 0,
-    .tp_getattr = &Cpp_StructGet,
-    .tp_setattr = &Cpp_StructSet,
-    .tp_call = &Cpp_StructCall,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.CppStruct",
-    .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_StructGC,
 };
 
 PyMethodDef PyC_Methods[] = {
@@ -161,12 +150,28 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->so = so;
 
+  // create dict for caching
+  selfType->cache_dict = PyDict_New();
+
   return 0;
 }
 
 // PyCpp.CppModule.__get__
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
+
+  PyObject *py_attr_name =
+      PyUnicode_FromString(attr); // TODO: decrement refrence count
+
+  int cached = PyDict_Contains(selfType->cache_dict, py_attr_name);
+  if (cached == 1) {
+    PyObject *result = PyDict_GetItem(selfType->cache_dict, py_attr_name);
+    Py_INCREF(result);
+    Py_DECREF(py_attr_name);
+    return result;
+  } else if (cached == -1) {
+    return NULL;
+  }
 
   Function *funcType = Symbols_getFunction(selfType->symbols, attr);
 
@@ -177,6 +182,12 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
           (PyC_CppFunction *)PyObject_CallObject(obj, NULL);
       pyCppFunction->funcType = funcType;
       pyCppFunction->so = selfType->so;
+      pyCppFunction->parentModule = self;
+
+      if (PyDict_SetItem(selfType->cache_dict, py_attr_name,
+                         (PyObject *)pyCppFunction)) {
+        return NULL;
+      }
 
       return (PyObject *)pyCppFunction;
     }
@@ -193,14 +204,22 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
       return NULL;
     }
 
-    return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType);
+    return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
+                           NULL, self); // TODO: update NULL for global structs
   } else if (errno != 0)
     return NULL;
 
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
-  if (structVar)
-    return new_PyCpp_CppStruct(structVar);
+  if (structVar) {
+    PyObject *result = create_py_c_struct(structVar, self);
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      return NULL;
+    }
+
+    return result;
+  }
+
   else if (errno != 0)
     return NULL;
 
@@ -210,19 +229,6 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   PyErr_SetString(py_CppError,
                   "Could not find any declaration with given name");
-  return NULL;
-}
-
-static PyObject *new_PyCpp_CppStruct(Structure *structure) {
-  PyObject *obj = PyObject_GetAttrString(PyC, "CppStruct");
-  if (obj) {
-    PyC_CppStruct *result = (PyC_CppStruct *)PyObject_CallObject(obj, NULL);
-    result->structType = structure;
-    result->data = malloc(structure->structSize);
-
-    return (PyObject *)result;
-  }
-  PyErr_SetString(py_BindingError, "Unable to access PyCpp.CppStruct");
   return NULL;
 }
 
@@ -251,6 +257,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   } else if (funcNum == -2) {
     PyErr_SetString(py_BindingError, "Type Convertion of given function "
                                      "declaration is not implemented.");
+    return NULL;
   }
 
   FunctionType *funcType =
@@ -289,7 +296,9 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(rc, funcType->returnType, funcType->returnsUnderlyingType);
+  return cppArg_to_pyArg(
+      rc, funcType->returnType, funcType->returnsUnderlyingType,
+      funcType->returnUnderlyingStruct, selfType->parentModule);
 }
 
 // PyCpp.CppFunction.__del__
@@ -297,58 +306,4 @@ static void Cpp_FunctionGC(PyObject *self) {
   // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
   return;
-}
-
-static PyObject *Cpp_StructGet(PyObject *self, char *attr) {
-  // PyC_CppStruct *selfType = (PyC_CppStruct *)self;
-  // int index = 0;
-  // for (std::string &i : selfType->structType->attr_names)
-  // {
-  //     if (i == attr)
-  //     {
-  //         long long offset =
-  //         clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
-  //         char *data = (char *)selfType->data;
-  //         return cppArg_to_pyArg(data + offset,
-  //         selfType->structType->types.at(index));
-  //     }
-  //     index++;
-  // }
-
-  // TODO: implement Cpp_StructGet
-  Py_RETURN_NONE;
-}
-
-static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue) {
-  // PyC_CppStruct *selfType = (PyC_CppStruct *)self;
-  // int index = 0;
-  // for (std::string &i : selfType->structType->attr_names)
-  // {
-  //     if (i == attr)
-  //     {
-  //         long long offset =
-  //         clang_Type_getOffsetOf(selfType->structType->cpp_type, attr) / 8;
-  //         ffi_type type = selfType->structType->types.at(index);
-  //         char *data = (char *)selfType->data;
-  //         void *value = pyArg_to_cppArg(pValue, type);
-  //         memcpy(data+offset, value, type.size);
-  //         free(value);
-  //         return 0;
-  //     }
-  //     index++;
-  // }
-  // PyErr_SetString(py_CppError, "Struct with given attribute not found");
-  // return -1;
-
-  // TODO: implement Cpp_StructSet
-  return 0;
-}
-
-PyObject *Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs) {
-  return self;
-}
-
-static void Cpp_StructGC(PyObject *self) {
-  // TODO: implement Cpp_StructGC
-  PyC_CppStruct *selfType = (PyC_CppStruct *)self;
 }

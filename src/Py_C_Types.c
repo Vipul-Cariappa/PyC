@@ -2216,3 +2216,229 @@ static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   PyC_c_char *selfType = (PyC_c_char *)self;
   return 0;
 }
+
+// ----- c_struct -----
+
+PyMappingMethods c_struct_as_mapping = {
+    .mp_length = &c_struct_len,
+    .mp_subscript = &c_struct_getitem,
+    .mp_ass_subscript = &c_struct_setitem,
+};
+
+PyMemberDef c_struct_members[] = {
+    {"is_array", T_BOOL, offsetof(PyC_c_struct, isArray), READONLY,
+     "PyC.c_struct.is_array"},
+    {"__python_representation", T_OBJECT, offsetof(PyC_c_struct, pyDictRepr),
+     READONLY, "PyC.c_struct.__python_representation"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyMethodDef c_struct_methods[] = {
+    {"append", (PyCFunction)&c_struct_append, METH_VARARGS,
+     "c_struct.append()"},
+    {"pop", (PyCFunction)&c_struct_pop, METH_NOARGS, "c_struct.pop()"},
+    {"donot_free", (PyCFunction)&c_struct_donot_free,
+     METH_VARARGS | METH_KEYWORDS, "c_struct.donot_free()"},
+    {"to_pointer", (PyCFunction)&c_struct_to_pointer, METH_NOARGS,
+     "c_struct.to_pointer()"},
+    {NULL, NULL, 0, NULL}};
+
+PyTypeObject py_c_struct_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_struct",
+    .tp_basicsize = sizeof(PyC_c_struct),
+    .tp_itemsize = 0,
+    .tp_getattr = &c_struct_getattr,
+    .tp_setattr = &c_struct_setattr,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_call = c_struct_call,
+    .tp_doc = "PyCpp.c_struct",
+    .tp_iter = &c_struct_iter,
+    .tp_iternext = &c_struct_next,
+    .tp_methods = c_struct_methods,
+    .tp_members = c_struct_members,
+    .tp_init = &c_struct_init,
+    .tp_new = PyType_GenericNew,
+    .tp_finalize = &c_struct_finalizer,
+    // TODO: use .tp_getset for PyC_c_int's attributes
+};
+
+// c_struct methods
+
+// PyC.c_struct.__init__
+static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  // TODO: implement
+  return 0;
+}
+
+// PyC.c_struct.__getattr__
+static PyObject *c_struct_getattr(PyObject *self, char *attr) {
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  for (size_t i = 0; i < selfType->structure->attrCount; i++) {
+    if (!(strcmp(attr, qlist_getat(selfType->structure->attrNames, i, NULL,
+                                   false)))) {
+      char *data = (char *)selfType->pointer;
+
+      return cppArg_to_pyArg(
+          (selfType->pointer) + (selfType->structure->offsets[i] / 8),
+          *(ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false),
+          selfType->structure->attrUnderlyingType[i],
+          selfType->structure->attrUnderlyingStructs[i],
+          selfType->parentModule); // TODO: update for structs and module
+    }
+  }
+
+  Py_RETURN_NONE;
+}
+
+// PyC.c_struct.__setattr__
+static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
+  // TODO: implement
+
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  for (size_t i = 0; i < selfType->structure->attrCount; i++) {
+    if (!(strcmp(attr, qlist_getat(selfType->structure->attrNames, i, NULL,
+                                   false)))) {
+      ffi_type *type =
+          (ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false);
+      void *data = pyArg_to_cppArg(pValue, *type);
+
+      if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
+        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+               data, ((PyC_c_struct *)pValue)->structure->structSize);
+      } else {
+        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+               data, type->size);
+      }
+      // free(data);
+      return 0;
+    }
+  }
+
+  PyErr_SetString(py_CppError, "Struct with given attribute not found");
+  return -1;
+}
+
+// PyC.c_struct.__del__
+static void c_struct_finalizer(PyObject *self) {
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+}
+
+// PyC.c_struct.__call__
+static PyObject *c_struct_call(PyObject *self, PyObject *args,
+                               PyObject *kwargs) {
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyObject *obj = PyObject_GetAttrString(PyC, selfType->structure->name);
+  if (obj) {
+    PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
+    result->structure = selfType->structure;
+    result->pointer = malloc(selfType->structure->structSize);
+    result->parentModule = selfType->parentModule;
+
+    return (PyObject *)result;
+  }
+  PyErr_SetString(py_BindingError,
+                  "Unable to access PyCpp.c_struct base class");
+  return NULL;
+}
+
+// helper function; TODO: try and remove
+PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
+  // TODO: implement
+  typedef struct PyC_c_new {
+    PyC_c_struct super;
+    // PyObject_HEAD;
+  } PyC_c_new;
+
+  PyTypeObject *py_c_new_type =
+      malloc(sizeof(PyTypeObject)); // TODO: free this malloc
+
+  char *struct_name =
+      malloc(7 + strlen(structure->name)); // TODO: free this malloc
+  strcpy(struct_name, "PyCpp.");
+  strcat(struct_name, structure->name);
+
+  *py_c_new_type = (PyTypeObject){
+      PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
+      .tp_basicsize = sizeof(PyC_c_new),
+      .tp_itemsize = 0,
+      .tp_flags = Py_TPFLAGS_DEFAULT,
+      .tp_doc = struct_name,
+      .tp_new = PyType_GenericNew,
+      .tp_base = &py_c_struct_type,
+  };
+
+  if (PyType_Ready(py_c_new_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(py_c_new_type);
+  if (PyModule_AddObject(PyC, structure->name, (PyObject *)py_c_new_type) < 0) {
+    Py_DECREF(py_c_new_type);
+    Py_DECREF(PyC);
+    return NULL;
+  }
+
+  PyObject *obj = PyObject_GetAttrString(PyC, structure->name);
+  if (obj) {
+    PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
+    result->structure = structure;
+    result->pointer = malloc(structure->structSize);
+    result->parentModule = module;
+
+    return (PyObject *)result;
+  }
+  PyErr_SetString(py_BindingError,
+                  "Unable to access PyCpp.c_struct base class");
+  return NULL;
+}
+
+static PyObject *c_struct_iter(PyObject *self) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_struct_next(PyObject *self) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_struct_append(PyObject *self, PyObject *args) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_struct_pop(PyObject *self) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_struct_donot_free(PyObject *self, PyObject *args,
+                                     PyObject *kwargs) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static PyObject *c_struct_to_pointer(PyObject *self) {
+  // TODO :implement
+  Py_RETURN_NONE;
+}
+
+static Py_ssize_t c_struct_len(PyObject *self) {
+  // TODO: implement
+  return 0;
+}
+
+static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
+  // TODO: implement
+  Py_RETURN_NONE;
+}
+
+static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  // TODO: implement
+  return 0;
+}

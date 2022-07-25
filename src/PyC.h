@@ -17,11 +17,12 @@ extern PyModuleDef PyC_Module;
 
 const char *ffi_type_To_char_p(ffi_type type);
 const char *CXTypeKind_TO_char_p(enum CXTypeKind type);
-ffi_type *get_ffi_type(CXType type);
+ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name);
 void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type);
 int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
-                          enum CXTypeKind underlying_type);
+                          enum CXTypeKind underlying_type,
+                          Structure *underlying_struct, PyObject *module);
 void *pyArg_to_cppArg(PyObject *arg, ffi_type type);
 
 static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -57,8 +58,6 @@ static PyObject *c_int_to_int(PyObject *self);
 static Py_ssize_t c_int_len(PyObject *self);
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
 static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
-
-static PyObject *new_PyCpp_CppStruct(Structure *structure);
 
 CXString GET_MANGLED_NAME(CXCursor cursor);
 
