@@ -266,6 +266,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       return NULL;
     }
   }
+  case FFI_TYPE_VOID:
+    Py_RETURN_NONE;
   default:
     PyErr_SetString(py_BindingError,
                     "Could not convert Cpp type to Python type");
@@ -480,7 +482,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
         case FFI_TYPE_FLOAT:
         case FFI_TYPE_DOUBLE:
         case FFI_TYPE_LONGDOUBLE:
-          if (PyFloat_Check(pyArg) ||
+          if (PyFloat_Check(pyArg) || PyNumber_Check(pyArg) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type)) {
             funcNum = i;
@@ -641,7 +643,8 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
     return &ffi_type_sint64;
   case CXType_ULongLong:
     return &ffi_type_uint64;
-  case CXType_Char_U:
+  case CXType_UChar:
+  case CXType_SChar:
   case CXType_Bool:
     return &ffi_type_uchar;
   case CXType_Char_S:
