@@ -305,12 +305,32 @@ raise_error:
 
 bool Symbols_appendUnion(Symbols *sym, Union u) {
   // TODO: implement
-  // TODO: create ffi_type for the given union
 
-  // for (size_t i = 0; i < u.attrCount; i++) {
-  //   u.type.elements[i] = qvector_getat(u.attrTypes, i, false);
-  // }
-  // u.type.elements[u.attrCount] = NULL;
+  // TODO: create ffi_type for the given union
+  ffi_type union_type;
+  union_type.size = union_type.alignment = 0;
+  union_type.type = FFI_TYPE_STRUCT;
+
+  ffi_type **union_elements = calloc(u.attrCount + 1, sizeof(ffi_type *));
+
+  for (size_t i = 0; i < u.attrCount; i++) {
+    union_elements[i] = qvector_getat(u.attrTypes, i, false);
+
+    ffi_cif cif;
+    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, union_elements[i], NULL) ==
+        FFI_OK) {
+      if (union_elements[i]->size > union_type.size) {
+        union_type.size = union_elements[i]->size;
+      }
+      if (union_elements[i]->alignment > union_type.alignment)
+        union_type.alignment = union_elements[i]->alignment;
+    }
+  }
+  union_elements[u.attrCount] = NULL;
+
+  union_type.elements = union_elements;
+
+  u.type = union_type;
 
   if (!qlist_addlast(sym->unionsNames, u.name, strlen(u.name) + 1))
     goto raise_error;
