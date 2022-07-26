@@ -40,11 +40,10 @@ static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      void *pointer = (void *)PyLong_AsLongLong(pointer_value);
-
-      selfType->pointer = pointer;
-      selfType->freeOnDel = true;
-
+      if (pointer_value == Py_None) {
+        selfType->pointer = NULL;
+        selfType->freeOnDel = true;
+      }
       return 0;
     }
     Py_DECREF(key);
@@ -124,7 +123,7 @@ PyTypeObject py_c_int_type = {
     .tp_members = c_int_members,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_int_finalizer,
+    .tp_dealloc = &c_int_finalizer,
 };
 
 PyTypeObject py_c_uint_type = {
@@ -157,15 +156,16 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      int *pointer = (int *)PyLong_AsLongLong(pointer_value);
 
-      selfType->value = *pointer;
-      selfType->pointer = pointer;
-      selfType->isPointer = true;
-      selfType->isArray = false;
-      selfType->arraySize = 0;
-      selfType->arrayCapacity = 0;
-      selfType->_i = 0;
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
 
       return 0;
     }
@@ -513,15 +513,16 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      double *pointer = (double *)PyLong_AsLongLong(pointer_value);
 
-      selfType->value = *pointer;
-      selfType->pointer = pointer;
-      selfType->isPointer = true;
-      selfType->isArray = false;
-      selfType->arraySize = 0;
-      selfType->arrayCapacity = 0;
-      selfType->_i = 0;
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
 
       return 0;
     }
@@ -840,15 +841,16 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      float *pointer = (float *)PyLong_AsLongLong(pointer_value);
 
-      selfType->value = *pointer;
-      selfType->pointer = pointer;
-      selfType->isPointer = true;
-      selfType->isArray = false;
-      selfType->arraySize = 0;
-      selfType->arrayCapacity = 0;
-      selfType->_i = 0;
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
 
       return 0;
     }
@@ -1355,15 +1357,16 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      short *pointer = (short *)PyLong_AsLongLong(pointer_value);
 
-      selfType->value = *pointer;
-      selfType->pointer = pointer;
-      selfType->isPointer = true;
-      selfType->isArray = false;
-      selfType->arraySize = 0;
-      selfType->arrayCapacity = 0;
-      selfType->_i = 0;
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
 
       return 0;
     }
@@ -1724,15 +1727,16 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      long *pointer = (long *)PyLong_AsLongLong(pointer_value);
 
-      selfType->value = *pointer;
-      selfType->pointer = pointer;
-      selfType->isPointer = true;
-      selfType->isArray = false;
-      selfType->arraySize = 0;
-      selfType->arrayCapacity = 0;
-      selfType->_i = 0;
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
 
       return 0;
     }
@@ -2257,7 +2261,7 @@ PyTypeObject py_c_struct_type = {
     .tp_members = c_struct_members,
     .tp_init = &c_struct_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_struct_finalizer,
+    .tp_dealloc = &c_struct_finalizer,
     // TODO: use .tp_getset for PyC_c_int's attributes
 };
 
@@ -2327,6 +2331,9 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_struct_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  free(selfType->pointer);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_struct.__call__
