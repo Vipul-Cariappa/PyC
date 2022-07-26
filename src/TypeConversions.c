@@ -60,31 +60,31 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     break;
   }
   case FFI_TYPE_POINTER:
-    data = malloc(sizeof(void *));
+    // data = malloc(sizeof(void *));
     if ((PyObject_IsInstance(arg, (PyObject *)&py_c_int_type)) ||
         (PyObject_IsInstance(arg, (PyObject *)&py_c_uint_type))) {
-      *(void **)data = ((PyC_c_int *)arg)->pointer;
+      data = &((PyC_c_int *)arg)->pointer;
       break;
 
     } else if ((PyObject_IsInstance(arg, (PyObject *)&py_c_short_type)) ||
                (PyObject_IsInstance(arg, (PyObject *)&py_c_ushort_type))) {
-      *(void **)data = ((PyC_c_short *)arg)->pointer;
+      data = &((PyC_c_short *)arg)->pointer;
       break;
     } else if ((PyObject_IsInstance(arg, (PyObject *)&py_c_long_type)) ||
                (PyObject_IsInstance(arg, (PyObject *)&py_c_ulong_type))) {
-      *(void **)data = ((PyC_c_long *)arg)->pointer;
+      data = &((PyC_c_long *)arg)->pointer;
       break;
     } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_double_type)) {
-      *(void **)data = ((PyC_c_double *)arg)->pointer;
+      data = &((PyC_c_double *)arg)->pointer;
       break;
     } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_float_type)) {
-      *(void **)data = ((PyC_c_float *)arg)->pointer;
+      data = &((PyC_c_float *)arg)->pointer;
       break;
     } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
-      *(void **)data = ((PyC_c_struct *)arg)->pointer;
+      data = &((PyC_c_struct *)arg)->pointer;
       break;
     } else { // assume char*; TODO: check type info
-      *(char **)data = (char *)PyUnicode_AsUTF8(arg);
+      data = (char *)PyUnicode_AsUTF8(arg);
       break;
     }
   case FFI_TYPE_STRUCT: {

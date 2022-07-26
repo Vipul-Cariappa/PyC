@@ -19,6 +19,11 @@ short add_short(short x, short y);
 int product_int(int x, int y);
 long long add_long_long(long long x, long long y);
 
+char *returns_pointer_c();
+short *returns_pointer_s();
+int *returns_pointer_i();
+long *returns_pointer_l();
+
 // RECT *get_rect(int x, int y);
 // RECT *rect_add(RECT *a, RECT *b);
 // int get_area(RECT a);

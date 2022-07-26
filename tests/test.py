@@ -174,6 +174,13 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(c.r.y, 100)
         self.assertEqual(c.z, 20)
         
+        c = cModule.Cuboid_p()
+        c.z = PyC.c_int(709)
+        c.r = r1
+        self.assertEqual(c.z.value(), 20)
+        self.assertEqual(c.r.x, 200)
+        self.assertEqual(c.r.y, 100)
+        
     def test_unions(self):
         num = cModule.Number()
         

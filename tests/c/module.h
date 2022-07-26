@@ -14,6 +14,11 @@ struct Cuboid {
   int z;
 };
 
+struct Cuboid_p {
+  struct RECT *r;
+  long *z;
+};
+
 union Number {
   char c;
   int i;

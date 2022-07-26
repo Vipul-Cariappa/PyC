@@ -2304,14 +2304,17 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
           (ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false);
       void *data = pyArg_to_cppArg(pValue, *type);
 
-      if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
+      if (type->type == FFI_TYPE_POINTER) {
+        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+               data, type->size);
+      } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
         memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
                data, ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
         memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
                data, type->size);
+        free(data);
       }
-      free(data);
       return 0;
     }
   }

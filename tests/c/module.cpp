@@ -1,6 +1,31 @@
 #include "module.hpp"
 #include <cmath>
+#include <string.h>
 #include <string>
+
+char *returns_pointer_c() {
+  char *r = (char *)malloc(sizeof(char) * 2);
+  strcpy(r, "c");
+  return r;
+}
+
+short *returns_pointer_s() {
+  short *r = (short *)malloc(sizeof(short));
+  *r = 420;
+  return r;
+}
+
+int *returns_pointer_i() {
+  int *r = (int *)malloc(sizeof(int));
+  *r = 360;
+  return r;
+}
+
+long *returns_pointer_l() {
+  long *r = (long *)malloc(sizeof(long));
+  *r = 360;
+  return r;
+}
 
 int add(int x, int y) { return x + y; }
 
