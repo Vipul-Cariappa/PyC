@@ -539,36 +539,33 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
     if (type.kind == CXType_Pointer) {
       obj->attrUnderlyingType[obj->attrCount - 1] =
           clang_getPointeeType(type).kind;
+
+      if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+          CXType_Record) {
+        size_t len = strlen(type_name);
+        char *updated_type_name = malloc(len);
+        strcpy(updated_type_name, type_name + 7);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingStructs[obj->attrCount - 1] =
+            Symbols_getStructure(sym, updated_type_name);
+        free(updated_type_name);
+      } else {
+        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+      }
     } else {
       obj->attrUnderlyingType[obj->attrCount - 1] = 0;
     }
 
-    if (type.kind == CXType_Elaborated) {
-      if (clang_Type_getNamedType(type).kind == CXType_Record) {
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, type_name + 7);
-      }
-      if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
-        if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==
-            CXType_Record) {
-          size_t len = strlen(type_name);
-          char *updated_type_name = malloc(len);
-          strcpy(updated_type_name, type_name + 7);
-          for (int i = 0; i < strlen(updated_type_name); i++) {
-            if ((updated_type_name[i] == ' ') ||
-                (updated_type_name[i] == '*')) {
-              updated_type_name[i] = 0;
-              break;
-            }
-          }
-
-          obj->attrUnderlyingStructs[obj->attrCount - 1] =
-              Symbols_getStructure(sym, updated_type_name);
-          free(updated_type_name);
-        }
-      }
-    } else {
-      obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+    if ((type.kind == CXType_Elaborated) &&
+        (clang_Type_getNamedType(type).kind == CXType_Record)) {
+      obj->attrUnderlyingStructs[obj->attrCount - 1] =
+          Symbols_getStructure(sym, type_name + 7);
     }
   }
 

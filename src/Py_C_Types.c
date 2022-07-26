@@ -2270,6 +2270,7 @@ PyTypeObject py_c_struct_type = {
 // PyC.c_struct.__init__
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
   return 0;
 }
 
@@ -2332,8 +2333,8 @@ static void c_struct_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  free(selfType->pointer);
-  Py_TYPE(self)->tp_free((PyObject *)self);
+  // free(selfType->pointer);
+  // Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_struct.__call__

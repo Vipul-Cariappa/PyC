@@ -239,7 +239,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     case CXType_Char_S:
       return PyUnicode_FromString(*(char **)arg);
 
-    case CXType_Record: {
+    case CXType_Record:
+    case CXType_Elaborated: {
       const char *struct_name = underlying_struct->name;
       PyObject *obj = PyObject_GetAttrString(module, struct_name);
 

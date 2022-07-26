@@ -248,7 +248,9 @@ typedef struct PyC_c_struct {
   PyObject *pyDictRepr;   // python dict representation of struct:
                           // key: attr name value: c_type
   PyObject *parentModule; //
-} PyC_c_struct;           // TODO: update with new struct design
+  // PyObject *child_ptrs;   // TODO: update with c_types object PyList if
+  // underlying type is pointer
+} PyC_c_struct; // TODO: update with new struct design
 
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_struct_getattr(PyObject *self, char *attr);
