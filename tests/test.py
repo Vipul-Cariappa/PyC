@@ -178,9 +178,30 @@ class TestBasic(unittest.TestCase):
         c_int_ = PyC.c_int(20)
         c.z = c_int_
         c.r = r1
-        self.assertEqual(c.z.value(), 20) # FIXME: cause of memory error
+        self.assertEqual(c.z.value(), 20)
         self.assertEqual(c.r.x, 200)
         self.assertEqual(c.r.y, 100)
+
+        num = cModule.Number()
+        num.d = 3.1415
+        snum = cModule.sNumber()
+        snum.x = 10
+        snum.y = 20
+        snum.num = num
+        self.assertAlmostEqual(snum.num.d, 3.1415, 4)
+        self.assertEqual(snum.x, 10)
+        self.assertEqual(snum.y, 20)
+        
+        snump = cModule.sNumber_ptr()
+        n1 = PyC.c_int(10)
+        n2 = PyC.c_int(20)
+        snump.x = n1
+        snump.y = n2
+        snump.num = num
+        self.assertAlmostEqual(snump.num.d, 3.1415, 4)
+        self.assertEqual(snump.x.value(), 10)
+        self.assertEqual(snump.y.value(), 20)
+
         
     def test_unions(self):
         num = cModule.Number()

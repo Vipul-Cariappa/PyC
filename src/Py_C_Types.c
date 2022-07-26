@@ -2289,6 +2289,7 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
           *(ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false),
           selfType->structure->attrUnderlyingType[i],
           selfType->structure->attrUnderlyingStructs[i],
+          selfType->structure->attrUnderlyingUnions[i],
           selfType->parentModule); // TODO: update for structs and module
     }
   }
@@ -2517,7 +2518,7 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
           *(ffi_type *)qvector_getat(selfType->u->attrTypes, i, false),
           selfType->u->attrUnderlyingType[i],
           // selfType->u->attrUnderlyingStructs[i],
-          NULL,
+          NULL, NULL,
           selfType->parentModule); // TODO: update for structs and module
     }
   }

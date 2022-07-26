@@ -205,7 +205,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     }
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
-                           NULL, self); // TODO: update NULL for global structs
+                           NULL, NULL, self); // TODO: update NULL for global structs
   } else if (errno != 0)
     return NULL;
 
@@ -312,7 +312,8 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   return cppArg_to_pyArg(
       rc, funcType->returnType, funcType->returnsUnderlyingType,
-      funcType->returnUnderlyingStruct, selfType->parentModule);
+      funcType->returnUnderlyingStruct,
+      funcType->returnUnderlyingUnion, selfType->parentModule);
 }
 
 // PyCpp.CppFunction.__del__

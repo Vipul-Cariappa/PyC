@@ -17,6 +17,8 @@ typedef struct Structure {
   enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
   struct Structure **attrUnderlyingStructs; // array of underlying
                                             // struct type for pointers
+  struct Union **attrUnderlyingUnions;      // array of underlying
+                                            // unions type for pointers
   long long *offsets;                       // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
@@ -25,7 +27,7 @@ typedef struct Structure {
 
 typedef struct Union {
   const char *name;
-  qlist_t *attrNames;                   // list of attribute names
+  qlist_t *attrNames;                  // list of attribute names
   qvector_t *attrTypes;                // vector of attribute's ffi_type
   enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
   ffi_type type;
@@ -45,6 +47,7 @@ typedef struct FunctionType {
   // Structure **argsUnderlyingStructs;   // for checking for proper struct
   // matching
   Structure *returnUnderlyingStruct; // for type convertion
+  Union *returnUnderlyingUnion;  // for type convertion
   size_t argsCount;
 } FunctionType;
 
@@ -65,9 +68,9 @@ typedef struct Symbols {
   qlist_t *structsNames; // vector of struct names
   qhashtbl_t *structs;   // mapping of struct names to struct Structure
   size_t structsCount;
-  
-  qlist_t  *unionsNames; // vector of union names
-  qhashtbl_t  *unions;   // mapping of union names to union Structure
+
+  qlist_t *unionsNames; // vector of union names
+  qhashtbl_t *unions;   // mapping of union names to union Structure
   size_t unionsCount;
 
   qlist_t *classesNames; // vector of class names

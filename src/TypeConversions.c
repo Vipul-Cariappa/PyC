@@ -83,16 +83,28 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
       data = &((PyC_c_struct *)arg)->pointer;
       break;
+    } else if (PyObject_IsInstance(arg, (PyObject *)&py_c_union_type)) {
+      data = &((PyC_c_union *)arg)->pointer;
+      break;
     } else { // assume char*; TODO: check type info
       data = (char *)PyUnicode_AsUTF8(arg);
       break;
     }
   case FFI_TYPE_STRUCT: {
-    PyC_c_struct *py_struct_type = (PyC_c_struct *)arg;
-    data = malloc(py_struct_type->structure->structSize);
-    memcpy(data, py_struct_type->pointer,
-           py_struct_type->structure->structSize);
-    break;
+    if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
+      PyC_c_struct *py_struct_type = (PyC_c_struct *)arg;
+      data = malloc(py_struct_type->structure->structSize);
+      memcpy(data, py_struct_type->pointer,
+             py_struct_type->structure->structSize);
+      break;
+    }
+
+    if (PyObject_IsInstance(arg, (PyObject *)&py_c_union_type)) {
+      PyC_c_union *py_union_type = (PyC_c_union *)arg;
+      data = malloc(py_union_type->u->unionSize);
+      memcpy(data, py_union_type->pointer, py_union_type->u->unionSize);
+      break;
+    }
   }
   default:
     PyErr_SetString(py_BindingError,
@@ -103,7 +115,8 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
 
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
                           enum CXTypeKind underlying_type,
-                          Structure *underlying_struct, PyObject *module) {
+                          Structure *underlying_struct, Union *underlying_union,
+                          PyObject *module) {
   switch (type.type) {
   case FFI_TYPE_INT:
     return PyLong_FromLongLong(*(int *)arg);
@@ -241,15 +254,32 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
     case CXType_Record:
     case CXType_Elaborated: {
-      const char *struct_name = underlying_struct->name;
-      PyObject *obj = PyObject_GetAttrString(module, struct_name);
+      if (underlying_struct) {
+        const char *struct_name = underlying_struct->name;
+        PyObject *obj = PyObject_GetAttrString(module, struct_name);
 
-      if (obj) {
-        PyObject *result = PyObject_CallObject(obj, NULL);
-        PyC_c_struct *resultStruct = (PyC_c_struct *)result;
-        free(resultStruct->pointer);
-        resultStruct->pointer = *(void **)arg;
-        return result;
+        if (obj) {
+          PyObject *result = PyObject_CallObject(obj, NULL);
+          PyC_c_struct *resultStruct = (PyC_c_struct *)result;
+          free(resultStruct->pointer);
+          resultStruct->pointer = *(void **)arg;
+          return result;
+        } else {
+          return NULL;
+        }
+      } else if (underlying_union) {
+        const char *struct_name = underlying_union->name;
+        PyObject *obj = PyObject_GetAttrString(module, struct_name);
+
+        if (obj) {
+          PyObject *result = PyObject_CallObject(obj, NULL);
+          PyC_c_union *resultUnion = (PyC_c_union *)result;
+          free(resultUnion->pointer);
+          resultUnion->pointer = *(void **)arg;
+          return result;
+        } else {
+          return NULL;
+        }
       } else {
         return NULL;
       }
@@ -262,33 +292,69 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       return NULL;
     }
   case FFI_TYPE_STRUCT: {
-    const char *struct_name = underlying_struct->name;
-    PyObject *obj = PyObject_GetAttrString(module, struct_name);
-    if (obj) {
-      PyObject *result = PyObject_CallObject(obj, NULL);
-      char *arg_data = arg;
+    const char *name = NULL;
+    if (underlying_struct) {
+      const char *name = underlying_struct->name;
 
-      for (size_t i = 0; i < underlying_struct->attrCount; i++) {
-        PyObject *attr_name = PyUnicode_FromString(
-            qlist_getat(underlying_struct->attrNames, i, NULL,
-                        false)); // TODO: decrement reference count
-        PyObject *item = cppArg_to_pyArg(
-            (void *)arg_data + (underlying_struct->offsets[i] / 8),
-            *(ffi_type *)qvector_getat(underlying_struct->attrTypes, i, false),
-            underlying_struct->attrUnderlyingType[i], NULL, module);
-        // TODO: decrement reference count
+      PyObject *obj = PyObject_GetAttrString(module, name);
+      if (obj) {
+        PyObject *result = PyObject_CallObject(obj, NULL);
+        char *arg_data = arg;
 
-        // printf("%s\n", qlist_getat(underlying_struct->attrNames, i, NULL,
-        // false));
+        for (size_t i = 0; i < underlying_struct->attrCount; i++) {
+          PyObject *attr_name = PyUnicode_FromString(
+              qlist_getat(underlying_struct->attrNames, i, NULL,
+                          false)); // TODO: decrement reference count
+          PyObject *item = cppArg_to_pyArg(
+              (void *)arg_data + (underlying_struct->offsets[i] / 8),
+              *(ffi_type *)qvector_getat(underlying_struct->attrTypes, i,
+                                         false),
+              underlying_struct->attrUnderlyingType[i],
+              underlying_struct->attrUnderlyingStructs[i],
+              underlying_struct->attrUnderlyingUnions[i], module);
+          // TODO: decrement reference count
 
-        if (PyObject_SetAttr(result, attr_name, item)) {
-          return NULL;
+          if (PyObject_SetAttr(result, attr_name, item)) {
+            return NULL;
+          }
         }
+
+        return result;
+      } else {
+        return NULL;
       }
 
-      return result;
+    } else if (underlying_union) {
+      const char *name = underlying_union->name;
+
+      PyObject *obj = PyObject_GetAttrString(module, name);
+      if (obj) {
+        PyObject *result = PyObject_CallObject(obj, NULL);
+        char *arg_data = arg;
+
+        for (size_t i = 0; i < underlying_union->attrCount; i++) {
+          PyObject *attr_name = PyUnicode_FromString(
+              qlist_getat(underlying_union->attrNames, i, NULL,
+                          false)); // TODO: decrement reference count
+          PyObject *item = cppArg_to_pyArg(
+              (void *)arg_data,
+              *(ffi_type *)qvector_getat(underlying_union->attrTypes, i, false),
+              underlying_union->attrUnderlyingType[i], NULL, NULL,
+              module); // TODO: update Union with additional info
+          // TODO: decrement reference count
+
+          if (PyObject_SetAttr(result, attr_name, item)) {
+            return NULL;
+          }
+        }
+
+        return result;
+      } else {
+        return NULL;
+      }
     } else {
-      return NULL;
+      // TODO: raise system error
+      abort();
     }
   }
   case FFI_TYPE_VOID:
@@ -678,7 +744,12 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
     return &ffi_type_pointer;
   case CXType_Elaborated:
     if (clang_Type_getNamedType(type).kind == CXType_Record) {
-      return &Symbols_getStructure(sym, name + 7)->type;
+      Structure *s = Symbols_getStructure(sym, name + 7);
+      if (s) {
+        return &(s->type);
+      }
+      Union *u = Symbols_getUnion(sym, name + 6);
+      return &(u->type);
     }
     if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
       if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==

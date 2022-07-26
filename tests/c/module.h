@@ -27,6 +27,18 @@ union Number {
   double d;
 };
 
+struct sNumber {
+  union Number num;
+  int x;
+  int y;
+};
+
+struct sNumber_ptr {
+  union Number *num;
+  int *x;
+  int *y;
+};
+
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);

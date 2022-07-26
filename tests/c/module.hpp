@@ -2,7 +2,7 @@ extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
-typedef struct RECT RECT;
+// typedef struct RECT RECT;
 struct RECT {
   int x;
   int y;
