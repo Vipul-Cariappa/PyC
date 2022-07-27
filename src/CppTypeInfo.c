@@ -66,6 +66,24 @@ void print_Structure(Structure structure) {
   }
 }
 
+void print_Union(Union _union) {
+  qlist_t *attrNames = _union.attrNames;
+  qvector_t *attrTypes = _union.attrTypes;
+  size_t attrCount = _union.attrCount;
+
+  assert(qlist_size(attrNames) == attrCount);
+  assert(qvector_size(attrTypes) == attrCount);
+
+  printf("    union %s\n", _union.name);
+
+  for (size_t i = 0; i < attrCount; i++) {
+    const char *attrName = qlist_getat(attrNames, i, NULL, false);
+    ffi_type *attrType = qvector_getat(attrTypes, i, false);
+
+    printf("      %s: %s\n", attrName, ffi_type_To_char_p(*attrType));
+  }
+}
+
 void print_Global(Global global) {
   printf("    %s: %s\n", global.name, ffi_type_To_char_p(global.type));
 }
@@ -100,6 +118,17 @@ void print_Symbols(Symbols *symbols) {
     Structure s =
         *((Structure *)qhashtbl_get(symbols->structs, name, NULL, false));
     print_Structure(s);
+  }
+
+  // printing Union info
+  printf("\n  Union: \n");
+
+  len = qlist_size(symbols->unionsNames);
+  assert(len == symbols->unionsCount);
+  for (size_t i = 0; i < len; i++) {
+    const char *name = qlist_getat(symbols->unionsNames, i, NULL, false);
+    Union u = *((Union *)qhashtbl_get(symbols->unions, name, NULL, false));
+    print_Union(u);
   }
 
   // printing globals info
@@ -139,6 +168,24 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name) {
   Structure *structure = qhashtbl_get(sym->structs, name, NULL, false);
   if (structure) {
     return structure;
+  } else if (errno == ENOENT) {
+    errno = 0;
+    return NULL;
+  }
+
+  if (errno == EINVAL)
+    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
+
+  if (errno == ENOMEM)
+    PyErr_NoMemory();
+
+  return NULL;
+}
+
+Union *Symbols_getUnion(Symbols *sym, const char *name) {
+  Union *u = qhashtbl_get(sym->unions, name, NULL, false);
+  if (u) {
+    return u;
   } else if (errno == ENOENT) {
     errno = 0;
     return NULL;
@@ -253,6 +300,11 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
   }
   s.type.elements[s.attrCount] = NULL;
 
+  ffi_cif cif;
+  if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, &s.type, NULL) != FFI_OK) {
+    abort(); // TODO: raise error
+  }
+
   if (!qlist_addlast(sym->structsNames, s.name, strlen(s.name) + 1))
     goto raise_error;
 
@@ -268,10 +320,60 @@ raise_error:
     PyErr_NoMemory();
   else if (errno == EINVAL)
     PyErr_SetString(py_BindingError,
-                    "Incompatible struct name found in translation unit");
+                    "Incompatible union name found in translation unit");
   else
     PyErr_SetString(py_BindingError, "Unknown error occured");
   return false;
+}
+
+bool Symbols_appendUnion(Symbols *sym, Union u) {
+  // TODO: implement
+
+  ffi_type union_type;
+  union_type.size = union_type.alignment = 0;
+  union_type.type = FFI_TYPE_STRUCT;
+
+  ffi_type **union_elements = calloc(u.attrCount + 1, sizeof(ffi_type *));
+
+  for (size_t i = 0; i < u.attrCount; i++) {
+    union_elements[i] = qvector_getat(u.attrTypes, i, false);
+
+    ffi_cif cif;
+    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, union_elements[i], NULL) ==
+        FFI_OK) {
+      if (union_elements[i]->size > union_type.size) {
+        union_type.size = union_elements[i]->size;
+      }
+      if (union_elements[i]->alignment > union_type.alignment)
+        union_type.alignment = union_elements[i]->alignment;
+    }
+  }
+  union_elements[u.attrCount] = NULL;
+
+  union_type.elements = union_elements;
+
+  u.type = union_type;
+
+  if (!qlist_addlast(sym->unionsNames, u.name, strlen(u.name) + 1))
+    goto raise_error;
+
+  if (!qhashtbl_put(sym->unions, u.name, &u, sizeof(Union)))
+    goto raise_error;
+
+  sym->unionsCount++;
+
+  return true;
+
+raise_error:
+  if (errno == ENOMEM)
+    PyErr_NoMemory();
+  else if (errno == EINVAL)
+    PyErr_SetString(py_BindingError,
+                    "Incompatible union name found in translation unit");
+  else
+    PyErr_SetString(py_BindingError, "Unknown error occured");
+  return false;
+  return true;
 }
 
 bool Symbols_appendGlobal(Symbols *sym, Global g) {
@@ -312,6 +414,10 @@ Symbols *create_Symbol(const char *name) {
   sym->structsNames = qlist(0);
   sym->structs = qhashtbl(0, 0);
   sym->structsCount = 0;
+
+  sym->unionsNames = qlist(0);
+  sym->unions = qhashtbl(0, 0);
+  sym->unionsCount = 0;
 
   sym->globalsNames = qlist(0);
   sym->globals = qhashtbl(0, 0);
@@ -363,6 +469,94 @@ bool Symbols_parse(Symbols *sym, const char *header) {
   return true;
 }
 
+enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
+                                      CXClientData client_data) {
+  // TODO: implement
+
+  if (clang_getCursorKind(cursor) == CXCursor_FieldDecl) {
+    const char *name = clang_getCString(clang_getCursorSpelling(cursor));
+    CXType type = clang_getCursorType(cursor);
+
+    void **info = client_data;
+    Union *obj = (Union *)info[0];
+    Symbols *sym = (Symbols *)info[1];
+
+    qlist_addlast(obj->attrNames, name, strlen(name) + 1);
+
+    const char *type_name = clang_getCString(clang_getTypeSpelling(type));
+
+    qvector_addlast(obj->attrTypes, get_ffi_type(type, sym, type_name));
+
+    obj->attrCount++;
+
+    // get underlying types if pointer type
+    if (obj->attrCount == 1) {
+      obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+
+      obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
+      obj->attrUnderlyingUnions = malloc(sizeof(Union *));
+
+    } else {
+      obj->attrUnderlyingType = realloc(
+          obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
+
+      obj->attrUnderlyingStructs = realloc(
+          obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
+      obj->attrUnderlyingUnions =
+          realloc(obj->attrUnderlyingUnions, sizeof(Union *) * obj->attrCount);
+    }
+
+    if (type.kind == CXType_Pointer) {
+      obj->attrUnderlyingType[obj->attrCount - 1] =
+          clang_getPointeeType(type).kind;
+
+      if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+          CXType_Record) {
+        size_t len = strlen(type_name);
+        char *updated_type_name = malloc(len);
+        strcpy(updated_type_name, type_name + 7);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingStructs[obj->attrCount - 1] =
+            Symbols_getStructure(sym, updated_type_name);
+
+        strcpy(updated_type_name, type_name + 6);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingUnions[obj->attrCount - 1] =
+            Symbols_getUnion(sym, updated_type_name);
+
+        free(updated_type_name);
+      } else {
+        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+        obj->attrUnderlyingUnions[obj->attrCount - 1] = 0;
+      }
+    } else {
+      obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+    }
+
+    if ((type.kind == CXType_Elaborated) &&
+        (clang_Type_getNamedType(type).kind == CXType_Record)) {
+      obj->attrUnderlyingStructs[obj->attrCount - 1] =
+          Symbols_getStructure(sym, type_name + 7);
+      obj->attrUnderlyingUnions[obj->attrCount - 1] =
+          Symbols_getUnion(sym, type_name + 6);
+    }
+  }
+
+  return CXChildVisit_Continue;
+}
+
 enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
                                        CXClientData client_data) {
   if (clang_getCursorKind(cursor) == CXCursor_FieldDecl) {
@@ -386,6 +580,7 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
       obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
 
       obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
+      obj->attrUnderlyingUnions = malloc(sizeof(Union *));
 
     } else {
       obj->attrUnderlyingType = realloc(
@@ -393,41 +588,55 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
       obj->attrUnderlyingStructs = realloc(
           obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
+      obj->attrUnderlyingUnions =
+          realloc(obj->attrUnderlyingUnions, sizeof(Union *) * obj->attrCount);
     }
 
     if (type.kind == CXType_Pointer) {
       obj->attrUnderlyingType[obj->attrCount - 1] =
           clang_getPointeeType(type).kind;
+
+      if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+          CXType_Record) {
+        size_t len = strlen(type_name);
+        char *updated_type_name = malloc(len);
+        strcpy(updated_type_name, type_name + 7);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingStructs[obj->attrCount - 1] =
+            Symbols_getStructure(sym, updated_type_name);
+
+        strcpy(updated_type_name, type_name + 6);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingUnions[obj->attrCount - 1] =
+            Symbols_getUnion(sym, updated_type_name);
+
+        free(updated_type_name);
+      } else {
+        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+        obj->attrUnderlyingUnions[obj->attrCount - 1] = 0;
+      }
     } else {
       obj->attrUnderlyingType[obj->attrCount - 1] = 0;
     }
 
-    if (type.kind == CXType_Elaborated) {
-      if (clang_Type_getNamedType(type).kind == CXType_Record) {
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, type_name + 7);
-      }
-      if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
-        if (clang_getPointeeType(clang_Type_getNamedType(type)).kind ==
-            CXType_Record) {
-          size_t len = strlen(type_name);
-          char *updated_type_name = malloc(len);
-          strcpy(updated_type_name, type_name + 7);
-          for (int i = 0; i < strlen(updated_type_name); i++) {
-            if ((updated_type_name[i] == ' ') ||
-                (updated_type_name[i] == '*')) {
-              updated_type_name[i] = 0;
-              break;
-            }
-          }
-
-          obj->attrUnderlyingStructs[obj->attrCount - 1] =
-              Symbols_getStructure(sym, updated_type_name);
-          free(updated_type_name);
-        }
-      }
-    } else {
-      obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+    if ((type.kind == CXType_Elaborated) &&
+        (clang_Type_getNamedType(type).kind == CXType_Record)) {
+      obj->attrUnderlyingStructs[obj->attrCount - 1] =
+          Symbols_getStructure(sym, type_name + 7);
+      obj->attrUnderlyingUnions[obj->attrCount - 1] =
+          Symbols_getUnion(sym, type_name + 6);
     }
   }
 
@@ -456,15 +665,6 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     funcType.returnType = *return_ffi_type;
 
-    // printf("%s\n", clang_getCString(clang_getTypeSpelling(
-    //                    clang_getCursorResultType(cursor))));
-
-    // const char *return_type_name = clang_getCString(
-    //     clang_getTypeSpelling(clang_getCursorResultType(cursor)));
-    //   size_t len = strlen(return_type_name + 7);
-    //   funcType.returnTypeName = malloc(len);
-    //   strcpy(funcType.returnTypeName, return_type_name + 7);
-
     if (returnType.kind == CXType_Pointer) {
       funcType.returnsUnderlyingType = clang_getPointeeType(returnType).kind;
       if (clang_getPointeeType(returnType).kind == CXType_Elaborated) {
@@ -478,6 +678,9 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
           funcType.returnUnderlyingStruct =
               Symbols_getStructure(symbols, struct_name + 7);
+
+          funcType.returnUnderlyingUnion =
+              Symbols_getUnion(symbols, struct_name + 6);
         }
       }
     } else {
@@ -489,6 +692,9 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
               clang_getTypeSpelling(clang_Type_getNamedType(returnType)));
           funcType.returnUnderlyingStruct =
               Symbols_getStructure(symbols, struct_name + 7);
+
+          funcType.returnUnderlyingUnion =
+              Symbols_getUnion(symbols, struct_name + 6);
         }
       }
     }
@@ -558,6 +764,27 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     Symbols_appendStructure(symbols, obj);
   }
 
+  // unions
+  else if (clang_getCursorKind(cursor) == CXCursor_UnionDecl) {
+    const char *name = clang_getCString(clang_getCursorSpelling(cursor));
+
+    Union obj;
+    obj.name = name;
+    obj.attrNames = qlist(0);
+    obj.attrTypes =
+        qvector(MAX_SIZE, sizeof(ffi_type),
+                QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
+    obj.attrUnderlyingType = NULL;
+    obj.type = (ffi_type){0, 0, 0, NULL};
+    obj.attrCount = 0;
+    obj.unionSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
+
+    void *info[] = {&obj, symbols};
+    clang_visitChildren(cursor, union_visitor, info);
+
+    Symbols_appendUnion(symbols, obj);
+
+  }
   // typedef
   else if (clang_getCursorKind(cursor) == CXCursor_TypedefDecl) {
     // TODO: implement parseing typedef
@@ -588,6 +815,14 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     if (!Symbols_appendGlobal(symbols, global)) {
       return CXChildVisit_Break;
     }
+  } else {
+    // const char *name = clang_getCString(clang_getCursorSpelling(cursor));
+    // const char *type_name =
+    //     clang_getCString(clang_getTypeSpelling(clang_getCursorType(cursor)));
+    // printf("cursor: %s : %i\ntype: %s : %i\n", name,
+    //        clang_getCursorKind(cursor), type_name,
+    //        clang_getCursorType(cursor).kind);
+    // TODO: display type info
   }
 
   return CXChildVisit_Continue;

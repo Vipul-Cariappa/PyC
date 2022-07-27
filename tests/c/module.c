@@ -101,3 +101,23 @@ bool same_rects(struct RECT *a, struct RECT *b) {
     return true;
   return false;
 }
+
+long get_number(union Number n) {
+  return n.l;
+}
+
+long get_number_ptr(union Number *n) {
+  return n->l;
+}
+
+union Number creat_number_with_int(int x) {
+  union Number n;
+  n.i = x;
+  return n;
+}
+
+union Number *creat_number_ptr_with_int(int x) {
+  union Number *n = malloc(sizeof(union Number));
+  n->i = x;
+  return n;
+}

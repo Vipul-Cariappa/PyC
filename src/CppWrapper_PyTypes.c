@@ -205,7 +205,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     }
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
-                           NULL, self); // TODO: update NULL for global structs
+                           NULL, NULL, self); // TODO: update NULL for global structs
   } else if (errno != 0)
     return NULL;
 
@@ -213,6 +213,20 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   if (structVar) {
     PyObject *result = create_py_c_struct(structVar, self);
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      return NULL;
+    }
+
+    return result;
+  }
+
+  else if (errno != 0)
+    return NULL;
+  
+  Union *unionVar = Symbols_getUnion(selfType->symbols, attr);
+
+  if (unionVar) {
+    PyObject *result = create_py_c_union(unionVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
       return NULL;
     }
@@ -298,7 +312,8 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   return cppArg_to_pyArg(
       rc, funcType->returnType, funcType->returnsUnderlyingType,
-      funcType->returnUnderlyingStruct, selfType->parentModule);
+      funcType->returnUnderlyingStruct,
+      funcType->returnUnderlyingUnion, selfType->parentModule);
 }
 
 // PyCpp.CppFunction.__del__

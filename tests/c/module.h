@@ -14,6 +14,48 @@ struct Cuboid {
   int z;
 };
 
+struct Cuboid_p {
+  struct RECT *r;
+  long *z;
+};
+
+union Number {
+  char c;
+  int i;
+  long l;
+  float f;
+  double d;
+};
+
+struct sNumber {
+  union Number num;
+  int x;
+  int y;
+};
+
+struct sNumber_ptr {
+  union Number *num;
+  int *x;
+  int *y;
+};
+
+union unionOfStructs {
+  struct RECT r;
+  int x;
+};
+
+union unionOfUnions {
+  union Number n;
+  union unionOfStructs uos;
+};
+
+union unionOfPtr {
+  union Number *n;
+  struct RECT *r;
+  int *x;
+};
+
+
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);
@@ -33,3 +75,8 @@ struct RECT *rect_add(struct RECT *a, struct RECT *b);
 int get_area(struct RECT a);
 int get_perimeter(struct RECT a);
 bool same_rects(struct RECT *a, struct RECT *b);
+
+long get_number(union Number n);
+long get_number_ptr(union Number *n);
+union Number creat_number_with_int(int x);
+union Number *creat_number_ptr_with_int(int x);

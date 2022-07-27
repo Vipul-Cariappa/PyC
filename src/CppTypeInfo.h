@@ -12,16 +12,32 @@ typedef struct Global {
 
 typedef struct Structure {
   const char *name;
-  qlist_t *attrNames;                       // vector of attribute names
+  qlist_t *attrNames;                       // list of attribute names
   qvector_t *attrTypes;                     // vector of attribute's ffi_type
   enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
   struct Structure **attrUnderlyingStructs; // array of underlying
                                             // struct type for pointers
+  struct Union **attrUnderlyingUnions;      // array of underlying
+                                            // unions type for pointers
   long long *offsets;                       // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
   size_t structSize;
 } Structure;
+
+typedef struct Union {
+  const char *name;
+  qlist_t *attrNames;                  // list of attribute names
+  qvector_t *attrTypes;                // vector of attribute's ffi_type
+  enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
+  struct Structure **attrUnderlyingStructs; // array of underlying
+                                            // struct type for pointers
+  struct Union **attrUnderlyingUnions;      // array of underlying
+                                            // unions type for pointers
+  ffi_type type;
+  size_t attrCount;
+  size_t unionSize;
+} Union;
 
 typedef struct Class {
   // TODO: Implement
@@ -35,6 +51,7 @@ typedef struct FunctionType {
   // Structure **argsUnderlyingStructs;   // for checking for proper struct
   // matching
   Structure *returnUnderlyingStruct; // for type convertion
+  Union *returnUnderlyingUnion;  // for type convertion
   size_t argsCount;
 } FunctionType;
 
@@ -56,6 +73,10 @@ typedef struct Symbols {
   qhashtbl_t *structs;   // mapping of struct names to struct Structure
   size_t structsCount;
 
+  qlist_t *unionsNames; // vector of union names
+  qhashtbl_t *unions;   // mapping of union names to union Structure
+  size_t unionsCount;
+
   qlist_t *classesNames; // vector of class names
   qhashtbl_t *classes;   // mapping of class names to struct Class
   size_t classesCount;
@@ -67,18 +88,21 @@ typedef struct Symbols {
 
 void print_Function(Function func);
 void print_Structure(Structure structure);
+void print_Union(Union _union);
 void print_Global(Global global);
 void print_Class(Class cls);
 void print_Symbols(Symbols *symbols);
 
 Function *Symbols_getFunction(Symbols *sym, const char *name);
 Structure *Symbols_getStructure(Symbols *sym, const char *name);
+Union *Symbols_getUnion(Symbols *sym, const char *name);
 Global *Symbols_getGlobal(Symbols *sym, const char *name);
 Class *Symbols_getClass(Symbols *sym, const char *name);
 
 bool Symbols_appendFunction(Symbols *sym, const char *name,
                             const char *mangledName, FunctionType funcType);
 bool Symbols_appendStructure(Symbols *sym, Structure s);
+bool Symbols_appendUnion(Symbols *sym, Union u);
 bool Symbols_appendGlobal(Symbols *sym, Global g);
 bool Symbols_appendClass(Symbols *sym, Class c);
 
