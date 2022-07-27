@@ -492,16 +492,65 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
     // get underlying types if pointer type
     if (obj->attrCount == 1) {
       obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+
+      obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
+      obj->attrUnderlyingUnions = malloc(sizeof(Union *));
+
     } else {
       obj->attrUnderlyingType = realloc(
           obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
+
+      obj->attrUnderlyingStructs = realloc(
+          obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
+      obj->attrUnderlyingUnions =
+          realloc(obj->attrUnderlyingUnions, sizeof(Union *) * obj->attrCount);
     }
 
     if (type.kind == CXType_Pointer) {
       obj->attrUnderlyingType[obj->attrCount - 1] =
           clang_getPointeeType(type).kind;
+
+      if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+          CXType_Record) {
+        size_t len = strlen(type_name);
+        char *updated_type_name = malloc(len);
+        strcpy(updated_type_name, type_name + 7);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingStructs[obj->attrCount - 1] =
+            Symbols_getStructure(sym, updated_type_name);
+
+        strcpy(updated_type_name, type_name + 6);
+        for (int i = 0; i < strlen(updated_type_name); i++) {
+          if ((updated_type_name[i] == ' ') || (updated_type_name[i] == '*')) {
+            updated_type_name[i] = 0;
+            break;
+          }
+        }
+
+        obj->attrUnderlyingUnions[obj->attrCount - 1] =
+            Symbols_getUnion(sym, updated_type_name);
+
+        free(updated_type_name);
+      } else {
+        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
+        obj->attrUnderlyingUnions[obj->attrCount - 1] = 0;
+      }
     } else {
       obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+    }
+
+    if ((type.kind == CXType_Elaborated) &&
+        (clang_Type_getNamedType(type).kind == CXType_Record)) {
+      obj->attrUnderlyingStructs[obj->attrCount - 1] =
+          Symbols_getStructure(sym, type_name + 7);
+      obj->attrUnderlyingUnions[obj->attrCount - 1] =
+          Symbols_getUnion(sym, type_name + 6);
     }
   }
 

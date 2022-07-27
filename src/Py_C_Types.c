@@ -2517,9 +2517,8 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
           (selfType->pointer),
           *(ffi_type *)qvector_getat(selfType->u->attrTypes, i, false),
           selfType->u->attrUnderlyingType[i],
-          // selfType->u->attrUnderlyingStructs[i],
-          NULL, NULL,
-          selfType->parentModule); // TODO: update for structs and module
+          selfType->u->attrUnderlyingStructs[i],
+          selfType->u->attrUnderlyingUnions[i], selfType->parentModule);
     }
   }
 
@@ -2535,15 +2534,17 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
       ffi_type *type =
           (ffi_type *)qvector_getat(selfType->u->attrTypes, i, false);
 
-      // size_t *copy_size;
       void *data = pyArg_to_cppArg(pValue, *type);
 
-      if (PyObject_IsInstance(pValue, (PyObject *)&py_c_union_type)) {
-        memcpy((selfType->pointer), data, selfType->u->unionSize);
+      if (type->type == FFI_TYPE_POINTER) {
+        memcpy((selfType->pointer), data, type->size);
+      } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
+        memcpy((selfType->pointer), data,
+               ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
         memcpy((selfType->pointer), data, type->size);
+        free(data);
       }
-      free(data);
       return 0;
     }
   }

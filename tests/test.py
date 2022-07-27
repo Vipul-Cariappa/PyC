@@ -221,6 +221,36 @@ class TestBasic(unittest.TestCase):
         num.d = cModule.pi(50000)
         self.assertAlmostEqual(num.d, 3.1415, 3)
 
+        unionOfStructs_ = cModule.unionOfStructs()
+        r1 = cModule.RECT()
+        r1.x = 920
+        r1.y = 640
+        unionOfStructs_.r = r1
+        self.assertEqual(unionOfStructs_.r.x, 920)
+        self.assertEqual(unionOfStructs_.r.y, 640)
+        unionOfStructs_.x = 300
+        self.assertEqual(unionOfStructs_.x, 300)
+
+        unionOfUnions_ = cModule.unionOfUnions()
+        num.l = 5600
+        unionOfUnions_.n = num
+        self.assertEqual(unionOfUnions_.n.l, 5600)
+        unionOfUnions_.uos = unionOfStructs_
+        self.assertEqual(unionOfUnions_.uos.x, 300)
+
+        unionOfPtr_ = cModule.unionOfPtr()
+        unionOfPtr_.n = num
+        self.assertEqual(unionOfPtr_.n.l, 5600)
+        unionOfPtr_.r = r1
+        self.assertEqual(unionOfPtr_.r.x, 920)
+        self.assertEqual(unionOfPtr_.r.y, 640)
+        n = PyC.c_int(12)
+        unionOfPtr_.x = n
+        self.assertEqual(unionOfPtr_.x.value(), 12)
+
+
+
+
 
         
 

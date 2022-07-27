@@ -150,7 +150,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_int");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_int *c_int = (PyC_c_int *)result;
         c_int->pointer = *(int **)arg;
         c_int->value = *(c_int->pointer);
@@ -163,7 +163,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_uint");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_int *c_int = (PyC_c_int *)result;
         c_int->pointer = *(int **)arg;
         c_int->value = *(c_int->pointer);
@@ -189,7 +189,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_ulong");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_long *c_long = (PyC_c_long *)result;
         c_long->pointer = *(long **)arg;
         c_long->value = *(c_long->pointer);
@@ -202,7 +202,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_short");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_short *c_short = (PyC_c_short *)result;
         c_short->pointer = *(short **)arg;
         c_short->value = *(c_short->pointer);
@@ -215,7 +215,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_ushort");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_short *c_short = (PyC_c_short *)result;
         c_short->pointer = *(short **)arg;
         c_short->value = *(c_short->pointer);
@@ -228,7 +228,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_float");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_float *c_float = (PyC_c_float *)result;
         c_float->pointer = *(float **)arg;
         c_float->value = *(c_float->pointer);
@@ -241,7 +241,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(PyC, "c_double");
       if (obj) {
-        PyObject *result = PyObject_Call(obj, NULL, kwargs);
+        PyObject *result = PyObject_Call(obj, PyTuple_New(0), kwargs);
         PyC_c_double *c_double = (PyC_c_double *)result;
         c_double->pointer = *(double **)arg;
         c_double->value = *(c_double->pointer);
@@ -259,7 +259,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
         PyObject *obj = PyObject_GetAttrString(module, struct_name);
 
         if (obj) {
-          PyObject *result = PyObject_CallObject(obj, NULL);
+          PyObject *result = PyObject_CallObject(obj, PyTuple_New(0));
           PyC_c_struct *resultStruct = (PyC_c_struct *)result;
           free(resultStruct->pointer);
           resultStruct->pointer = *(void **)arg;
@@ -272,7 +272,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
         PyObject *obj = PyObject_GetAttrString(module, struct_name);
 
         if (obj) {
-          PyObject *result = PyObject_CallObject(obj, NULL);
+          PyObject *result = PyObject_CallObject(obj, PyTuple_New(0));
           PyC_c_union *resultUnion = (PyC_c_union *)result;
           free(resultUnion->pointer);
           resultUnion->pointer = *(void **)arg;
@@ -298,7 +298,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(module, name);
       if (obj) {
-        PyObject *result = PyObject_CallObject(obj, NULL);
+        PyObject *result = PyObject_CallObject(obj, PyTuple_New(0));
         char *arg_data = arg;
 
         for (size_t i = 0; i < underlying_struct->attrCount; i++) {
@@ -329,7 +329,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
       PyObject *obj = PyObject_GetAttrString(module, name);
       if (obj) {
-        PyObject *result = PyObject_CallObject(obj, NULL);
+        PyObject *result = PyObject_CallObject(obj, PyTuple_New(0));
         char *arg_data = arg;
 
         for (size_t i = 0; i < underlying_union->attrCount; i++) {
@@ -339,8 +339,9 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
           PyObject *item = cppArg_to_pyArg(
               (void *)arg_data,
               *(ffi_type *)qvector_getat(underlying_union->attrTypes, i, false),
-              underlying_union->attrUnderlyingType[i], NULL, NULL,
-              module); // TODO: update Union with additional info
+              underlying_union->attrUnderlyingType[i],
+              underlying_union->attrUnderlyingStructs[i],
+              underlying_union->attrUnderlyingUnions[i], module);
           // TODO: decrement reference count
 
           if (PyObject_SetAttr(result, attr_name, item)) {

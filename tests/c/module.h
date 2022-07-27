@@ -39,6 +39,23 @@ struct sNumber_ptr {
   int *y;
 };
 
+union unionOfStructs {
+  struct RECT r;
+  int x;
+};
+
+union unionOfUnions {
+  union Number n;
+  union unionOfStructs uos;
+};
+
+union unionOfPtr {
+  union Number *n;
+  struct RECT *r;
+  int *x;
+};
+
+
 int add(int x, int y);
 bool invert(bool x);
 int copy_int(int *destination, int *source);

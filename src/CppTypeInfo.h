@@ -30,6 +30,10 @@ typedef struct Union {
   qlist_t *attrNames;                  // list of attribute names
   qvector_t *attrTypes;                // vector of attribute's ffi_type
   enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
+  struct Structure **attrUnderlyingStructs; // array of underlying
+                                            // struct type for pointers
+  struct Union **attrUnderlyingUnions;      // array of underlying
+                                            // unions type for pointers
   ffi_type type;
   size_t attrCount;
   size_t unionSize;
