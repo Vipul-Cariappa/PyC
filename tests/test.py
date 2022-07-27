@@ -205,16 +205,12 @@ class TestBasic(unittest.TestCase):
         
     def test_unions(self):
         num = cModule.Number()
-        
         num.c = 10
         self.assertEqual(num.c, 10)
-        
         num.i = 200
         self.assertEqual(num.i, 200)
-        
         num.l = 3000
         self.assertEqual(num.l, 3000)
-        
         num.f = 3.14
         self.assertAlmostEqual(num.f, 3.14, 4)
         
@@ -247,12 +243,16 @@ class TestBasic(unittest.TestCase):
         n = PyC.c_int(12)
         unionOfPtr_.x = n
         self.assertEqual(unionOfPtr_.x.value(), 12)
-
-
-
-
-
         
+        num.l = 3600
+        self.assertEqual(cModule.get_number(num), 3600)
+        self.assertEqual(cModule.get_number(num), 3600)
+
+        num1 = cModule.creat_number_with_int(4800)
+        self.assertEqual(num1.i, 4800)
+        
+        num2 = cModule.creat_number_ptr_with_int(4800)
+        self.assertEqual(num2.i, 4800)
 
 
 if __name__ == "__main__":

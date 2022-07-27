@@ -522,6 +522,13 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
       } else if (type.type == FFI_TYPE_POINTER) {
         rvalue[i] = &(selfType->pointer);
       }
+    } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_union_type)) {
+      PyC_c_union *selfType = (PyC_c_union *)pyArg;
+      if (type.type == FFI_TYPE_STRUCT) {
+        rvalue[i] = selfType->pointer;
+      } else if (type.type == FFI_TYPE_POINTER) {
+        rvalue[i] = &(selfType->pointer);
+      }
     } else {
       PyErr_SetString(py_BindingError,
                       "Could not convert Python type to Cpp type");
@@ -601,7 +608,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           }
           break;
         case FFI_TYPE_STRUCT:
-          if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) {
+          if ((PyObject_IsInstance(pyArg, (PyObject *)&py_c_struct_type)) ||
+              (PyObject_IsInstance(pyArg, (PyObject *)&py_c_union_type))) {
             // TODO: check if they are the same structs
             funcNum = i;
             continue;
