@@ -46,9 +46,10 @@ jobs:
         gcov -abcfu build/temp.linux-x86_64-3.9/src/CppWrapper_PyTypes.c
         gcov -abcfu build/temp.linux-x86_64-3.9/src/PyC.c
         gcov -abcfu build/temp.linux-x86_64-3.9/src/TypeConversions.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/Py_C_Types.c
 
     - name: Upload Code Coverage
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./CppTypeInfo.c.gcov,./CppWrapper_PyTypes.c.gcov,./PyC.c.gcov,./TypeConversions.c.gcov
+        files: ./CppTypeInfo.c.gcov,./CppWrapper_PyTypes.c.gcov,./PyC.c.gcov,./TypeConversions.c.gcov,./Py_C_Types.c.gcov
