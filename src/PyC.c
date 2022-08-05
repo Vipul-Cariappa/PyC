@@ -181,6 +181,18 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
+  // creating c_type: c_void
+  if (PyType_Ready(&py_c_void_type) < 0) {
+    return NULL;
+  }
+
+  Py_INCREF(&py_c_void_type);
+  if (PyModule_AddObject(m, "c_void", (PyObject *)&py_c_void_type) < 0) {
+    Py_DECREF(&py_c_void_type);
+    Py_DECREF(m);
+    return NULL;
+  }
+
   // creating py_c_struct_type
   if (PyType_Ready(&py_c_struct_type) < 0) {
     return NULL;
@@ -192,7 +204,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     Py_DECREF(m);
     return NULL;
   }
-  
+
   // creating py_c_union_type
   if (PyType_Ready(&py_c_union_type) < 0) {
     return NULL;

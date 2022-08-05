@@ -27,9 +27,9 @@ typedef struct Structure {
 
 typedef struct Union {
   const char *name;
-  qlist_t *attrNames;                  // list of attribute names
-  qvector_t *attrTypes;                // vector of attribute's ffi_type
-  enum CXTypeKind *attrUnderlyingType; // array of CXTypeKind
+  qlist_t *attrNames;                       // list of attribute names
+  qvector_t *attrTypes;                     // vector of attribute's ffi_type
+  enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
   struct Structure **attrUnderlyingStructs; // array of underlying
                                             // struct type for pointers
   struct Union **attrUnderlyingUnions;      // array of underlying
@@ -51,7 +51,7 @@ typedef struct FunctionType {
   // Structure **argsUnderlyingStructs;   // for checking for proper struct
   // matching
   Structure *returnUnderlyingStruct; // for type convertion
-  Union *returnUnderlyingUnion;  // for type convertion
+  Union *returnUnderlyingUnion;      // for type convertion
   size_t argsCount;
 } FunctionType;
 
@@ -61,6 +61,13 @@ typedef struct Function {
   qvector_t *functionTypes; // vector of struct FunctionTypes
   size_t funcCount;
 } Function;
+
+typedef struct TypeDef {
+  const char *type_name;
+  const char *typedef_name;
+  enum CXTypeKind type;
+  enum CXTypeKind underlying_type; // Used if underlying type is pointer
+} TypeDef;
 
 typedef struct Symbols {
   const char *name;
@@ -84,6 +91,10 @@ typedef struct Symbols {
   qlist_t *globalsNames; // vector of global names
   qhashtbl_t *globals;   // mapping of global names to struct Global
   size_t globalsCount;
+
+  qlist_t *typedefsNames; // vector of typedef names
+  qhashtbl_t *typedefs;   // mapping of typedef names to struct TypedDef
+  size_t typedefsCount;
 } Symbols;
 
 void print_Function(Function func);
@@ -98,6 +109,7 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name);
 Union *Symbols_getUnion(Symbols *sym, const char *name);
 Global *Symbols_getGlobal(Symbols *sym, const char *name);
 Class *Symbols_getClass(Symbols *sym, const char *name);
+TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name);
 
 bool Symbols_appendFunction(Symbols *sym, const char *name,
                             const char *mangledName, FunctionType funcType);
@@ -105,6 +117,8 @@ bool Symbols_appendStructure(Symbols *sym, Structure s);
 bool Symbols_appendUnion(Symbols *sym, Union u);
 bool Symbols_appendGlobal(Symbols *sym, Global g);
 bool Symbols_appendClass(Symbols *sym, Class c);
+bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
+                           const char *type_name, CXType type);
 
 Symbols *create_Symbol(const char *name);
 void free_Symbols(Symbols *sym);

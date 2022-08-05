@@ -81,34 +81,30 @@ double pi(int n) {
   return pi;
 }
 
-struct RECT get_rect(int x, int y) {
-  return (struct RECT){x, y};
+struct _RECT get_rect(int x, int y) {
+  return (RECT){x, y};
 }
 
-struct RECT *rect_add(struct RECT *a, struct RECT *b) {
-  struct RECT *result = (struct RECT *)malloc(sizeof(struct RECT));
+RECT *rect_add(RECT *a, RECT *b) {
+  RECT *result = (RECT *)malloc(sizeof(RECT));
   result->x = a->x + b->x;
   result->y = a->y + b->y;
   return result;
 }
 
-int get_area(struct RECT a) { return a.x * a.y; }
+int get_area(struct _RECT a) { return a.x * a.y; }
 
-int get_perimeter(struct RECT a) { return 2 * (a.x + a.y); }
+int get_perimeter(RECT a) { return 2 * (a.x + a.y); }
 
-bool same_rects(struct RECT *a, struct RECT *b) {
+_u_int8_t_ same_rects(struct _RECT *a, struct _RECT *b) {
   if ((a->x == b->x) && (a->y == b->y))
     return true;
   return false;
 }
 
-long get_number(union Number n) {
-  return n.l;
-}
+long get_number(union Number n) { return n.l; }
 
-long get_number_ptr(union Number *n) {
-  return n->l;
-}
+long get_number_ptr(union Number *n) { return n->l; }
 
 union Number creat_number_with_int(int x) {
   union Number n;
