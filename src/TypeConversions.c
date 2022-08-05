@@ -766,6 +766,36 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
         return &ffi_type_pointer;
       }
     }
+  case CXType_Record: {
+    Structure *s = Symbols_getStructure(sym, (name) + 7);
+    if (s) {
+      return &(s->type);
+    }
+    Union *u = Symbols_getUnion(sym, (name) + 6);
+    if (u) {
+      return &(u->type);
+    }
+  }
+  case CXType_Typedef: {
+    TypeDef *td = Symbols_getTypeDef(sym, name);
+    if (td) {
+      switch (td->type) {
+      case CXType_Elaborated:
+      case CXType_Record: {
+        Structure *s = Symbols_getStructure(sym, (td->type_name) + 7);
+        if (s) {
+          return &(s->type);
+        }
+        Union *u = Symbols_getUnion(sym, (td->type_name) + 6);
+        if (u) {
+          return &(u->type);
+        }
+      }
+      default:;
+      }
+    }
+  }
+
   default:
     PyErr_SetString(
         py_BindingError,

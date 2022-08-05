@@ -4,18 +4,21 @@ extern const int MAX = 5000000;
 extern const char *PROGRAM = "C/C++";
 extern const float f = 3.14f;
 
-struct RECT {
+typedef unsigned char _u_int8_t_;
+typedef struct _RECT RECT;
+
+struct _RECT {
   int x;
   int y;
 };
 
 struct Cuboid {
-  struct RECT r;
+  RECT r;
   int z;
 };
 
 struct Cuboid_p {
-  struct RECT *r;
+  RECT *r;
   long *z;
 };
 
@@ -40,7 +43,7 @@ struct sNumber_ptr {
 };
 
 union unionOfStructs {
-  struct RECT r;
+  RECT r;
   int x;
 };
 
@@ -51,10 +54,9 @@ union unionOfUnions {
 
 union unionOfPtr {
   union Number *n;
-  struct RECT *r;
+  RECT *r;
   int *x;
 };
-
 
 int add(int x, int y);
 bool invert(bool x);
@@ -70,11 +72,11 @@ unsigned long long invert_bit(unsigned long long x, unsigned long long pos);
 int product_int(int x, int y);
 long long add_long_long(long long x, long long y);
 
-struct RECT get_rect(int x, int y);
-struct RECT *rect_add(struct RECT *a, struct RECT *b);
-int get_area(struct RECT a);
-int get_perimeter(struct RECT a);
-bool same_rects(struct RECT *a, struct RECT *b);
+struct _RECT get_rect(int x, int y);
+RECT *rect_add(RECT *a, RECT *b);
+int get_area(RECT a);
+int get_perimeter(RECT a);
+_u_int8_t_ same_rects(struct _RECT *a, struct _RECT *b);
 
 long get_number(union Number n);
 long get_number_ptr(union Number *n);

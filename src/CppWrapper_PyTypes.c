@@ -205,7 +205,8 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     }
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
-                           NULL, NULL, self); // TODO: update NULL for global structs
+                           NULL, NULL,
+                           self); // TODO: update NULL for global structs
   } else if (errno != 0)
     return NULL;
 
@@ -222,7 +223,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   else if (errno != 0)
     return NULL;
-  
+
   Union *unionVar = Symbols_getUnion(selfType->symbols, attr);
 
   if (unionVar) {
@@ -232,6 +233,32 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     }
 
     return result;
+  }
+
+  else if (errno != 0)
+    return NULL;
+
+  TypeDef *tdVar = Symbols_getTypeDef(selfType->symbols, attr);
+
+  if (tdVar) {
+
+    if (tdVar) {
+      switch (tdVar->type) {
+      case CXType_Elaborated:
+      case CXType_Record: {
+        Structure *s =
+            Symbols_getStructure(selfType->symbols, (tdVar->type_name) + 7);
+        if (s) {
+          return Cpp_ModuleGet(self, (char *)(tdVar->type_name) + 7);
+        }
+        Union *u = Symbols_getUnion(selfType->symbols, (tdVar->type_name) + 6);
+        if (u) {
+          return Cpp_ModuleGet(self, (char *)(tdVar->type_name) + 6);
+        }
+      }
+      default:;
+      }
+    }
   }
 
   else if (errno != 0)
@@ -312,8 +339,8 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   return cppArg_to_pyArg(
       rc, funcType->returnType, funcType->returnsUnderlyingType,
-      funcType->returnUnderlyingStruct,
-      funcType->returnUnderlyingUnion, selfType->parentModule);
+      funcType->returnUnderlyingStruct, funcType->returnUnderlyingUnion,
+      selfType->parentModule);
 }
 
 // PyCpp.CppFunction.__del__

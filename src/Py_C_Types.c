@@ -34,23 +34,10 @@ PyTypeObject py_c_void_type = {
 
 // PyC.c_void.__init__
 static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  if (kwargs) {
-    PyC_c_void *selfType = (PyC_c_void *)self;
-
-    PyObject *key = PyUnicode_FromFormat("pointer");
-    if (PyDict_Contains(kwargs, key) == 1) {
-      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
-      if (pointer_value == Py_None) {
-        selfType->pointer = NULL;
-        selfType->freeOnDel = true;
-      }
-      return 0;
-    }
-    Py_DECREF(key);
-  }
-
-  PyErr_SetString(PyExc_TypeError, "Expected pointer");
-  return -1;
+  PyC_c_void *selfType = (PyC_c_void *)self;
+  selfType->pointer = NULL;
+  selfType->freeOnDel = true;
+  return 0;
 }
 
 // PyC.c_void.__del__
