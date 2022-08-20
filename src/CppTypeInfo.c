@@ -1,8 +1,8 @@
 #define PY_SSIZE_T_CLEAN
 #include "CppTypeInfo.h"
+#include "DataStructures.h"
 #include "PyC.h"
 #include "ffi.h"
-#include "qlibc.h"
 #include "clang-c/Index.h"
 #include <assert.h>
 #include <errno.h>
@@ -18,13 +18,11 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 void print_Function(Function func) {
   printf("    %s\n", func.name);
 
-  assert(qlist_size(func.mangledNames) == func.funcCount);
-  assert(qlist_size(func.mangledNames) == qvector_size(func.functionTypes));
+  assert(array_FunctionType_size(func.functionTypes) == func.funcCount);
 
   for (size_t i = 0; i < func.funcCount; i++) {
-    const char *mangledName = qlist_getat(func.mangledNames, i, NULL, false);
-    FunctionType type =
-        *((FunctionType *)qvector_getat(func.functionTypes, i, false));
+    FunctionType type = array_FunctionType_getat(func.functionTypes, i);
+    const char *mangledName = type.mangledName;
 
     if (type.returnsUnderlyingType != CXType_Invalid) {
       printf("      %s %s(", CXTypeKind_TO_char_p(type.returnsUnderlyingType),
@@ -33,13 +31,14 @@ void print_Function(Function func) {
       printf("      %s %s(", ffi_type_To_char_p(type.returnType), mangledName);
     }
 
-    assert(type.argsCount == qvector_size(type.argsType));
-    // assert(type.argsCount == qvector_size(type.argsUnderlyingType));
+    assert(type.argsCount == array_p_ffi_type_size(type.argsType));
+    assert(type.argsCount == array_CXTypeKind_size(type.argsUnderlyingType));
 
     for (size_t j = 0; j < type.argsCount; j++) {
-      ffi_type *ffi_type_p = qvector_getat(type.argsType, j, false);
-      if (type.argsUnderlyingType[j]) {
-        printf("%s, ", CXTypeKind_TO_char_p(type.argsUnderlyingType[j]));
+      ffi_type *ffi_type_p = array_p_ffi_type_getat(type.argsType, j);
+      if (array_CXTypeKind_getat(type.argsUnderlyingType, j)) {
+        printf("%s, ", CXTypeKind_TO_char_p(
+                           array_CXTypeKind_getat(type.argsUnderlyingType, j)));
       } else {
         printf("%s, ", ffi_type_To_char_p(*ffi_type_p));
       }
@@ -49,36 +48,36 @@ void print_Function(Function func) {
 }
 
 void print_Structure(Structure structure) {
-  qlist_t *attrNames = structure.attrNames;
-  qvector_t *attrTypes = structure.attrTypes;
+  array_str_t *attrNames = structure.attrNames;
+  array_p_ffi_type_t *attrTypes = structure.attrTypes;
   size_t attrCount = structure.attrCount;
 
-  assert(qlist_size(attrNames) == attrCount);
-  assert(qvector_size(attrTypes) == attrCount);
+  assert(array_str_size(attrNames) == attrCount);
+  assert(array_p_ffi_type_size(attrTypes) == attrCount);
 
   printf("    struct %s\n", structure.name);
 
   for (size_t i = 0; i < attrCount; i++) {
-    const char *attrName = qlist_getat(attrNames, i, NULL, false);
-    ffi_type *attrType = qvector_getat(attrTypes, i, false);
+    ffi_type *attrType = array_p_ffi_type_getat(attrTypes, i);
+    const char *attrName = array_str_getat(attrNames, i);
 
     printf("      %s: %s\n", attrName, ffi_type_To_char_p(*attrType));
   }
 }
 
 void print_Union(Union _union) {
-  qlist_t *attrNames = _union.attrNames;
-  qvector_t *attrTypes = _union.attrTypes;
+  array_str_t *attrNames = _union.attrNames;
+  array_p_ffi_type_t *attrTypes = _union.attrTypes;
   size_t attrCount = _union.attrCount;
 
-  assert(qlist_size(attrNames) == attrCount);
-  assert(qvector_size(attrTypes) == attrCount);
+  assert(array_str_size(attrNames) == attrCount);
+  assert(array_p_ffi_type_size(attrTypes) == attrCount);
 
   printf("    union %s\n", _union.name);
 
   for (size_t i = 0; i < attrCount; i++) {
-    const char *attrName = qlist_getat(attrNames, i, NULL, false);
-    ffi_type *attrType = qvector_getat(attrTypes, i, false);
+    ffi_type *attrType = array_p_ffi_type_getat(attrTypes, i);
+    const char *attrName = array_str_getat(attrNames, i);
 
     printf("      %s: %s\n", attrName, ffi_type_To_char_p(*attrType));
   }
@@ -100,45 +99,40 @@ void print_Symbols(Symbols *symbols) {
   // printing function info
   printf("\n  Functions: \n");
 
-  len = qlist_size(symbols->funcsNames);
+  len = array_Function_size(symbols->funcs);
   assert(len == symbols->funcCount);
   for (size_t i = 0; i < len; i++) {
-    const char *name = qlist_getat(symbols->funcsNames, i, NULL, false);
-    Function s = *((Function *)qhashtbl_get(symbols->funcs, name, NULL, false));
+    Function s = array_Function_getat(symbols->funcs, i);
     print_Function(s);
   }
 
   // printing structure info
   printf("\n  Structures: \n");
 
-  len = qlist_size(symbols->structsNames);
+  len = array_Structure_size(symbols->structs);
   assert(len == symbols->structsCount);
   for (size_t i = 0; i < len; i++) {
-    const char *name = qlist_getat(symbols->structsNames, i, NULL, false);
-    Structure s =
-        *((Structure *)qhashtbl_get(symbols->structs, name, NULL, false));
+    Structure s = array_Structure_getat(symbols->structs, i);
     print_Structure(s);
   }
 
   // printing Union info
   printf("\n  Union: \n");
 
-  len = qlist_size(symbols->unionsNames);
+  len = array_Union_size(symbols->unions);
   assert(len == symbols->unionsCount);
   for (size_t i = 0; i < len; i++) {
-    const char *name = qlist_getat(symbols->unionsNames, i, NULL, false);
-    Union u = *((Union *)qhashtbl_get(symbols->unions, name, NULL, false));
+    Union u = array_Union_getat(symbols->unions, i);
     print_Union(u);
   }
 
   // printing globals info
   printf("\n  Globals: \n");
 
-  len = qlist_size(symbols->globalsNames);
+  len = array_Global_size(symbols->globals);
   assert(len == symbols->globalsCount);
   for (size_t i = 0; i < len; i++) {
-    const char *name = qlist_getat(symbols->globalsNames, i, NULL, false);
-    Global s = *((Global *)qhashtbl_get(symbols->globals, name, NULL, false));
+    Global s = array_Global_getat(symbols->globals, i);
     print_Global(s);
   }
 
@@ -147,73 +141,49 @@ void print_Symbols(Symbols *symbols) {
 }
 
 Function *Symbols_getFunction(Symbols *sym, const char *name) {
-  Function *func = qhashtbl_get(sym->funcs, name, NULL, false);
-  if (func) {
-    return func;
-  } else if (errno == ENOENT) {
-    errno = 0;
-    return NULL;
+  for (size_t i = 0; i < sym->funcCount; i++) {
+    Function *func = array_Function_get_ptr_at(sym->funcs, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
   }
-
-  if (errno == EINVAL)
-    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
-
-  if (errno == ENOMEM)
-    PyErr_NoMemory();
 
   return NULL;
 }
 
 Structure *Symbols_getStructure(Symbols *sym, const char *name) {
-  Structure *structure = qhashtbl_get(sym->structs, name, NULL, false);
-  if (structure) {
-    return structure;
-  } else if (errno == ENOENT) {
-    errno = 0;
-    return NULL;
+  for (size_t i = 0; i < sym->structsCount; i++) {
+    Structure *func = array_Structure_get_ptr_at(sym->structs, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
   }
-
-  if (errno == EINVAL)
-    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
-
-  if (errno == ENOMEM)
-    PyErr_NoMemory();
 
   return NULL;
 }
 
 Union *Symbols_getUnion(Symbols *sym, const char *name) {
-  Union *u = qhashtbl_get(sym->unions, name, NULL, false);
-  if (u) {
-    return u;
-  } else if (errno == ENOENT) {
-    errno = 0;
-    return NULL;
+  for (size_t i = 0; i < sym->unionsCount; i++) {
+    Union *func = array_Union_get_ptr_at(sym->unions, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
   }
-
-  if (errno == EINVAL)
-    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
-
-  if (errno == ENOMEM)
-    PyErr_NoMemory();
 
   return NULL;
 }
 
 Global *Symbols_getGlobal(Symbols *sym, const char *name) {
-  Global *global = qhashtbl_get(sym->globals, name, NULL, false);
-  if (global) {
-    return global;
-  } else if (errno == ENOENT) {
-    errno = 0;
-    return NULL;
+  for (size_t i = 0; i < sym->globalsCount; i++) {
+    Global *func = array_Global_get_ptr_at(sym->globals, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
   }
-
-  if (errno == EINVAL)
-    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
-
-  if (errno == ENOMEM)
-    PyErr_NoMemory();
 
   return NULL;
 }
@@ -224,19 +194,13 @@ Class *Symbols_getClass(Symbols *sym, const char *name) {
 }
 
 TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name) {
-  TypeDef *td = qhashtbl_get(sym->typedefs, name, NULL, false);
-  if (td) {
-    return td;
-  } else if (errno == ENOENT) {
-    errno = 0;
-    return NULL;
+  for (size_t i = 0; i < sym->typedefsCount; i++) {
+    TypeDef *func = array_TypeDef_get_ptr_at(sym->typedefs, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
   }
-
-  if (errno == EINVAL)
-    PyErr_SetString(py_BindingError, "Incompatible C/C++ declaration name");
-
-  if (errno == ENOMEM)
-    PyErr_NoMemory();
 
   return NULL;
 }
@@ -244,49 +208,32 @@ TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name) {
 bool Symbols_appendFunction(Symbols *sym, const char *name,
                             const char *mangledName, FunctionType funcType) {
 
-  Function *f = qhashtbl_get(sym->funcs, name, NULL, false);
+  Function *f = Symbols_getFunction(sym, name);
   if (f) {
-    // appending mangledName
-    if (!qlist_addlast(f->mangledNames, mangledName, strlen(mangledName) + 1))
-      goto raise_error;
-
     // appending funcType
-    if (!qvector_addlast(f->functionTypes, &funcType))
+    if (!array_FunctionType_append(f->functionTypes, funcType))
       goto raise_error;
 
     f->funcCount++; // incrementing new func decl in same name
 
     return true;
   } else {
-    // appending function name to symbols
-    if (!qlist_addlast(sym->funcsNames, name, strlen(name) + 1))
-      goto raise_error;
-
     // creating struct Functiom
     Function q;
     q.name = name;
 
-    // creating qlist_t and appending the mangledName
-    q.mangledNames = qlist(0);
-    if (!(q.mangledNames))
-      goto raise_error;
-
-    if (!qlist_addlast(q.mangledNames, mangledName, strlen(mangledName) + 1))
-      goto raise_error;
-
-    // creating qvector_t and appending funcType
-    q.functionTypes =
-        qvector(MAX_SIZE, sizeof(FunctionType), QVECTOR_RESIZE_EXACT);
+    // creating array_FunctionType_t and appending funcType
+    q.functionTypes = array_FunctionType_new();
     if (!(q.functionTypes))
       goto raise_error;
 
-    if (!qvector_addlast(q.functionTypes, &funcType))
+    if (!array_FunctionType_append(q.functionTypes, funcType))
       goto raise_error;
 
     q.funcCount = 1; // incrementing new func decl in same name
 
     // inserting the struct Function to symbols
-    if (!qhashtbl_put(sym->funcs, name, &q, sizeof(Function)))
+    if (!array_Function_append(sym->funcs, q))
       goto raise_error;
 
     sym->funcCount++; // incrementing function count in symbols
@@ -317,7 +264,7 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
     s.type.elements = calloc(s.attrCount + 1, sizeof(ffi_type *));
 
     for (size_t i = 0; i < s.attrCount; i++) {
-      s.type.elements[i] = qvector_getat(s.attrTypes, i, false);
+      s.type.elements[i] = array_p_ffi_type_getat(s.attrTypes, i);
     }
     s.type.elements[s.attrCount] = NULL;
 
@@ -328,14 +275,9 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
   }
 
   Structure *old_entry;
-  if ((NULL == (old_entry = qhashtbl_get(sym->structs, s.name, NULL, false))) &&
-      (errno == ENOENT)) {
+  if ((NULL == (old_entry = Symbols_getStructure(sym, s.name)))) {
 
-    errno = 0;
-    if (!qlist_addlast(sym->structsNames, s.name, strlen(s.name) + 1))
-      goto raise_error;
-
-    if (!qhashtbl_put(sym->structs, s.name, &s, sizeof(Structure)))
+    if (!array_Structure_append(sym->structs, s))
       goto raise_error;
 
     sym->structsCount++;
@@ -343,10 +285,15 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
     if (old_entry->type.elements) {
       free(old_entry->type.elements);
     }
-    qhashtbl_remove(sym->structs, s.name);
 
-    if (!qhashtbl_put(sym->structs, s.name, &s, sizeof(Structure)))
-      goto raise_error;
+    for (size_t i = 0; i < sym->structsCount; i++) {
+      Structure S = array_Structure_getat(sym->structs, i);
+
+      if (!strcmp(S.name, s.name)) {
+        array_Structure_setat(sym->structs, s, i);
+        break;
+      }
+    }
   }
 
   return true;
@@ -372,7 +319,7 @@ bool Symbols_appendUnion(Symbols *sym, Union u) {
   if (u.attrCount) {
     ffi_type **union_elements = calloc(u.attrCount + 1, sizeof(ffi_type *));
     for (size_t i = 0; i < u.attrCount; i++) {
-      union_elements[i] = qvector_getat(u.attrTypes, i, false);
+      union_elements[i] = array_p_ffi_type_getat(u.attrTypes, i);
 
       ffi_cif cif;
       if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, union_elements[i], NULL) ==
@@ -392,14 +339,9 @@ bool Symbols_appendUnion(Symbols *sym, Union u) {
   }
 
   Union *old_entry;
-  if ((NULL == (old_entry = qhashtbl_get(sym->unions, u.name, NULL, false))) &&
-      (errno == ENOENT)) {
+  if ((NULL == (old_entry = Symbols_getUnion(sym, u.name)))) {
 
-    errno = 0;
-    if (!qlist_addlast(sym->unionsNames, u.name, strlen(u.name) + 1))
-      goto raise_error;
-
-    if (!qhashtbl_put(sym->unions, u.name, &u, sizeof(Union)))
+    if (!array_Union_append(sym->unions, u))
       goto raise_error;
 
     sym->unionsCount++;
@@ -407,10 +349,14 @@ bool Symbols_appendUnion(Symbols *sym, Union u) {
     if (old_entry->type.elements) {
       free(old_entry->type.elements);
     }
-    qhashtbl_remove(sym->unions, u.name);
+    for (size_t i = 0; i < sym->unionsCount; i++) {
+      Union U = array_Union_getat(sym->unions, i);
 
-    if (!qhashtbl_put(sym->unions, u.name, &u, sizeof(Union)))
-      goto raise_error;
+      if (!strcmp(U.name, u.name)) {
+        array_Union_setat(sym->unions, u, i);
+        break;
+      }
+    }
   }
 
   return true;
@@ -428,10 +374,7 @@ raise_error:
 }
 
 bool Symbols_appendGlobal(Symbols *sym, Global g) {
-  if (!qlist_addlast(sym->globalsNames, g.name, strlen(g.name) + 1))
-    goto raise_error;
-
-  if (!qhashtbl_put(sym->globals, g.name, &g, sizeof(Global)))
+  if (!array_Global_append(sym->globals, g))
     goto raise_error;
 
   sym->globalsCount++;
@@ -455,18 +398,14 @@ bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
   // TODO: rewrite
   TypeDef typeDef;
   typeDef.type_name = type_name;
-  typeDef.typedef_name = typedef_name;
+  typeDef.name = typedef_name;
   typeDef.type = type.kind;
 
   if (type.kind == CXType_Pointer) {
     typeDef.underlying_type = clang_getPointeeType(type).kind;
   }
 
-  if (!qlist_addlast(sym->typedefsNames, typedef_name,
-                     strlen(typedef_name) + 1))
-    goto raise_error;
-
-  if (!qhashtbl_put(sym->typedefs, typedef_name, &typeDef, sizeof(typeDef)))
+  if (!array_TypeDef_append(sym->typedefs, typeDef))
     goto raise_error;
 
   sym->typedefsCount++;
@@ -493,28 +432,22 @@ Symbols *create_Symbol(const char *name) {
   Symbols *sym = malloc(sizeof(Symbols));
   sym->name = name;
 
-  sym->funcsNames = qlist(0);
-  sym->funcs = qhashtbl(0, 0);
+  sym->funcs = array_Function_new();
   sym->funcCount = 0;
 
-  sym->structsNames = qlist(0);
-  sym->structs = qhashtbl(0, 0);
+  sym->structs = array_Structure_new();
   sym->structsCount = 0;
 
-  sym->unionsNames = qlist(0);
-  sym->unions = qhashtbl(0, 0);
+  sym->unions = array_Union_new();
   sym->unionsCount = 0;
 
-  sym->globalsNames = qlist(0);
-  sym->globals = qhashtbl(0, 0);
+  sym->globals = array_Global_new();
   sym->globalsCount = 0;
 
-  sym->classesNames = qlist(0);
-  sym->classes = qhashtbl(0, 0);
+  sym->classes = array_Class_new();
   sym->classesCount = 0;
 
-  sym->typedefsNames = qlist(0);
-  sym->typedefs = qhashtbl(0, 0);
+  sym->typedefs = array_TypeDef_new();
   sym->typedefsCount = 0;
 
   return sym;
@@ -523,18 +456,18 @@ Symbols *create_Symbol(const char *name) {
 void free_Symbols(Symbols *sym) {
   // free(sym->name);
 
-  qlist_free(sym->funcsNames);
   // TODO: free FunctionType
-  qhashtbl_free(sym->funcs);
+  array_Function_clear(sym->funcs);
 
-  qlist_free(sym->structsNames);
-  qhashtbl_free(sym->structs);
+  array_Structure_clear(sym->structs);
 
-  qlist_free(sym->globalsNames);
-  qhashtbl_free(sym->globals);
+  array_Union_new(sym->unions);
 
-  qlist_free(sym->classesNames);
-  qhashtbl_free(sym->classes);
+  array_Global_clear(sym->globals);
+
+  array_Class_clear(sym->classes);
+
+  array_TypeDef_clear(sym->typedefs);
 
   free(sym);
 }
@@ -574,12 +507,12 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
     Union *obj = (Union *)info[0];
     Symbols *sym = (Symbols *)info[1];
 
-    qlist_addlast(obj->attrNames, name, strlen(name) + 1);
+    array_str_append(obj->attrNames, (char *)name);
 
     const char *type_name = clang_getCString(clang_getTypeSpelling(type));
     ffi_type *ffi_type_of_element = get_ffi_type(type, sym, type_name);
     if (ffi_type_of_element) {
-      qvector_addlast(obj->attrTypes, ffi_type_of_element);
+      array_p_ffi_type_append(obj->attrTypes, ffi_type_of_element);
     } else {
       return CXChildVisit_Break;
     }
@@ -587,33 +520,29 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
     obj->attrCount++;
 
     // get underlying types if pointer type
-    if (obj->attrCount == 1) {
-      obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+    array_CXTypeKind_append(obj->attrUnderlyingType, 0);
+    array_p_Structure_append(obj->attrUnderlyingStructs, 0);
+    array_p_Union_append(obj->attrUnderlyingUnions, 0);
 
-      obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
-      obj->attrUnderlyingUnions = malloc(sizeof(Union *));
+    CXType underlyingType = clang_getPointeeType(type);
+    enum CXTypeKind underlyingTypeKind = clang_getPointeeType(type).kind;
 
-    } else {
-      obj->attrUnderlyingType = realloc(
-          obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
-
-      obj->attrUnderlyingStructs = realloc(
-          obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
-      obj->attrUnderlyingUnions =
-          realloc(obj->attrUnderlyingUnions, sizeof(Union *) * obj->attrCount);
-    }
+    size_t index = obj->attrCount - 1;
 
     if (type.kind == CXType_Pointer) {
-      obj->attrUnderlyingType[obj->attrCount - 1] =
-          clang_getPointeeType(type).kind;
 
-      if (clang_getPointeeType(type).kind == CXType_Typedef) {
-        CXType actual_type = clang_getTypedefDeclUnderlyingType(
-            clang_getTypeDeclaration(clang_getPointeeType(type)));
-        obj->attrUnderlyingType[obj->attrCount - 1] = actual_type.kind;
+      array_CXTypeKind_setat(obj->attrUnderlyingType, underlyingTypeKind,
+                             index);
+
+      if (underlyingTypeKind == CXType_Typedef) {
+        underlyingType = clang_getTypedefDeclUnderlyingType(
+            clang_getTypeDeclaration(underlyingType));
+
+        array_CXTypeKind_setat(obj->attrUnderlyingType, underlyingType.kind,
+                               index);
 
         const char *actual_type_name =
-            clang_getCString(clang_getTypeSpelling(actual_type));
+            clang_getCString(clang_getTypeSpelling(underlyingType));
 
         size_t len = strlen(actual_type_name);
         char *updated_type_name = malloc(len);
@@ -625,8 +554,9 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, updated_type_name);
+        array_p_Structure_setat(obj->attrUnderlyingStructs,
+                                Symbols_getStructure(sym, updated_type_name),
+                                index);
 
         strcpy(updated_type_name, actual_type_name + 6);
         for (int i = 0; i < strlen(updated_type_name); i++) {
@@ -636,12 +566,12 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingUnions[obj->attrCount - 1] =
-            Symbols_getUnion(sym, updated_type_name);
+        array_p_Union_setat(obj->attrUnderlyingUnions,
+                            Symbols_getUnion(sym, updated_type_name), index);
 
         free(updated_type_name);
 
-      } else if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+      } else if (clang_Type_getNamedType(underlyingType).kind ==
                  CXType_Record) {
         size_t len = strlen(type_name);
         char *updated_type_name = malloc(len);
@@ -653,8 +583,9 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, updated_type_name);
+        array_p_Structure_setat(obj->attrUnderlyingStructs,
+                                Symbols_getStructure(sym, updated_type_name),
+                                index);
 
         strcpy(updated_type_name, type_name + 6);
         for (int i = 0; i < strlen(updated_type_name); i++) {
@@ -664,24 +595,22 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingUnions[obj->attrCount - 1] =
-            Symbols_getUnion(sym, updated_type_name);
+        array_p_Union_setat(obj->attrUnderlyingUnions,
+                            Symbols_getUnion(sym, updated_type_name), index);
 
         free(updated_type_name);
-      } else {
-        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
-        obj->attrUnderlyingUnions[obj->attrCount - 1] = 0;
       }
     } else {
-      obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+      array_CXTypeKind_setat(obj->attrUnderlyingType, 0, index);
     }
 
     if ((type.kind == CXType_Elaborated) &&
         (clang_Type_getNamedType(type).kind == CXType_Record)) {
-      obj->attrUnderlyingStructs[obj->attrCount - 1] =
-          Symbols_getStructure(sym, type_name + 7);
-      obj->attrUnderlyingUnions[obj->attrCount - 1] =
-          Symbols_getUnion(sym, type_name + 6);
+      array_p_Structure_setat(obj->attrUnderlyingStructs,
+                              Symbols_getStructure(sym, type_name + 7), index);
+
+      array_p_Union_setat(obj->attrUnderlyingUnions,
+                          Symbols_getUnion(sym, type_name + 6), index);
     }
   }
 
@@ -701,43 +630,38 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
     Structure *obj = (Structure *)info[0];
     Symbols *sym = (Symbols *)info[1];
 
-    qlist_addlast(obj->attrNames, name, strlen(name) + 1);
+    array_str_append(obj->attrNames, (char *)name);
 
     const char *type_name = clang_getCString(clang_getTypeSpelling(type));
 
-    qvector_addlast(obj->attrTypes, get_ffi_type(type, sym, type_name));
+    array_p_ffi_type_append(obj->attrTypes, get_ffi_type(type, sym, type_name));
 
     obj->attrCount++;
 
     // get underlying types if pointer type
-    if (obj->attrCount == 1) {
-      obj->attrUnderlyingType = malloc(sizeof(enum CXTypeKind));
+    array_CXTypeKind_append(obj->attrUnderlyingType, 0);
+    array_p_Structure_append(obj->attrUnderlyingStructs, 0);
+    array_p_Union_append(obj->attrUnderlyingUnions, 0);
 
-      obj->attrUnderlyingStructs = malloc(sizeof(Structure *));
-      obj->attrUnderlyingUnions = malloc(sizeof(Union *));
+    CXType underlyingType = clang_getPointeeType(type);
+    enum CXTypeKind underlyingTypeKind = clang_getPointeeType(type).kind;
 
-    } else {
-      obj->attrUnderlyingType = realloc(
-          obj->attrUnderlyingType, sizeof(enum CXTypeKind) * obj->attrCount);
-
-      obj->attrUnderlyingStructs = realloc(
-          obj->attrUnderlyingStructs, sizeof(Structure *) * obj->attrCount);
-      obj->attrUnderlyingUnions =
-          realloc(obj->attrUnderlyingUnions, sizeof(Union *) * obj->attrCount);
-    }
+    size_t index = obj->attrCount - 1;
 
     if (type.kind == CXType_Pointer) {
-      obj->attrUnderlyingType[obj->attrCount - 1] =
-          clang_getPointeeType(type).kind;
 
-      if (clang_getPointeeType(type).kind == CXType_Typedef) {
-        CXType actual_type =
-            clang_Type_getNamedType(clang_getTypedefDeclUnderlyingType(
-                clang_getTypeDeclaration(clang_getPointeeType(type))));
-        obj->attrUnderlyingType[obj->attrCount - 1] = actual_type.kind;
+      array_CXTypeKind_setat(obj->attrUnderlyingType, underlyingTypeKind,
+                             index);
+
+      if (underlyingTypeKind == CXType_Typedef) {
+        underlyingType = clang_getTypedefDeclUnderlyingType(
+            clang_getTypeDeclaration(underlyingType));
+
+        array_CXTypeKind_setat(obj->attrUnderlyingType, underlyingType.kind,
+                               index);
 
         const char *actual_type_name =
-            clang_getCString(clang_getTypeSpelling(actual_type));
+            clang_getCString(clang_getTypeSpelling(underlyingType));
 
         size_t len = strlen(actual_type_name);
         char *updated_type_name = malloc(len);
@@ -749,8 +673,9 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, updated_type_name);
+        array_p_Structure_setat(obj->attrUnderlyingStructs,
+                                Symbols_getStructure(sym, updated_type_name),
+                                index);
 
         strcpy(updated_type_name, actual_type_name + 6);
         for (int i = 0; i < strlen(updated_type_name); i++) {
@@ -760,12 +685,12 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingUnions[obj->attrCount - 1] =
-            Symbols_getUnion(sym, updated_type_name);
+        array_p_Union_setat(obj->attrUnderlyingUnions,
+                            Symbols_getUnion(sym, updated_type_name), index);
 
         free(updated_type_name);
 
-      } else if (clang_Type_getNamedType(clang_getPointeeType(type)).kind ==
+      } else if (clang_Type_getNamedType(underlyingType).kind ==
                  CXType_Record) {
         size_t len = strlen(type_name);
         char *updated_type_name = malloc(len);
@@ -777,8 +702,9 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingStructs[obj->attrCount - 1] =
-            Symbols_getStructure(sym, updated_type_name);
+        array_p_Structure_setat(obj->attrUnderlyingStructs,
+                                Symbols_getStructure(sym, updated_type_name),
+                                index);
 
         strcpy(updated_type_name, type_name + 6);
         for (int i = 0; i < strlen(updated_type_name); i++) {
@@ -788,24 +714,22 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
           }
         }
 
-        obj->attrUnderlyingUnions[obj->attrCount - 1] =
-            Symbols_getUnion(sym, updated_type_name);
+        array_p_Union_setat(obj->attrUnderlyingUnions,
+                            Symbols_getUnion(sym, updated_type_name), index);
 
         free(updated_type_name);
-      } else {
-        obj->attrUnderlyingStructs[obj->attrCount - 1] = 0;
-        obj->attrUnderlyingUnions[obj->attrCount - 1] = 0;
       }
     } else {
-      obj->attrUnderlyingType[obj->attrCount - 1] = 0;
+      array_CXTypeKind_setat(obj->attrUnderlyingType, 0, index);
     }
 
     if ((type.kind == CXType_Elaborated) &&
         (clang_Type_getNamedType(type).kind == CXType_Record)) {
-      obj->attrUnderlyingStructs[obj->attrCount - 1] =
-          Symbols_getStructure(sym, type_name + 7);
-      obj->attrUnderlyingUnions[obj->attrCount - 1] =
-          Symbols_getUnion(sym, type_name + 6);
+      array_p_Structure_setat(obj->attrUnderlyingStructs,
+                              Symbols_getStructure(sym, type_name + 7), index);
+
+      array_p_Union_setat(obj->attrUnderlyingUnions,
+                          Symbols_getUnion(sym, type_name + 6), index);
     }
   }
 
@@ -894,12 +818,9 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     }
 
     funcType.argsCount = clang_Cursor_getNumArguments(cursor);
-    funcType.argsType =
-        qvector(MAX_SIZE, sizeof(ffi_type),
-                QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
+    funcType.argsType = array_p_ffi_type_new();
     funcType.argsUnderlyingType =
-        calloc(funcType.argsCount,
-               sizeof(enum CXTypeKind)); // TODO: extract Underlying Type Info
+        array_CXTypeKind_new(); // TODO: extract Underlying Type Info
 
     for (int i = 0; i < funcType.argsCount; i++) {
       CXCursor arg = clang_Cursor_getArgument(cursor, i);
@@ -909,20 +830,27 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
             clang_getTypeDeclaration(arg_type));
       }
 
+      CXType underlyingType = clang_getPointeeType(arg_type);
+      enum CXTypeKind underlyingTypeKind = underlyingType.kind;
+
       if (arg_type.kind == CXType_Pointer) {
-        funcType.argsUnderlyingType[i] = clang_getPointeeType(arg_type).kind;
-        if (clang_getPointeeType(arg_type).kind == CXType_Elaborated) {
-          funcType.argsUnderlyingType[i] =
-              clang_Type_getNamedType(clang_getPointeeType(arg_type)).kind;
+        if (underlyingTypeKind == CXType_Elaborated) {
+          array_CXTypeKind_append(funcType.argsUnderlyingType,
+                                  clang_Type_getNamedType(underlyingType).kind);
 
-        } else if (clang_getPointeeType(arg_type).kind == CXType_Typedef) {
-          CXType actual_type = clang_Type_getNamedType(clang_getTypedefDeclUnderlyingType(
-              clang_getTypeDeclaration(clang_getPointeeType(arg_type))));
+        } else if (underlyingTypeKind == CXType_Typedef) {
+          CXType actual_type =
+              clang_Type_getNamedType(clang_getTypedefDeclUnderlyingType(
+                  clang_getTypeDeclaration(underlyingType)));
 
-          funcType.argsUnderlyingType[i] = actual_type.kind;
+          array_CXTypeKind_append(funcType.argsUnderlyingType,
+                                  actual_type.kind);
+        } else {
+          array_CXTypeKind_append(funcType.argsUnderlyingType,
+                                  underlyingTypeKind);
         }
       } else {
-        funcType.argsUnderlyingType[i] = 0;
+        array_CXTypeKind_append(funcType.argsUnderlyingType, 0);
       }
 
       ffi_type *arg_ffi_type = get_ffi_type(
@@ -930,7 +858,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       if (!arg_ffi_type) {
         return CXChildVisit_Break;
       }
-      qvector_addlast(funcType.argsType, arg_ffi_type);
+      array_p_ffi_type_append(funcType.argsType, arg_ffi_type);
     }
 
     if (!Symbols_appendFunction(symbols, funcName, mangledName, funcType)) {
@@ -944,12 +872,12 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     Structure obj;
     obj.name = name;
-    obj.attrNames = qlist(0);
-    obj.attrTypes =
-        qvector(MAX_SIZE, sizeof(ffi_type),
-                QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
-    obj.attrUnderlyingType = NULL;
-    obj.offsets = NULL;
+    obj.attrNames = array_str_new();
+    obj.attrTypes = array_p_ffi_type_new();
+    obj.attrUnderlyingType = array_CXTypeKind_new();
+    obj.attrUnderlyingStructs = array_p_Structure_new();
+    obj.attrUnderlyingUnions = array_p_Union_new();
+    obj.offsets = array_long_long_new();
     obj.type = (ffi_type){0, 0, 0, NULL};
     obj.attrCount = 0;
     obj.structSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
@@ -958,11 +886,11 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     clang_visitChildren(cursor, struct_visitor, info);
 
     // offset
-    obj.offsets = malloc(sizeof(long long) * obj.attrCount);
     for (int i = 0; i < obj.attrCount; i++) {
-      obj.offsets[i] =
+      array_long_long_append(
+          obj.offsets,
           clang_Type_getOffsetOf(clang_getCursorType(cursor),
-                                 qlist_getat(obj.attrNames, i, NULL, false));
+                                 array_str_getat(obj.attrNames, i)));
     }
 
     Symbols_appendStructure(symbols, obj);
@@ -974,11 +902,11 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     Union obj;
     obj.name = name;
-    obj.attrNames = qlist(0);
-    obj.attrTypes =
-        qvector(MAX_SIZE, sizeof(ffi_type),
-                QVECTOR_RESIZE_EXACT); // TODO: change ffi_type to ffi_type*
-    obj.attrUnderlyingType = NULL;
+    obj.attrNames = array_str_new();
+    obj.attrTypes = array_p_ffi_type_new();
+    obj.attrUnderlyingType = array_CXTypeKind_new();
+    obj.attrUnderlyingStructs = array_p_Structure_new();
+    obj.attrUnderlyingUnions = array_p_Union_new();
     obj.type = (ffi_type){0, 0, 0, NULL};
     obj.attrCount = 0;
     obj.unionSize = clang_Type_getSizeOf(clang_getCursorType(cursor));

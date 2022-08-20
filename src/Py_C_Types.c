@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include "Py_C_Types.h"
+#include "DataStructures.h"
 #include "PyC.h"
 #include "Python.h"
 #include "structmember.h"
@@ -2267,16 +2268,17 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
-    if (!(strcmp(attr, qlist_getat(selfType->structure->attrNames, i, NULL,
-                                   false)))) {
+    if (!(strcmp(attr, array_str_getat(selfType->structure->attrNames, i)))) {
       char *data = (char *)selfType->pointer;
 
       return cppArg_to_pyArg(
-          (selfType->pointer) + (selfType->structure->offsets[i] / 8),
-          *(ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false),
-          selfType->structure->attrUnderlyingType[i],
-          selfType->structure->attrUnderlyingStructs[i],
-          selfType->structure->attrUnderlyingUnions[i],
+          (selfType->pointer) +
+              (array_long_long_getat(selfType->structure->offsets, i) / 8),
+          *array_p_ffi_type_getat(selfType->structure->attrTypes, i),
+          array_CXTypeKind_getat(selfType->structure->attrUnderlyingType, i),
+          array_p_Structure_getat(selfType->structure->attrUnderlyingStructs,
+                                  i),
+          array_p_Union_getat(selfType->structure->attrUnderlyingUnions, i),
           selfType->parentModule); // TODO: update for structs and module
     }
   }
@@ -2291,20 +2293,22 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
-    if (!(strcmp(attr, qlist_getat(selfType->structure->attrNames, i, NULL,
-                                   false)))) {
+    if (!(strcmp(attr, array_str_getat(selfType->structure->attrNames, i)))) {
       ffi_type *type =
-          (ffi_type *)qvector_getat(selfType->structure->attrTypes, i, false);
+          array_p_ffi_type_getat(selfType->structure->attrTypes, i);
       void *data = pyArg_to_cppArg(pValue, *type);
 
       if (type->type == FFI_TYPE_POINTER) {
-        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+        memcpy((selfType->pointer) +
+                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
       } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
-        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+        memcpy((selfType->pointer) +
+                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
-        memcpy((selfType->pointer) + (selfType->structure->offsets[i] / 8),
+        memcpy((selfType->pointer) +
+                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
         free(data);
       }
@@ -2497,15 +2501,16 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
   PyC_c_union *selfType = (PyC_c_union *)self;
 
   for (size_t i = 0; i < selfType->u->attrCount; i++) {
-    if (!(strcmp(attr, qlist_getat(selfType->u->attrNames, i, NULL, false)))) {
+    if (!(strcmp(attr, array_str_getat(selfType->u->attrNames, i)))) {
       char *data = (char *)selfType->pointer;
 
       return cppArg_to_pyArg(
           (selfType->pointer),
-          *(ffi_type *)qvector_getat(selfType->u->attrTypes, i, false),
-          selfType->u->attrUnderlyingType[i],
-          selfType->u->attrUnderlyingStructs[i],
-          selfType->u->attrUnderlyingUnions[i], selfType->parentModule);
+          *array_p_ffi_type_getat(selfType->u->attrTypes, i),
+          array_CXTypeKind_getat(selfType->u->attrUnderlyingType, i),
+          array_p_Structure_getat(selfType->u->attrUnderlyingStructs, i),
+          array_p_Union_getat(selfType->u->attrUnderlyingUnions, i),
+          selfType->parentModule);
     }
   }
 
@@ -2517,9 +2522,8 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_union *selfType = (PyC_c_union *)self;
 
   for (size_t i = 0; i < selfType->u->attrCount; i++) {
-    if (!(strcmp(attr, qlist_getat(selfType->u->attrNames, i, NULL, false)))) {
-      ffi_type *type =
-          (ffi_type *)qvector_getat(selfType->u->attrTypes, i, false);
+    if (!(strcmp(attr, array_str_getat(selfType->u->attrNames, i)))) {
+      ffi_type *type = array_p_ffi_type_getat(selfType->u->attrTypes, i);
 
       void *data = pyArg_to_cppArg(pValue, *type);
 

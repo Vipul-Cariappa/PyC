@@ -1,9 +1,9 @@
 #define PY_SSIZE_T_CLEAN
+#include "DataStructures.h"
 #include "PyC.h"
 #include "Py_C_Types.h"
 #include "Python.h"
 #include "ffi.h"
-#include "qlibc.h"
 #include "clang-c/Index.h"
 
 #define MAX_SIZE 1024
@@ -303,15 +303,17 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
         for (size_t i = 0; i < underlying_struct->attrCount; i++) {
           PyObject *attr_name = PyUnicode_FromString(
-              qlist_getat(underlying_struct->attrNames, i, NULL,
-                          false)); // TODO: decrement reference count
+              array_str_getat(underlying_struct->attrNames,
+                              i)); // TODO: decrement reference count
           PyObject *item = cppArg_to_pyArg(
-              (void *)arg_data + (underlying_struct->offsets[i] / 8),
-              *(ffi_type *)qvector_getat(underlying_struct->attrTypes, i,
-                                         false),
-              underlying_struct->attrUnderlyingType[i],
-              underlying_struct->attrUnderlyingStructs[i],
-              underlying_struct->attrUnderlyingUnions[i], module);
+              (void *)arg_data +
+                  (array_long_long_getat(underlying_struct->offsets, i) / 8),
+              *array_p_ffi_type_getat(underlying_struct->attrTypes, i),
+              array_CXTypeKind_getat(underlying_struct->attrUnderlyingType, i),
+              array_p_Structure_getat(underlying_struct->attrUnderlyingStructs,
+                                      i),
+              array_p_Union_getat(underlying_struct->attrUnderlyingUnions, i),
+              module);
           // TODO: decrement reference count
 
           if (PyObject_SetAttr(result, attr_name, item)) {
@@ -334,14 +336,16 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
         for (size_t i = 0; i < underlying_union->attrCount; i++) {
           PyObject *attr_name = PyUnicode_FromString(
-              qlist_getat(underlying_union->attrNames, i, NULL,
-                          false)); // TODO: decrement reference count
+              array_str_getat(underlying_union->attrNames,
+                              i)); // TODO: decrement reference count
           PyObject *item = cppArg_to_pyArg(
               (void *)arg_data,
-              *(ffi_type *)qvector_getat(underlying_union->attrTypes, i, false),
-              underlying_union->attrUnderlyingType[i],
-              underlying_union->attrUnderlyingStructs[i],
-              underlying_union->attrUnderlyingUnions[i], module);
+              *array_p_ffi_type_getat(underlying_union->attrTypes, i),
+              array_CXTypeKind_getat(underlying_union->attrUnderlyingType, i),
+              array_p_Structure_getat(underlying_union->attrUnderlyingStructs,
+                                      i),
+              array_p_Union_getat(underlying_union->attrUnderlyingUnions, i),
+              module);
           // TODO: decrement reference count
 
           if (PyObject_SetAttr(result, attr_name, item)) {
@@ -367,8 +371,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
   }
 }
 
-void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
-  size_t args_len = qvector_size(args_type);
+void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type) {
+  size_t args_len = array_p_ffi_type_size(args_type);
 
   if (PyTuple_Size(args) != args_len) {
     PyErr_SetString(py_BindingError,
@@ -379,7 +383,7 @@ void **pyArgs_to_cppArgs(PyObject *args, qvector_t *args_type) {
   void **rvalue = (void **)malloc(sizeof(void *) * (args_len + 1));
 
   for (int i = 0; i < args_len; i++) {
-    ffi_type type = *((ffi_type *)qvector_getat(args_type, i, false));
+    ffi_type type = *array_p_ffi_type_getat(args_type, i);
     PyObject *pyArg = PyTuple_GetItem(args, i);
 
     if (pyArg == Py_True) {
@@ -545,11 +549,13 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
   Py_ssize_t argsCount = PyTuple_Size(args);
 
   for (int i = 0; i < funcCount; i++) {
-    FunctionType *funcType = qvector_getat(funcs->functionTypes, i, false);
+    FunctionType *funcType =
+        array_FunctionType_get_ptr_at(funcs->functionTypes, i);
     size_t funcTypeArgsCount = funcType->argsCount;
     if ((argsCount == funcTypeArgsCount) && (argsCount != 0)) {
       for (int j = 0; j < argsCount; j++) {
-        ffi_type *type_from_decl = qvector_getat(funcType->argsType, j, false);
+        ffi_type *type_from_decl =
+            array_p_ffi_type_getat(funcType->argsType, j);
         PyObject *pyArg = PyTuple_GetItem(args, j);
 
         switch (type_from_decl->type) {
