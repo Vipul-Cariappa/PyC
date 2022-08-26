@@ -40,9 +40,9 @@ struct _Structure {
   array_str_t *attrNames;                   // list of attribute names
   array_p_ffi_type_t *attrTypes;            // vector of attribute's ffi_type
   array_CXTypeKind_t *attrUnderlyingType;   // array of CXTypeKind
-  array_p_Structure_t *attrUnderlyingStructs; // array of underlying
+  array_Structure_t *attrUnderlyingStructs; // array of underlying
                                             // struct type for pointers
-  array_p_Union_t *attrUnderlyingUnions;      // array of underlying
+  array_Union_t *attrUnderlyingUnions;      // array of underlying
                                             // unions type for pointers
   array_long_long_t *offsets;               // record the offsets of attributes
   ffi_type type;
@@ -55,9 +55,9 @@ struct _Union {
   array_str_t *attrNames;                   // list of attribute names
   array_p_ffi_type_t *attrTypes;            // vector of attribute's ffi_type
   array_CXTypeKind_t *attrUnderlyingType;   // array of CXTypeKind
-  array_p_Structure_t *attrUnderlyingStructs; // array of underlying
+  array_Structure_t *attrUnderlyingStructs; // array of underlying
                                             // struct type for pointers
-  array_p_Union_t *attrUnderlyingUnions;      // array of underlying
+  array_Union_t *attrUnderlyingUnions;      // array of underlying
                                             // unions type for pointers
   ffi_type type;
   size_t attrCount;
@@ -74,9 +74,9 @@ struct _FunctionType {
   array_p_ffi_type_t *argsType;           // vector of ffi_type
   array_CXTypeKind_t *argsUnderlyingType; // array of CXTypeKind
   enum CXTypeKind returnsUnderlyingType;  //  CXTypeKind
-  array_p_Structure_t
+  array_Structure_t
       *argsUnderlyingStructs;          // checking for proper struct matching
-  array_p_Union_t *argsUnderlyingUnions; // checking for proper union matching
+  array_Union_t *argsUnderlyingUnions; // checking for proper union matching
   Structure *returnUnderlyingStruct;   // for type convertion
   Union *returnUnderlyingUnion;        // for type convertion
   size_t argsCount;
