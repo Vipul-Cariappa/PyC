@@ -38,12 +38,12 @@ RUN git clone https://github.com/wolkykim/qlibc.git \
  && rm -fr qlibc/
 
 # download and install python3.10 with Address Sanitizer
-wget https://www.python.org/ftp/python/3.9.13/Python-3.9.13.tgz
-tar -xf Python-3.9.13.tgz
-cd Python-3.9.13
-./configure --with-address-sanitizer --with-assertions --with-pydebug --enable-shared
-make
-sudo make altinstall
-cd ..
-rm Python-3.9.13.tgz
+RUN wget https://www.python.org/ftp/python/3.9.13/Python-3.9.13.tgz \
+tar -xf Python-3.9.13.tgz \
+cd Python-3.9.13 \
+./configure --with-address-sanitizer --with-assertions --with-pydebug --enable-shared \
+make \
+sudo make altinstall \
+cd .. \
+rm Python-3.9.13.tgz \
 rm Python-3.9.13
