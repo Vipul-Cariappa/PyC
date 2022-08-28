@@ -4,6 +4,15 @@ FROM gitpod/workspace-full
 RUN sudo apt-get update \
  && sudo apt-get install -y \
     python3-dev \
+    build-essential \
+    zlib1g-dev \
+    libncurses5-dev \
+    libgdbm-dev \
+    libnss3-dev \
+    libssl-dev \
+    libreadline-dev \
+    libffi-dev \
+    wget \
     libclang-dev \
     libffi-dev \
     clangd-12 \
@@ -19,6 +28,7 @@ RUN sudo wget https://github.com/premake/premake-core/releases/download/v5.0.0-b
  && sudo mv premake5 /usr/bin \
  && sudo rm premake-5.0.0-beta1-linux.tar.gz
 
+# download and install qlibc
 RUN git clone https://github.com/wolkykim/qlibc.git \
  && cd qlibc \
  && ./configure --prefix=/usr/ \
@@ -26,3 +36,14 @@ RUN git clone https://github.com/wolkykim/qlibc.git \
  && sudo make install \
  && cd .. \
  && rm -fr qlibc/
+
+# download and install python3.10 with Address Sanitizer
+wget https://www.python.org/ftp/python/3.9.13/Python-3.9.13.tgz
+tar -xf Python-3.9.13.tgz
+cd Python-3.9.13
+./configure --with-address-sanitizer --with-assertions --with-pydebug --enable-shared
+make
+sudo make altinstall
+cd ..
+rm Python-3.9.13.tgz
+rm Python-3.9.13
