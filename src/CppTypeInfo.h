@@ -66,6 +66,7 @@ struct _Union {
 
 struct _Class {
   // TODO: Implement
+    int f;
 };
 
 struct _FunctionType {

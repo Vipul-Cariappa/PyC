@@ -265,3 +265,7 @@ cython_debug/
 bin/
 *.gcov
 *tmp*
+.vs/
+PyC.sln
+PyC.vcxproj
+PyC.vcxproj.user
