@@ -8,8 +8,7 @@ extern PyTypeObject py_c_void_type;
 // extern PyTypeObject py_c_pointer_type;
 
 typedef struct PyC_c_void {
-  PyObject_HEAD
-  void *pointer;
+  PyObject_HEAD void *pointer;
   bool freeOnDel;
   // bool isArray;
   // size_t arraySize;
@@ -27,8 +26,7 @@ extern PyTypeObject py_c_int_type;
 extern PyTypeObject py_c_uint_type;
 
 typedef struct PyC_c_int {
-  PyObject_HEAD
-  int value;
+  PyObject_HEAD int value;
   int *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -57,8 +55,7 @@ static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_double_type;
 
 typedef struct PyC_c_double {
-  PyObject_HEAD
-  double value;
+  PyObject_HEAD double value;
   double *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -87,8 +84,7 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_bool_type;
 
 typedef struct PyC_c_bool {
-  PyObject_HEAD
-  bool value;
+  PyObject_HEAD bool value;
   bool *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -116,8 +112,7 @@ static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_char_type;
 
 typedef struct PyC_c_char {
-  PyObject_HEAD
-  char value;
+  PyObject_HEAD char value;
   char *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -145,8 +140,7 @@ static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_float_type;
 
 typedef struct PyC_c_float {
-  PyObject_HEAD
-  float value;
+  PyObject_HEAD float value;
   float *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -176,8 +170,7 @@ extern PyTypeObject py_c_short_type;
 extern PyTypeObject py_c_ushort_type;
 
 typedef struct PyC_c_short {
-  PyObject_HEAD
-  short value;
+  PyObject_HEAD short value;
   short *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -207,8 +200,7 @@ extern PyTypeObject py_c_long_type;
 extern PyTypeObject py_c_ulong_type;
 
 typedef struct PyC_c_long {
-  PyObject_HEAD
-  long value;
+  PyObject_HEAD long value;
   long *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -237,8 +229,7 @@ static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_struct_type;
 
 typedef struct PyC_c_struct {
-  PyObject_HEAD
-  Structure *structure;
+  PyObject_HEAD Structure *structure;
   void *pointer;
   size_t size;
   bool isArray;
@@ -276,8 +267,7 @@ create_py_c_struct(Structure *structure,
 extern PyTypeObject py_c_union_type;
 
 typedef struct PyC_c_union {
-  PyObject_HEAD
-  Union *u;
+  PyObject_HEAD Union *u;
   void *pointer;
   size_t size;
   bool isArray;

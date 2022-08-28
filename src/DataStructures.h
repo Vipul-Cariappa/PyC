@@ -139,7 +139,8 @@ array_p_Structure_t *array_p_Structure_new();
 size_t array_p_Structure_size(array_p_Structure_t *arr);
 bool array_p_Structure_append(array_p_Structure_t *arr, Structure *val);
 Structure *array_p_Structure_pop(array_p_Structure_t *arr);
-bool array_p_Structure_setat(array_p_Structure_t *arr, Structure *val, size_t index);
+bool array_p_Structure_setat(array_p_Structure_t *arr, Structure *val,
+                             size_t index);
 Structure *array_p_Structure_getat(array_p_Structure_t *arr, size_t index);
 bool array_p_Structure_clear(array_p_Structure_t *arr);
 
@@ -172,8 +173,7 @@ array_p_Union_t *array_p_Union_new();
 size_t array_p_Union_size(array_p_Union_t *arr);
 bool array_p_Union_append(array_p_Union_t *arr, Union *val);
 Union *array_p_Union_pop(array_p_Union_t *arr);
-bool array_p_Union_setat(array_p_Union_t *arr, Union *val,
-                             size_t index);
+bool array_p_Union_setat(array_p_Union_t *arr, Union *val, size_t index);
 Union *array_p_Union_getat(array_p_Union_t *arr, size_t index);
 bool array_p_Union_clear(array_p_Union_t *arr);
 
@@ -227,7 +227,7 @@ bool array_FunctionType_setat(array_FunctionType_t *arr, FunctionType val,
                               size_t index);
 FunctionType array_FunctionType_getat(array_FunctionType_t *arr, size_t index);
 FunctionType *array_FunctionType_get_ptr_at(array_FunctionType_t *arr,
-                                           size_t index);
+                                            size_t index);
 bool array_FunctionType_clear(array_FunctionType_t *arr);
 
 /* array of Function declarations */

@@ -16,78 +16,60 @@
 #include <stdlib.h>
 
 #if defined(_WIN32)
-void
-DisplayErrorText(
-    DWORD dwLastError
-)
-{
-    HMODULE hModule = NULL; // default to system source
-    LPSTR MessageBuffer;
-    DWORD dwBufferLength;
+void DisplayErrorText(DWORD dwLastError) {
+  HMODULE hModule = NULL; // default to system source
+  LPSTR MessageBuffer;
+  DWORD dwBufferLength;
 
-    DWORD dwFormatFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        FORMAT_MESSAGE_IGNORE_INSERTS |
-        FORMAT_MESSAGE_FROM_SYSTEM;
+  DWORD dwFormatFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                        FORMAT_MESSAGE_IGNORE_INSERTS |
+                        FORMAT_MESSAGE_FROM_SYSTEM;
 
-    //
-    // If dwLastError is in the network range, 
-    //  load the message source.
-    //
+  //
+  // If dwLastError is in the network range,
+  //  load the message source.
+  //
 
-    if (dwLastError >= NERR_BASE && dwLastError <= MAX_NERR) {
-        hModule = LoadLibraryEx(
-            TEXT("netmsg.dll"),
-            NULL,
-            LOAD_LIBRARY_AS_DATAFILE
-        );
+  if (dwLastError >= NERR_BASE && dwLastError <= MAX_NERR) {
+    hModule = LoadLibraryEx(TEXT("netmsg.dll"), NULL, LOAD_LIBRARY_AS_DATAFILE);
 
-        if (hModule != NULL)
-            dwFormatFlags |= FORMAT_MESSAGE_FROM_HMODULE;
-    }
-
-    //
-    // Call FormatMessage() to allow for message 
-    //  text to be acquired from the system 
-    //  or from the supplied module handle.
-    //
-
-    if (dwBufferLength = FormatMessageA(
-        dwFormatFlags,
-        hModule, // module to get message from (NULL == system)
-        dwLastError,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // default language
-        (LPSTR)&MessageBuffer,
-        0,
-        NULL
-    ))
-    {
-        DWORD dwBytesWritten;
-
-        //
-        // Output message string on stderr.
-        //
-        WriteFile(
-            GetStdHandle(STD_ERROR_HANDLE),
-            MessageBuffer,
-            dwBufferLength,
-            &dwBytesWritten,
-            NULL
-        );
-
-        //
-        // Free the buffer allocated by the system.
-        //
-        LocalFree(MessageBuffer);
-    }
-
-    //
-    // If we loaded a message source, unload it.
-    //
     if (hModule != NULL)
-        FreeLibrary(hModule);
+      dwFormatFlags |= FORMAT_MESSAGE_FROM_HMODULE;
+  }
+
+  //
+  // Call FormatMessage() to allow for message
+  //  text to be acquired from the system
+  //  or from the supplied module handle.
+  //
+
+  if (dwBufferLength = FormatMessageA(
+          dwFormatFlags,
+          hModule, // module to get message from (NULL == system)
+          dwLastError,
+          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // default language
+          (LPSTR)&MessageBuffer, 0, NULL)) {
+    DWORD dwBytesWritten;
+
+    //
+    // Output message string on stderr.
+    //
+    WriteFile(GetStdHandle(STD_ERROR_HANDLE), MessageBuffer, dwBufferLength,
+              &dwBytesWritten, NULL);
+
+    //
+    // Free the buffer allocated by the system.
+    //
+    LocalFree(MessageBuffer);
+  }
+
+  //
+  // If we loaded a message source, unload it.
+  //
+  if (hModule != NULL)
+    FreeLibrary(hModule);
 }
 #endif
-
 
 CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
 
@@ -228,7 +210,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 #if defined(_WIN32)
   printf("%s\n", library);
-  
+
   const size_t cSize = strlen(library) + 1;
   wchar_t *wc = malloc(cSize * sizeof(wchar_t));
   mbstowcs(wc, library, cSize);
@@ -238,9 +220,9 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   free(wc);
 
   // if (!so) {
-      // unsigned long error_code = GetLastError();
-      // printf("ERRORNO: %d", error_code);
-      // DisplayErrorText(error_code);
+  // unsigned long error_code = GetLastError();
+  // printf("ERRORNO: %d", error_code);
+  // DisplayErrorText(error_code);
   // }
 #endif
 
@@ -309,14 +291,15 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 #endif
 
 #if defined(_WIN32)
-    void* var = GetProcAddress(selfType->so, attr);
+    void *var = GetProcAddress(selfType->so, attr);
 
     if (!var) {
-        PyErr_SetString(py_CppError, "Could not get the required symbol");  // TODO: better error message
-        return NULL;
+      PyErr_SetString(
+          py_CppError,
+          "Could not get the required symbol"); // TODO: better error message
+      return NULL;
     }
 #endif
-
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
                            NULL, NULL,
@@ -438,8 +421,10 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   void *func = GetProcAddress(selfType->so, funcType->mangledName);
 
   if (!func) {
-      PyErr_SetString(py_CppError, "Could not get the required symbol");  // TODO: better error message
-      return NULL;
+    PyErr_SetString(
+        py_CppError,
+        "Could not get the required symbol"); // TODO: better error message
+    return NULL;
   }
 #endif
 
