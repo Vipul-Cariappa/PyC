@@ -53,12 +53,14 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     memcpy(data, &i, sizeof(double));
     break;
   }
+#if defined(__linux__)
   case FFI_TYPE_LONGDOUBLE: {
     data = malloc(sizeof(long double));
     long double i = (long double)PyFloat_AsDouble(arg);
     memcpy(data, &i, sizeof(long double));
     break;
   }
+#endif
   case FFI_TYPE_POINTER:
     // data = malloc(sizeof(void *));
     if ((PyObject_IsInstance(arg, (PyObject *)&py_c_int_type)) ||
@@ -140,8 +142,10 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
     return PyFloat_FromDouble(*(float *)arg);
   case FFI_TYPE_DOUBLE:
     return PyFloat_FromDouble(*(double *)arg);
+#if defined(__linux__)
   case FFI_TYPE_LONGDOUBLE:
     return PyFloat_FromDouble(*(long double *)arg);
+#endif
   case FFI_TYPE_POINTER: // Assuming it is char pointer
     switch (underlying_type) {
     case CXType_Int: {
@@ -306,7 +310,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
               array_str_getat(underlying_struct->attrNames,
                               i)); // TODO: decrement reference count
           PyObject *item = cppArg_to_pyArg(
-              (void *)arg_data +
+              (char *)arg_data +
                   (array_long_long_getat(underlying_struct->offsets, i) / 8),
               *array_p_ffi_type_getat(underlying_struct->attrTypes, i),
               array_CXTypeKind_getat(underlying_struct->attrUnderlyingType, i),
@@ -435,10 +439,12 @@ void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type) {
       case FFI_TYPE_DOUBLE:
         *(double *)x = (double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
+#if defined(__linux__)
       case FFI_TYPE_LONGDOUBLE:
         *(long double *)x =
             (long double)PyFloat_AsDouble(PyNumber_Float(pyArg));
         break;
+#endif
       case FFI_TYPE_POINTER:
         // TODO: verify what is it pointing to from UnderlyingType
         if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type)) {
@@ -587,7 +593,9 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           break;
         case FFI_TYPE_FLOAT:
         case FFI_TYPE_DOUBLE:
+#if defined(__linux__)
         case FFI_TYPE_LONGDOUBLE:
+#endif
           if (PyFloat_Check(pyArg) || PyNumber_Check(pyArg) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_double_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_float_type)) {
@@ -695,8 +703,10 @@ const char *ffi_type_To_char_p(ffi_type type) {
     return "float";
   case FFI_TYPE_DOUBLE:
     return "double";
+#if defined(__linux__)
   case FFI_TYPE_LONGDOUBLE:
     return "long double";
+#endif
   case FFI_TYPE_UINT8:
     return "u_int8_t";
   case FFI_TYPE_UINT16:

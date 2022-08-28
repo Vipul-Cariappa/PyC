@@ -46,7 +46,7 @@ bool array_long_long_append(array_long_long_t *arr, long long val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(long long));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(long long)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -71,7 +71,7 @@ long long array_long_long_pop(array_long_long_t *arr) {
   long long last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(long long));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(long long)));
     arr->capacity -= 4;
   }
 
@@ -150,7 +150,7 @@ bool array_size_t_append(array_size_t_t *arr, size_t val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(size_t));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(size_t)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -175,7 +175,7 @@ size_t array_size_t_pop(array_size_t_t *arr) {
   size_t last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(size_t));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(size_t)));
     arr->capacity -= 4;
   }
 
@@ -262,7 +262,7 @@ bool array_str_append(array_str_t *arr, char *val) {
       return false;
     }
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(char *));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(char *)));
 
     if (arr->array) {
       memset(arr->array + arr->size, 0, 4 * sizeof(char *));
@@ -298,7 +298,7 @@ char *array_str_pop(array_str_t *arr) {
   arr->array[arr->size] = NULL;
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(char *));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(char *)));
     arr->capacity -= 4;
   }
 
@@ -394,7 +394,7 @@ bool array_p_ffi_type_append(array_p_ffi_type_t *arr, ffi_type *val) {
     return true;
   } else {
     arr->array =
-        reallocarray(arr->array, arr->capacity + 4, sizeof(ffi_type *));
+        realloc(arr->array, ((arr->capacity + 4) * sizeof(ffi_type *)));
 
     if (arr->array) {
       memset(arr->array + arr->size, 0, 4 * sizeof(ffi_type *));
@@ -422,7 +422,7 @@ ffi_type *array_p_ffi_type_pop(array_p_ffi_type_t *arr) {
 
   if (arr->size + 4 < arr->capacity) {
     arr->array =
-        reallocarray(arr->array, arr->capacity - 4, sizeof(ffi_type *));
+        realloc(arr->array, ((arr->capacity - 4) * sizeof(ffi_type *)));
     arr->capacity -= 4;
   }
 
@@ -502,7 +502,7 @@ bool array_CXTypeKind_append(array_CXTypeKind_t *arr, enum CXTypeKind val) {
     return true;
   } else {
     arr->array =
-        reallocarray(arr->array, arr->capacity + 4, sizeof(enum CXTypeKind));
+        realloc(arr->array, ((arr->capacity + 4) * sizeof(enum CXTypeKind)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -528,7 +528,7 @@ enum CXTypeKind array_CXTypeKind_pop(array_CXTypeKind_t *arr) {
 
   if (arr->size + 4 < arr->capacity) {
     arr->array =
-        reallocarray(arr->array, arr->capacity - 4, sizeof(enum CXTypeKind));
+        realloc(arr->array, ((arr->capacity - 4) * sizeof(enum CXTypeKind)));
     arr->capacity -= 4;
   }
 
@@ -607,7 +607,7 @@ bool array_Structure_append(array_Structure_t *arr, Structure val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Structure));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Structure)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -633,7 +633,7 @@ Structure array_Structure_pop(array_Structure_t *arr) {
   Structure last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Structure));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Structure)));
     arr->capacity -= 4;
   }
 
@@ -726,7 +726,7 @@ bool array_p_Structure_append(array_p_Structure_t *arr, Structure *val) {
     return true;
   } else {
     arr->array =
-        reallocarray(arr->array, arr->capacity + 4, sizeof(Structure *));
+        realloc(arr->array, ((arr->capacity + 4) * sizeof(Structure *)));
 
     if (arr->array) {
       memset(arr->array + arr->size, 0, 4 * sizeof(Structure *));
@@ -754,7 +754,7 @@ Structure *array_p_Structure_pop(array_p_Structure_t *arr) {
 
   if (arr->size + 4 < arr->capacity) {
     arr->array =
-        reallocarray(arr->array, arr->capacity - 4, sizeof(Structure *));
+        realloc(arr->array, ((arr->capacity - 4) * sizeof(Structure *)));
     arr->capacity -= 4;
   }
 
@@ -833,7 +833,7 @@ bool array_Union_append(array_Union_t *arr, Union val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Union));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Union)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -859,7 +859,7 @@ Union array_Union_pop(array_Union_t *arr) {
   Union last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Union));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Union)));
     arr->capacity -= 4;
   }
 
@@ -949,7 +949,7 @@ bool array_p_Union_append(array_p_Union_t *arr, Union *val) {
     arr->array[arr->size++] = val;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Union *));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Union *)));
 
     if (arr->array) {
       memset(arr->array + arr->size, 0, 4 * sizeof(Union *));
@@ -976,7 +976,7 @@ Union *array_p_Union_pop(array_p_Union_t *arr) {
   arr->array[arr->size] = NULL;
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Union *));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Union *)));
     arr->capacity -= 4;
   }
 
@@ -1054,7 +1054,7 @@ bool array_Global_append(array_Global_t *arr, Global val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Global));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Global)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -1080,7 +1080,7 @@ Global array_Global_pop(array_Global_t *arr) {
   Global last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Global));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Global)));
     arr->capacity -= 4;
   }
 
@@ -1170,7 +1170,7 @@ bool array_TypeDef_append(array_TypeDef_t *arr, TypeDef val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(TypeDef));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(TypeDef)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -1196,7 +1196,7 @@ TypeDef array_TypeDef_pop(array_TypeDef_t *arr) {
   TypeDef last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(TypeDef));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(TypeDef)));
     arr->capacity -= 4;
   }
 
@@ -1287,7 +1287,7 @@ bool array_FunctionType_append(array_FunctionType_t *arr, FunctionType val) {
     return true;
   } else {
     arr->array =
-        reallocarray(arr->array, arr->capacity + 4, sizeof(FunctionType));
+        realloc(arr->array, ((arr->capacity + 4) * sizeof(FunctionType)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -1314,7 +1314,7 @@ FunctionType array_FunctionType_pop(array_FunctionType_t *arr) {
 
   if (arr->size + 4 < arr->capacity) {
     arr->array =
-        reallocarray(arr->array, arr->capacity - 4, sizeof(FunctionType));
+        realloc(arr->array, ((arr->capacity + 4) * sizeof(FunctionType)));
     arr->capacity -= 4;
   }
 
@@ -1406,7 +1406,7 @@ bool array_Function_append(array_Function_t *arr, Function val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Function));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Function)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -1432,7 +1432,7 @@ Function array_Function_pop(array_Function_t *arr) {
   Function last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Function));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Function)));
     arr->capacity -= 4;
   }
 
@@ -1522,7 +1522,7 @@ bool array_Class_append(array_Class_t *arr, Class val) {
     arr->size++;
     return true;
   } else {
-    arr->array = reallocarray(arr->array, arr->capacity + 4, sizeof(Class));
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(Class)));
 
     if (arr->array) {
       arr->capacity += 4;
@@ -1542,13 +1542,13 @@ Class array_Class_pop(array_Class_t *arr) {
   // TODO: clean allocated memory pointed by the Class
   if (arr->size == 0) {
     errno = EINVAL;
-    return (Class){};
+    return (Class){0};
   }
 
   Class last_value = arr->array[--(arr->size)];
 
   if (arr->size + 4 < arr->capacity) {
-    arr->array = reallocarray(arr->array, arr->capacity - 4, sizeof(Class));
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(Class)));
     arr->capacity -= 4;
   }
 
@@ -1575,7 +1575,7 @@ Class array_Class_getat(array_Class_t *arr, size_t index) {
     return arr->array[index];
   }
   errno = EINVAL;
-  return (Class){};
+  return (Class){0};
 }
 
 /*

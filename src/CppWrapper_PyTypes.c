@@ -4,7 +4,12 @@
 #include "PyC.h"
 #include "Py_C_Types.h"
 #include "Python.h"
+#if defined(__linux__)
 #include <dlfcn.h>
+#endif
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -142,7 +147,14 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   // print_Symbols(selfType->symbols);
 
   // opening the shared library
+#if defined(__linux__)
   void *so = dlopen(library, RTLD_NOW);
+#endif
+
+#if defined(_WIN32)
+  HINSTANCE so = LoadLibrary(library);
+#endif
+
   if (!so) {
     PyErr_SetString(py_BindingError, "Unable to load the shared library. "
                                      "Possible reasons: file does not exist");
@@ -198,12 +210,24 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   Global *globalVar = Symbols_getGlobal(selfType->symbols, attr);
 
   if (globalVar) {
+#if defined(__linux__)
     void *var = dlsym(selfType->so, attr);
 
     if (!var) {
       PyErr_SetString(py_CppError, dlerror());
       return NULL;
     }
+#endif
+
+#if defined(_WIN32)
+    void* var = GetProcAddress(selfType->so, attr);
+
+    if (!var) {
+        PyErr_SetString(py_CppError, "Could not get the required symbol");  // TODO: better error message
+        return NULL;
+    }
+#endif
+
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
                            NULL, NULL,
@@ -281,7 +305,13 @@ static int Cpp_ModuleSet(PyObject *self, char *attr, PyObject *pValue) {
 
 static void Cpp_ModuleGC(PyObject *self) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
+#if defined(__linux__)
   dlclose(selfType->so);
+#endif
+
+#if defined(_WIN32)
+  FreeLibrary(selfType->so);
+#endif
   free_Symbols(selfType->symbols);
 }
 
@@ -304,7 +334,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   FunctionType *funcType =
       array_FunctionType_get_ptr_at(selfType->funcType->functionTypes, funcNum);
-
+#if defined(__linux__)
   // getting function
   void *func =
       dlsym(selfType->so,
@@ -313,6 +343,16 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyErr_SetString(py_CppError, dlerror());
     return NULL;
   }
+#endif
+
+#if defined(_WIN32)
+  void *func = GetProcAddress(selfType->so, funcType->mangledName);
+
+  if (!func) {
+      PyErr_SetString(py_CppError, "Could not get the required symbol");  // TODO: better error message
+      return NULL;
+  }
+#endif
 
   size_t args_count = funcType->argsCount;
 

@@ -2272,7 +2272,7 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
       char *data = (char *)selfType->pointer;
 
       return cppArg_to_pyArg(
-          (selfType->pointer) +
+          data +
               (array_long_long_getat(selfType->structure->offsets, i) / 8),
           *array_p_ffi_type_getat(selfType->structure->attrTypes, i),
           array_CXTypeKind_getat(selfType->structure->attrUnderlyingType, i),
@@ -2299,15 +2299,15 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
       void *data = pyArg_to_cppArg(pValue, *type);
 
       if (type->type == FFI_TYPE_POINTER) {
-        memcpy((selfType->pointer) +
+        memcpy((char*)(selfType->pointer) +
                    (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
       } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
-        memcpy((selfType->pointer) +
+        memcpy((char*)(selfType->pointer) +
                    (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
-        memcpy((selfType->pointer) +
+        memcpy((char*)(selfType->pointer) +
                    (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
         free(data);
