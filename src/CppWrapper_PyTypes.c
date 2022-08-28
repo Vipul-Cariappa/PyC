@@ -15,7 +15,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-
+#if defined(_WIN32)
 void
 DisplayErrorText(
     DWORD dwLastError
@@ -86,6 +86,7 @@ DisplayErrorText(
     if (hModule != NULL)
         FreeLibrary(hModule);
 }
+#endif
 
 
 CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
