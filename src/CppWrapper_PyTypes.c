@@ -9,10 +9,84 @@
 #endif
 #if defined(_WIN32)
 #include <Windows.h>
+#include <lmerr.h>
 #endif
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+
+void
+DisplayErrorText(
+    DWORD dwLastError
+)
+{
+    HMODULE hModule = NULL; // default to system source
+    LPSTR MessageBuffer;
+    DWORD dwBufferLength;
+
+    DWORD dwFormatFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_IGNORE_INSERTS |
+        FORMAT_MESSAGE_FROM_SYSTEM;
+
+    //
+    // If dwLastError is in the network range, 
+    //  load the message source.
+    //
+
+    if (dwLastError >= NERR_BASE && dwLastError <= MAX_NERR) {
+        hModule = LoadLibraryEx(
+            TEXT("netmsg.dll"),
+            NULL,
+            LOAD_LIBRARY_AS_DATAFILE
+        );
+
+        if (hModule != NULL)
+            dwFormatFlags |= FORMAT_MESSAGE_FROM_HMODULE;
+    }
+
+    //
+    // Call FormatMessage() to allow for message 
+    //  text to be acquired from the system 
+    //  or from the supplied module handle.
+    //
+
+    if (dwBufferLength = FormatMessageA(
+        dwFormatFlags,
+        hModule, // module to get message from (NULL == system)
+        dwLastError,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // default language
+        (LPSTR)&MessageBuffer,
+        0,
+        NULL
+    ))
+    {
+        DWORD dwBytesWritten;
+
+        //
+        // Output message string on stderr.
+        //
+        WriteFile(
+            GetStdHandle(STD_ERROR_HANDLE),
+            MessageBuffer,
+            dwBufferLength,
+            &dwBytesWritten,
+            NULL
+        );
+
+        //
+        // Free the buffer allocated by the system.
+        //
+        LocalFree(MessageBuffer);
+    }
+
+    //
+    // If we loaded a message source, unload it.
+    //
+    if (hModule != NULL)
+        FreeLibrary(hModule);
+}
+
 
 CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
 
@@ -152,7 +226,21 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 #endif
 
 #if defined(_WIN32)
-  HINSTANCE so = LoadLibrary(library);
+  printf("%s\n", library);
+  
+  const size_t cSize = strlen(library) + 1;
+  wchar_t *wc = malloc(cSize * sizeof(wchar_t));
+  mbstowcs(wc, library, cSize);
+
+  HINSTANCE so = LoadLibrary(wc);
+
+  free(wc);
+
+  // if (!so) {
+      // unsigned long error_code = GetLastError();
+      // printf("ERRORNO: %d", error_code);
+      // DisplayErrorText(error_code);
+  // }
 #endif
 
   if (!so) {
