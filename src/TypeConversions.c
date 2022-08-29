@@ -314,10 +314,9 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
                   (array_long_long_getat(underlying_struct->offsets, i) / 8),
               *array_p_ffi_type_getat(underlying_struct->attrTypes, i),
               array_CXTypeKind_getat(underlying_struct->attrUnderlyingType, i),
-              array_Structure_get_ptr_at(
-                  underlying_struct->attrUnderlyingStructs, i),
-              array_Union_get_ptr_at(underlying_struct->attrUnderlyingUnions,
-                                     i),
+              array_p_Structure_getat(underlying_struct->attrUnderlyingStructs,
+                                      i),
+              array_p_Union_getat(underlying_struct->attrUnderlyingUnions, i),
               module);
           // TODO: decrement reference count
 
@@ -347,9 +346,9 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
               (void *)arg_data,
               *array_p_ffi_type_getat(underlying_union->attrTypes, i),
               array_CXTypeKind_getat(underlying_union->attrUnderlyingType, i),
-              array_Structure_get_ptr_at(
-                  underlying_union->attrUnderlyingStructs, i),
-              array_Union_get_ptr_at(underlying_union->attrUnderlyingUnions, i),
+              array_p_Structure_getat(underlying_union->attrUnderlyingStructs,
+                                      i),
+              array_p_Union_getat(underlying_union->attrUnderlyingUnions, i),
               module);
           // TODO: decrement reference count
 

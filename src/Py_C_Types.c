@@ -2275,9 +2275,9 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
           data + (array_long_long_getat(selfType->structure->offsets, i) / 8),
           *array_p_ffi_type_getat(selfType->structure->attrTypes, i),
           array_CXTypeKind_getat(selfType->structure->attrUnderlyingType, i),
-          array_Structure_get_ptr_at(selfType->structure->attrUnderlyingStructs,
-                                     i),
-          array_Union_get_ptr_at(selfType->structure->attrUnderlyingUnions, i),
+          array_p_Structure_getat(selfType->structure->attrUnderlyingStructs,
+                                  i),
+          array_p_Union_getat(selfType->structure->attrUnderlyingUnions, i),
           selfType->parentModule); // TODO: update for structs and module
     }
   }
@@ -2507,8 +2507,8 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
           (selfType->pointer),
           *array_p_ffi_type_getat(selfType->u->attrTypes, i),
           array_CXTypeKind_getat(selfType->u->attrUnderlyingType, i),
-          array_Structure_get_ptr_at(selfType->u->attrUnderlyingStructs, i),
-          array_Union_get_ptr_at(selfType->u->attrUnderlyingUnions, i),
+          array_p_Structure_getat(selfType->u->attrUnderlyingStructs, i),
+          array_p_Union_getat(selfType->u->attrUnderlyingUnions, i),
           selfType->parentModule);
     }
   }

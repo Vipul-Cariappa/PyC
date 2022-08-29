@@ -650,7 +650,7 @@ bool array_Structure_setat(array_Structure_t *arr, Structure val,
     arr->array[index] = val;
     return true;
   }
-  errno = ENOMEM;
+  errno = EINVAL;
   return false;
 }
 
@@ -683,6 +683,143 @@ bool array_Structure_clear(array_Structure_t *arr) {
   // TODO: clean allocated memory pointed by each Structure in array
   free(arr->array);
   free(arr);
+  return true;
+}
+
+/* list_Structure_t functions & methods */
+
+/*
+  creates and returns a new list_Structure_t pointer
+*/
+list_Structure_t *list_Structure_new() {
+  list_Structure_t *li = malloc(sizeof(list_Structure_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_Structure_size(list_Structure_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_Structure_append(list_Structure_t *li, Structure val) {
+  node_list_Structure *new = malloc(sizeof(node_list_Structure));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_Structure *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+Structure list_Structure_pop(list_Structure_t *li) {
+  node_list_Structure *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  Structure s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_Structure_setat(list_Structure_t *li, Structure val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_Structure *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+Structure list_Structure_getat(list_Structure_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (Structure){0};
+  }
+
+  node_list_Structure *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+Structure *list_Structure_get_ptr_at(list_Structure_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_Structure *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_Structure_clear(list_Structure_t *li) {
+  node_list_Structure *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_Structure *next = node->next;
+    free(node);
+    node = next;
+  }
+
   return true;
 }
 
@@ -910,6 +1047,143 @@ bool array_Union_clear(array_Union_t *arr) {
   return true;
 }
 
+/* list_Union_t functions & methods */
+
+/*
+  creates and returns a new list_Union_t pointer
+*/
+list_Union_t *list_Union_new() {
+  list_Union_t *li = malloc(sizeof(list_Union_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_Union_size(list_Union_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_Union_append(list_Union_t *li, Union val) {
+  node_list_Union *new = malloc(sizeof(node_list_Union));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_Union *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+Union list_Union_pop(list_Union_t *li) {
+  node_list_Union *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  Union s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_Union_setat(list_Union_t *li, Union val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_Union *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+Union list_Union_getat(list_Union_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (Union){0};
+  }
+
+  node_list_Union *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+Union *list_Union_get_ptr_at(list_Union_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_Union *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_Union_clear(list_Union_t *li) {
+  node_list_Union *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_Union *next = node->next;
+    free(node);
+    node = next;
+  }
+
+  return true;
+}
+
 /* array_p_Union_t functions & methods */
 
 /*
@@ -1131,6 +1405,143 @@ bool array_Global_clear(array_Global_t *arr) {
   return true;
 }
 
+/* list_Global_t functions & methods */
+
+/*
+  creates and returns a new list_Global_t pointer
+*/
+list_Global_t *list_Global_new() {
+  list_Global_t *li = malloc(sizeof(list_Global_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_Global_size(list_Global_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_Global_append(list_Global_t *li, Global val) {
+  node_list_Global *new = malloc(sizeof(node_list_Global));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_Global *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+Global list_Global_pop(list_Global_t *li) {
+  node_list_Global *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  Global s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_Global_setat(list_Global_t *li, Global val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_Global *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+Global list_Global_getat(list_Global_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (Global){0};
+  }
+
+  node_list_Global *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+Global *list_Global_get_ptr_at(list_Global_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_Global *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_Global_clear(list_Global_t *li) {
+  node_list_Global *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_Global *next = node->next;
+    free(node);
+    node = next;
+  }
+
+  return true;
+}
+
 /* array_TypeDef_t functions & methods */
 
 /*
@@ -1244,6 +1655,143 @@ bool array_TypeDef_clear(array_TypeDef_t *arr) {
   // TODO: clean allocated memory pointed by each TypeDef in array
   free(arr->array);
   free(arr);
+  return true;
+}
+
+/* list_TypeDef_t functions & methods */
+
+/*
+  creates and returns a new list_TypeDef_t pointer
+*/
+list_TypeDef_t *list_TypeDef_new() {
+  list_TypeDef_t *li = malloc(sizeof(list_TypeDef_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_TypeDef_size(list_TypeDef_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_TypeDef_append(list_TypeDef_t *li, TypeDef val) {
+  node_list_TypeDef *new = malloc(sizeof(node_list_TypeDef));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_TypeDef *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+TypeDef list_TypeDef_pop(list_TypeDef_t *li) {
+  node_list_TypeDef *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  TypeDef s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_TypeDef_setat(list_TypeDef_t *li, TypeDef val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_TypeDef *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+TypeDef list_TypeDef_getat(list_TypeDef_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (TypeDef){0};
+  }
+
+  node_list_TypeDef *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+TypeDef *list_TypeDef_get_ptr_at(list_TypeDef_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_TypeDef *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_TypeDef_clear(list_TypeDef_t *li) {
+  node_list_TypeDef *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_TypeDef *next = node->next;
+    free(node);
+    node = next;
+  }
+
   return true;
 }
 
@@ -1367,6 +1915,145 @@ bool array_FunctionType_clear(array_FunctionType_t *arr) {
   return true;
 }
 
+/* list_FunctionType_t functions & methods */
+
+/*
+  creates and returns a new list_FunctionType_t pointer
+*/
+list_FunctionType_t *list_FunctionType_new() {
+  list_FunctionType_t *li = malloc(sizeof(list_FunctionType_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_FunctionType_size(list_FunctionType_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_FunctionType_append(list_FunctionType_t *li, FunctionType val) {
+  node_list_FunctionType *new = malloc(sizeof(node_list_FunctionType));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_FunctionType *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+FunctionType list_FunctionType_pop(list_FunctionType_t *li) {
+  node_list_FunctionType *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  FunctionType s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_FunctionType_setat(list_FunctionType_t *li, FunctionType val,
+                             size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_FunctionType *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+FunctionType list_FunctionType_getat(list_FunctionType_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (FunctionType){0};
+  }
+
+  node_list_FunctionType *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+FunctionType *list_FunctionType_get_ptr_at(list_FunctionType_t *li,
+                                           size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_FunctionType *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_FunctionType_clear(list_FunctionType_t *li) {
+  node_list_FunctionType *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_FunctionType *next = node->next;
+    free(node);
+    node = next;
+  }
+
+  return true;
+}
+
 /* array_Function_t functions & methods */
 
 /*
@@ -1483,6 +2170,143 @@ bool array_Function_clear(array_Function_t *arr) {
   return true;
 }
 
+/* list_Function_t functions & methods */
+
+/*
+  creates and returns a new list_Function_t pointer
+*/
+list_Function_t *list_Function_new() {
+  list_Function_t *li = malloc(sizeof(list_Function_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_Function_size(list_Function_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_Function_append(list_Function_t *li, Function val) {
+  node_list_Function *new = malloc(sizeof(node_list_Function));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_Function *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+Function list_Function_pop(list_Function_t *li) {
+  node_list_Function *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  Function s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_Function_setat(list_Function_t *li, Function val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_Function *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+Function list_Function_getat(list_Function_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (Function){0};
+  }
+
+  node_list_Function *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+Function *list_Function_get_ptr_at(list_Function_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_Function *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_Function_clear(list_Function_t *li) {
+  node_list_Function *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_Function *next = node->next;
+    free(node);
+    node = next;
+  }
+
+  return true;
+}
+
 /* array_Class_t functions & methods */
 
 /*
@@ -1596,5 +2420,142 @@ bool array_Class_clear(array_Class_t *arr) {
   // TODO: clean allocated memory pointed by each Class in array
   free(arr->array);
   free(arr);
+  return true;
+}
+
+/* list_Class_t Classs & methods */
+
+/*
+  creates and returns a new list_Class_t pointer
+*/
+list_Class_t *list_Class_new() {
+  list_Class_t *li = malloc(sizeof(list_Class_t));
+  if (!li) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  li->first = NULL;
+  li->last = NULL;
+  li->size = 0;
+  return li;
+}
+
+/*
+  returns the size of the list
+*/
+size_t list_Class_size(list_Class_t *li) { return li->size; }
+
+/*
+  appends val to the end of the list
+*/
+bool list_Class_append(list_Class_t *li, Class val) {
+  node_list_Class *new = malloc(sizeof(node_list_Class));
+  if (!new) {
+    errno = ENOMEM;
+    return false;
+  }
+
+  new->element = val;
+  new->next = NULL;
+
+  if (li->size > 0) {
+    node_list_Class *last = li->last;
+    assert(last->next == NULL);
+    last->next = new;
+
+    new->previous = last;
+
+  } else {
+    li->first = new;
+    new->previous = NULL;
+  }
+
+  li->last = new;
+  li->size++;
+
+  return true;
+}
+
+/*
+  removes and returns the last value in the list
+*/
+Class list_Class_pop(list_Class_t *li) {
+  node_list_Class *last = li->last;
+  last->previous->next = NULL;
+  li->last = last->previous;
+  li->size--;
+
+  Class s = last->element;
+  free(last);
+  return s;
+}
+/*
+  sets val at index in list
+*/
+bool list_Class_setat(list_Class_t *li, Class val, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return false;
+  }
+
+  node_list_Class *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  node->element = val;
+  return true;
+}
+
+/*
+  returns the value at index in list
+*/
+Class list_Class_getat(list_Class_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return (Class){0};
+  }
+
+  node_list_Class *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return node->element;
+}
+
+/*
+  returns the pointer to value at index in list
+*/
+Class *list_Class_get_ptr_at(list_Class_t *li, size_t index) {
+  if (index >= li->size) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  node_list_Class *node = li->first;
+
+  for (size_t i = 0; i < index; i++) {
+    node = node->next;
+  }
+
+  return &node->element;
+}
+
+/*
+  clear the list and frees all allocated memory
+*/
+bool list_Class_clear(list_Class_t *li) {
+  node_list_Class *node = li->first;
+
+  for (size_t i = 1; i < li->size; i++) {
+    node_list_Class *next = node->next;
+    free(node);
+    node = next;
+  }
+
   return true;
 }

@@ -99,40 +99,40 @@ void print_Symbols(Symbols *symbols) {
   // printing function info
   printf("\n  Functions: \n");
 
-  len = array_Function_size(symbols->funcs);
+  len = list_Function_size(symbols->funcs);
   assert(len == symbols->funcCount);
   for (size_t i = 0; i < len; i++) {
-    Function s = array_Function_getat(symbols->funcs, i);
+    Function s = list_Function_getat(symbols->funcs, i);
     print_Function(s);
   }
 
   // printing structure info
   printf("\n  Structures: \n");
 
-  len = array_Structure_size(symbols->structs);
+  len = list_Structure_size(symbols->structs);
   assert(len == symbols->structsCount);
   for (size_t i = 0; i < len; i++) {
-    Structure s = array_Structure_getat(symbols->structs, i);
+    Structure s = list_Structure_getat(symbols->structs, i);
     print_Structure(s);
   }
 
   // printing Union info
   printf("\n  Union: \n");
 
-  len = array_Union_size(symbols->unions);
+  len = list_Union_size(symbols->unions);
   assert(len == symbols->unionsCount);
   for (size_t i = 0; i < len; i++) {
-    Union u = array_Union_getat(symbols->unions, i);
+    Union u = list_Union_getat(symbols->unions, i);
     print_Union(u);
   }
 
   // printing globals info
   printf("\n  Globals: \n");
 
-  len = array_Global_size(symbols->globals);
+  len = list_Global_size(symbols->globals);
   assert(len == symbols->globalsCount);
   for (size_t i = 0; i < len; i++) {
-    Global s = array_Global_getat(symbols->globals, i);
+    Global s = list_Global_getat(symbols->globals, i);
     print_Global(s);
   }
 
@@ -142,7 +142,7 @@ void print_Symbols(Symbols *symbols) {
 
 Function *Symbols_getFunction(Symbols *sym, const char *name) {
   for (size_t i = 0; i < sym->funcCount; i++) {
-    Function *func = array_Function_get_ptr_at(sym->funcs, i);
+    Function *func = list_Function_get_ptr_at(sym->funcs, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -154,7 +154,7 @@ Function *Symbols_getFunction(Symbols *sym, const char *name) {
 
 Structure *Symbols_getStructure(Symbols *sym, const char *name) {
   for (size_t i = 0; i < sym->structsCount; i++) {
-    Structure *func = array_Structure_get_ptr_at(sym->structs, i);
+    Structure *func = list_Structure_get_ptr_at(sym->structs, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -166,7 +166,7 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name) {
 
 Union *Symbols_getUnion(Symbols *sym, const char *name) {
   for (size_t i = 0; i < sym->unionsCount; i++) {
-    Union *func = array_Union_get_ptr_at(sym->unions, i);
+    Union *func = list_Union_get_ptr_at(sym->unions, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -178,7 +178,7 @@ Union *Symbols_getUnion(Symbols *sym, const char *name) {
 
 Global *Symbols_getGlobal(Symbols *sym, const char *name) {
   for (size_t i = 0; i < sym->globalsCount; i++) {
-    Global *func = array_Global_get_ptr_at(sym->globals, i);
+    Global *func = list_Global_get_ptr_at(sym->globals, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -195,7 +195,7 @@ Class *Symbols_getClass(Symbols *sym, const char *name) {
 
 TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name) {
   for (size_t i = 0; i < sym->typedefsCount; i++) {
-    TypeDef *func = array_TypeDef_get_ptr_at(sym->typedefs, i);
+    TypeDef *func = list_TypeDef_get_ptr_at(sym->typedefs, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -233,7 +233,7 @@ bool Symbols_appendFunction(Symbols *sym, const char *name,
     q.funcCount = 1; // incrementing new func decl in same name
 
     // inserting the struct Function to symbols
-    if (!array_Function_append(sym->funcs, q))
+    if (!list_Function_append(sym->funcs, q))
       goto raise_error;
 
     sym->funcCount++; // incrementing function count in symbols
@@ -277,7 +277,7 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
   Structure *old_entry;
   if ((NULL == (old_entry = Symbols_getStructure(sym, s.name)))) {
 
-    if (!array_Structure_append(sym->structs, s))
+    if (!list_Structure_append(sym->structs, s))
       goto raise_error;
 
     sym->structsCount++;
@@ -287,10 +287,10 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
     }
 
     for (size_t i = 0; i < sym->structsCount; i++) {
-      Structure S = array_Structure_getat(sym->structs, i);
+      Structure S = list_Structure_getat(sym->structs, i);
 
       if (!strcmp(S.name, s.name)) {
-        array_Structure_setat(sym->structs, s, i);
+        list_Structure_setat(sym->structs, s, i);
         break;
       }
     }
@@ -341,7 +341,7 @@ bool Symbols_appendUnion(Symbols *sym, Union u) {
   Union *old_entry;
   if ((NULL == (old_entry = Symbols_getUnion(sym, u.name)))) {
 
-    if (!array_Union_append(sym->unions, u))
+    if (!list_Union_append(sym->unions, u))
       goto raise_error;
 
     sym->unionsCount++;
@@ -350,10 +350,10 @@ bool Symbols_appendUnion(Symbols *sym, Union u) {
       free(old_entry->type.elements);
     }
     for (size_t i = 0; i < sym->unionsCount; i++) {
-      Union U = array_Union_getat(sym->unions, i);
+      Union U = list_Union_getat(sym->unions, i);
 
       if (!strcmp(U.name, u.name)) {
-        array_Union_setat(sym->unions, u, i);
+        list_Union_setat(sym->unions, u, i);
         break;
       }
     }
@@ -374,7 +374,7 @@ raise_error:
 }
 
 bool Symbols_appendGlobal(Symbols *sym, Global g) {
-  if (!array_Global_append(sym->globals, g))
+  if (!list_Global_append(sym->globals, g))
     goto raise_error;
 
   sym->globalsCount++;
@@ -405,7 +405,7 @@ bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
     typeDef.underlying_type = clang_getPointeeType(type).kind;
   }
 
-  if (!array_TypeDef_append(sym->typedefs, typeDef))
+  if (!list_TypeDef_append(sym->typedefs, typeDef))
     goto raise_error;
 
   sym->typedefsCount++;
@@ -432,22 +432,22 @@ Symbols *create_Symbol(const char *name) {
   Symbols *sym = malloc(sizeof(Symbols));
   sym->name = name;
 
-  sym->funcs = array_Function_new();
+  sym->funcs = list_Function_new();
   sym->funcCount = 0;
 
-  sym->structs = array_Structure_new();
+  sym->structs = list_Structure_new();
   sym->structsCount = 0;
 
-  sym->unions = array_Union_new();
+  sym->unions = list_Union_new();
   sym->unionsCount = 0;
 
-  sym->globals = array_Global_new();
+  sym->globals = list_Global_new();
   sym->globalsCount = 0;
 
-  sym->classes = array_Class_new();
+  sym->classes = list_Class_new();
   sym->classesCount = 0;
 
-  sym->typedefs = array_TypeDef_new();
+  sym->typedefs = list_TypeDef_new();
   sym->typedefsCount = 0;
 
   return sym;
@@ -457,17 +457,17 @@ void free_Symbols(Symbols *sym) {
   // free(sym->name);
 
   // TODO: free FunctionType
-  array_Function_clear(sym->funcs);
+  list_Function_clear(sym->funcs);
 
-  array_Structure_clear(sym->structs);
+  list_Structure_clear(sym->structs);
 
-  array_Union_new(sym->unions);
+  list_Union_new(sym->unions);
 
-  array_Global_clear(sym->globals);
+  list_Global_clear(sym->globals);
 
-  array_Class_clear(sym->classes);
+  list_Class_clear(sym->classes);
 
-  array_TypeDef_clear(sym->typedefs);
+  list_TypeDef_clear(sym->typedefs);
 
   free(sym);
 }
@@ -521,8 +521,8 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
     // get underlying types if pointer type
     array_CXTypeKind_append(obj->attrUnderlyingType, 0);
-    array_Structure_append(obj->attrUnderlyingStructs, (Structure){0});
-    array_Union_append(obj->attrUnderlyingUnions, (Union){0});
+    array_p_Structure_append(obj->attrUnderlyingStructs, NULL);
+    array_p_Union_append(obj->attrUnderlyingUnions, NULL);
 
     CXType underlyingType = clang_getPointeeType(type);
     enum CXTypeKind underlyingTypeKind = clang_getPointeeType(type).kind;
@@ -556,7 +556,7 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
         Structure *s = NULL;
         if ((s = Symbols_getStructure(sym, updated_type_name))) {
-          array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+          array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
         }
 
         strcpy(updated_type_name, actual_type_name + 6);
@@ -569,7 +569,7 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
         Union *u = NULL;
         if ((u = Symbols_getUnion(sym, updated_type_name))) {
-          array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+          array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
         }
 
         free(updated_type_name);
@@ -588,7 +588,7 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
         Structure *s = NULL;
         if ((s = Symbols_getStructure(sym, updated_type_name))) {
-          array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+          array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
         }
 
         strcpy(updated_type_name, type_name + 6);
@@ -601,7 +601,7 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
         Union *u = NULL;
         if ((u = Symbols_getUnion(sym, updated_type_name))) {
-          array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+          array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
         }
 
         free(updated_type_name);
@@ -614,12 +614,12 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
         (clang_Type_getNamedType(type).kind == CXType_Record)) {
       Structure *s = NULL;
       if ((s = Symbols_getStructure(sym, type_name + 7))) {
-        array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+        array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
       }
 
       Union *u = NULL;
       if ((u = Symbols_getUnion(sym, type_name + 6))) {
-        array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+        array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
       }
     }
   }
@@ -650,8 +650,8 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
     // get underlying types if pointer type
     array_CXTypeKind_append(obj->attrUnderlyingType, 0);
-    array_Structure_append(obj->attrUnderlyingStructs, (Structure){0});
-    array_Union_append(obj->attrUnderlyingUnions, (Union){0});
+    array_p_Structure_append(obj->attrUnderlyingStructs, NULL);
+    array_p_Union_append(obj->attrUnderlyingUnions, NULL);
 
     CXType underlyingType = clang_getPointeeType(type);
     enum CXTypeKind underlyingTypeKind = clang_getPointeeType(type).kind;
@@ -685,7 +685,7 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
         Structure *s = NULL;
         if ((s = Symbols_getStructure(sym, updated_type_name))) {
-          array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+          array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
         }
 
         strcpy(updated_type_name, actual_type_name + 6);
@@ -698,7 +698,7 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
         Union *u = NULL;
         if ((u = Symbols_getUnion(sym, updated_type_name))) {
-          array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+          array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
         }
 
         free(updated_type_name);
@@ -717,7 +717,7 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
         Structure *s = NULL;
         if ((s = Symbols_getStructure(sym, updated_type_name))) {
-          array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+          array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
         }
 
         strcpy(updated_type_name, type_name + 6);
@@ -730,7 +730,7 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
         Union *u = NULL;
         if ((u = Symbols_getUnion(sym, updated_type_name))) {
-          array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+          array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
         }
 
         free(updated_type_name);
@@ -744,12 +744,12 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
       Structure *s = NULL;
       if ((s = Symbols_getStructure(sym, type_name + 7))) {
-        array_Structure_setat(obj->attrUnderlyingStructs, *s, index);
+        array_p_Structure_setat(obj->attrUnderlyingStructs, s, index);
       }
 
       Union *u = NULL;
       if ((u = Symbols_getUnion(sym, type_name + 6))) {
-        array_Union_setat(obj->attrUnderlyingUnions, *u, index);
+        array_p_Union_setat(obj->attrUnderlyingUnions, u, index);
       }
     }
   }
@@ -897,8 +897,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     obj.attrNames = array_str_new();
     obj.attrTypes = array_p_ffi_type_new();
     obj.attrUnderlyingType = array_CXTypeKind_new();
-    obj.attrUnderlyingStructs = array_Structure_new();
-    obj.attrUnderlyingUnions = array_Union_new();
+    obj.attrUnderlyingStructs = array_p_Structure_new();
+    obj.attrUnderlyingUnions = array_p_Union_new();
     obj.offsets = array_long_long_new();
     obj.type = (ffi_type){0, 0, 0, NULL};
     obj.attrCount = 0;
@@ -927,8 +927,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     obj.attrNames = array_str_new();
     obj.attrTypes = array_p_ffi_type_new();
     obj.attrUnderlyingType = array_CXTypeKind_new();
-    obj.attrUnderlyingStructs = array_Structure_new();
-    obj.attrUnderlyingUnions = array_Union_new();
+    obj.attrUnderlyingStructs = array_p_Structure_new();
+    obj.attrUnderlyingUnions = array_p_Union_new();
     obj.type = (ffi_type){0, 0, 0, NULL};
     obj.attrCount = 0;
     obj.unionSize = clang_Type_getSizeOf(clang_getCursorType(cursor));
