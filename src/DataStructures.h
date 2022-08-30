@@ -80,7 +80,7 @@ struct _Class {
 };
 
 struct _FunctionType {
-  char *mangledName;
+  const char *mangledName;
   ffi_type returnType;
   array_p_ffi_type_t *argsType;           // vector of ffi_type
   array_CXTypeKind_t *argsUnderlyingType; // array of CXTypeKind
