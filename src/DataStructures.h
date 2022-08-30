@@ -41,6 +41,8 @@ struct _Global {
   // const char *mangledName;
   ffi_type type;
   enum CXTypeKind underlyingType;
+  Structure *underlyingStruct; // for type convertion
+  Union *underlyingUnion;      // for type convertion
 };
 
 struct _Structure {
@@ -170,7 +172,7 @@ enum CXTypeKind array_CXTypeKind_getat(array_CXTypeKind_t *arr, size_t index);
 bool array_CXTypeKind_clear(array_CXTypeKind_t *arr);
 
 /* array of p_ffi_type declarations */
-// TODO: implement this; think and implement because how will you free it?
+
 struct _array_p_ffi_type_t {
   ffi_type **array;
   size_t size;
@@ -509,3 +511,11 @@ bool list_Class_setat(list_Class_t *arr, Class val, size_t index);
 Class list_Class_getat(list_Class_t *arr, size_t index);
 Class *list_Class_get_ptr_at(list_Class_t *arr, size_t index);
 bool list_Class_clear(list_Class_t *arr);
+
+// FIXME: dont know where to put this functions
+bool Symbols_clearUnion(Union *s);
+bool Symbols_clearStructure(Structure *s);
+bool Symbols_clearFunction(Function *s);
+bool Symbols_clearFunctionType(FunctionType *s);
+bool Symbols_clearGlobal(Global *s);
+bool Symbols_clearTypedef(TypeDef *s);

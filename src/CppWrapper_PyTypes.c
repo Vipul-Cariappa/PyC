@@ -92,12 +92,6 @@ typedef struct PyC_CppFunction {
   PyObject *parentModule;
 } PyC_CppFunction;
 
-typedef struct PyC_CppStruct // FIXME: modify it with new design
-{
-  PyObject_HEAD Structure *structType;
-  void *data;
-} PyC_CppStruct;
-
 PyTypeObject py_CppModuleType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppModule",
     .tp_basicsize = sizeof(PyC_CppModule),
@@ -108,7 +102,7 @@ PyTypeObject py_CppModuleType = {
     .tp_doc = CPP_MODULE_DOC_STRING,
     .tp_init = &Cpp_ModuleInit,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_ModuleGC,
+    .tp_dealloc = &Cpp_ModuleGC,
 };
 
 PyTypeObject py_CppFunctionType = {
@@ -119,7 +113,7 @@ PyTypeObject py_CppFunctionType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_FunctionGC,
+    .tp_dealloc = &Cpp_FunctionGC,
 };
 
 PyMethodDef PyC_Methods[] = {
@@ -244,8 +238,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
 
-  PyObject *py_attr_name =
-      PyUnicode_FromString(attr); // TODO: decrement refrence count
+  PyObject *py_attr_name = PyUnicode_FromString(attr);
 
   int cached = PyDict_Contains(selfType->cache_dict, py_attr_name);
   if (cached == 1) {
@@ -254,6 +247,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     Py_DECREF(py_attr_name);
     return result;
   } else if (cached == -1) {
+    Py_DECREF(py_attr_name);
     return NULL;
   }
 
@@ -270,13 +264,16 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
       if (PyDict_SetItem(selfType->cache_dict, py_attr_name,
                          (PyObject *)pyCppFunction)) {
+        Py_DECREF(py_attr_name);
         return NULL;
       }
-
+      Py_DECREF(py_attr_name);
       return (PyObject *)pyCppFunction;
     }
-  } else if (errno != 0)
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Global *globalVar = Symbols_getGlobal(selfType->symbols, attr);
 
@@ -285,6 +282,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     void *var = dlsym(selfType->so, attr);
 
     if (!var) {
+      Py_DECREF(py_attr_name);
       PyErr_SetString(py_CppError, dlerror());
       return NULL;
     }
@@ -302,38 +300,46 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 #endif
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
-                           NULL, NULL,
-                           self); // TODO: update NULL for global structs
-  } else if (errno != 0)
+                           globalVar->underlyingStruct,
+                           globalVar->underlyingUnion, self);
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
   if (structVar) {
     PyObject *result = create_py_c_struct(structVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      Py_DECREF(py_attr_name);
       return NULL;
     }
 
     return result;
   }
 
-  else if (errno != 0)
+  else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Union *unionVar = Symbols_getUnion(selfType->symbols, attr);
 
   if (unionVar) {
     PyObject *result = create_py_c_union(unionVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      Py_DECREF(py_attr_name);
       return NULL;
     }
-
+    Py_DECREF(py_attr_name);
     return result;
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
+    return NULL;
   }
 
-  else if (errno != 0)
-    return NULL;
+  Py_DECREF(py_attr_name);
 
   TypeDef *tdVar = Symbols_getTypeDef(selfType->symbols, attr);
 
@@ -441,7 +447,13 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
   ffi_args[args_count] = NULL;
 
-  void **args_values = pyArgs_to_cppArgs(args, args_list);
+  bool *where_to_free = malloc(args_count * sizeof(bool));
+  memset(where_to_free, 0, args_count * sizeof(bool));
+  void **extra_stuff_to_free = malloc(args_count * sizeof(void *));
+  memset(extra_stuff_to_free, 0, args_count * sizeof(void *));
+
+  void **args_values =
+      pyArgs_to_cppArgs(args, args_list, where_to_free, extra_stuff_to_free);
   if (!args_values) {
     return NULL;
   }
@@ -451,10 +463,24 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     ffi_call(&cif, (void (*)())func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(
-      rc, funcType->returnType, funcType->returnsUnderlyingType,
-      funcType->returnUnderlyingStruct, funcType->returnUnderlyingUnion,
-      selfType->parentModule);
+  PyObject *result =
+      cppArg_to_pyArg(rc, funcType->returnType, funcType->returnsUnderlyingType,
+                      funcType->returnUnderlyingStruct,
+                      funcType->returnUnderlyingUnion, selfType->parentModule);
+
+  free(ffi_args);
+  for (size_t i = 0; i < args_count; i++) {
+    if (where_to_free[i]) {
+      free(args_values[i]);
+    }
+    if (extra_stuff_to_free[i]) {
+      free(extra_stuff_to_free[i]);
+    }
+  }
+
+  free(args_values);
+  free(rc);
+  return result;
 }
 
 // PyCpp.CppFunction.__del__

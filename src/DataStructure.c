@@ -310,9 +310,8 @@ char *array_str_pop(array_str_t *arr) {
 */
 bool array_str_setat(array_str_t *arr, char *val, size_t index) {
   if (index < arr->size) {
-    if (arr->array[index]) {
-      free(arr->array[index]);
-    }
+    assert(arr->array[index] != NULL);
+    free(arr->array[index]);
 
     size_t len = strlen(val);
     char *cpy_val = calloc(len + 1, sizeof(char));
@@ -680,7 +679,10 @@ Structure *array_Structure_get_ptr_at(array_Structure_t *arr, size_t index) {
   clear the arr and frees all allocated memory
 */
 bool array_Structure_clear(array_Structure_t *arr) {
-  // TODO: clean allocated memory pointed by each Structure in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearStructure(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -814,12 +816,14 @@ Structure *list_Structure_get_ptr_at(list_Structure_t *li, size_t index) {
 bool list_Structure_clear(list_Structure_t *li) {
   node_list_Structure *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_Structure *next = node->next;
+    Symbols_clearStructure(&(node->element));
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }
 
@@ -1042,6 +1046,10 @@ Union *array_Union_get_ptr_at(array_Union_t *arr, size_t index) {
 */
 bool array_Union_clear(array_Union_t *arr) {
   // TODO: clean allocated memory pointed by each Union in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearUnion(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -1175,12 +1183,14 @@ Union *list_Union_get_ptr_at(list_Union_t *li, size_t index) {
 bool list_Union_clear(list_Union_t *li) {
   node_list_Union *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_Union *next = node->next;
+    Symbols_clearUnion(&(node->element));
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }
 
@@ -1400,6 +1410,10 @@ Global *array_Global_get_ptr_at(array_Global_t *arr, size_t index) {
 */
 bool array_Global_clear(array_Global_t *arr) {
   // TODO: clean allocated memory pointed by each Global in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearGlobal(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -1533,12 +1547,14 @@ Global *list_Global_get_ptr_at(list_Global_t *li, size_t index) {
 bool list_Global_clear(list_Global_t *li) {
   node_list_Global *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_Global *next = node->next;
+    Symbols_clearGlobal(&(node->element));
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }
 
@@ -1653,6 +1669,10 @@ TypeDef *array_TypeDef_get_ptr_at(array_TypeDef_t *arr, size_t index) {
 */
 bool array_TypeDef_clear(array_TypeDef_t *arr) {
   // TODO: clean allocated memory pointed by each TypeDef in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearTypedef(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -1786,12 +1806,14 @@ TypeDef *list_TypeDef_get_ptr_at(list_TypeDef_t *li, size_t index) {
 bool list_TypeDef_clear(list_TypeDef_t *li) {
   node_list_TypeDef *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_TypeDef *next = node->next;
+    Symbols_clearTypedef(&(node->element));
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }
 
@@ -1910,6 +1932,10 @@ FunctionType *array_FunctionType_get_ptr_at(array_FunctionType_t *arr,
 */
 bool array_FunctionType_clear(array_FunctionType_t *arr) {
   // TODO: clean allocated memory pointed by each FunctionType in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearFunctionType(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -2045,12 +2071,14 @@ FunctionType *list_FunctionType_get_ptr_at(list_FunctionType_t *li,
 bool list_FunctionType_clear(list_FunctionType_t *li) {
   node_list_FunctionType *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_FunctionType *next = node->next;
+    Symbols_clearFunctionType(&(node->element));
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }
 
@@ -2165,6 +2193,10 @@ Function *array_Function_get_ptr_at(array_Function_t *arr, size_t index) {
 */
 bool array_Function_clear(array_Function_t *arr) {
   // TODO: clean allocated memory pointed by each Function in array
+  for (size_t i = 0; i < arr->size; i++) {
+    Symbols_clearFunction(arr->array + i);
+  }
+
   free(arr->array);
   free(arr);
   return true;
@@ -2298,12 +2330,13 @@ Function *list_Function_get_ptr_at(list_Function_t *li, size_t index) {
 bool list_Function_clear(list_Function_t *li) {
   node_list_Function *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_Function *next = node->next;
+    Symbols_clearFunction(&(node->element));
     free(node);
     node = next;
   }
-
+  free(li);
   return true;
 }
 
@@ -2551,11 +2584,12 @@ Class *list_Class_get_ptr_at(list_Class_t *li, size_t index) {
 bool list_Class_clear(list_Class_t *li) {
   node_list_Class *node = li->first;
 
-  for (size_t i = 1; i < li->size; i++) {
+  for (size_t i = 0; i < li->size; i++) {
     node_list_Class *next = node->next;
     free(node);
     node = next;
   }
 
+  free(li);
   return true;
 }

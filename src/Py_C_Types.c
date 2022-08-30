@@ -28,7 +28,7 @@ PyTypeObject py_c_void_type = {
     // .tp_members = c_void_members,
     .tp_init = &c_void_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_void_finalizer,
+    .tp_dealloc = &c_void_finalizer,
 };
 
 // ----- c_void: functions and methods -----
@@ -47,6 +47,8 @@ static void c_void_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->pointer))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_void.donot_free
@@ -128,7 +130,7 @@ PyTypeObject py_c_uint_type = {
     .tp_members = c_int_members,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_int_finalizer,
+    .tp_dealloc = &c_int_finalizer,
 };
 
 // ----- c_int: functions and methods -----
@@ -249,6 +251,8 @@ static void c_int_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->freeOnDel))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_int.append
@@ -401,7 +405,6 @@ static PyObject *c_int_getitem(PyObject *self, PyObject *attr) {
   size_t index = PyLong_AsLongLong(attr);
 
   if (selfType->arraySize > index) {
-    // TODO: here start
     if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
       return PyLong_FromLongLong((selfType->pointer)[index]);
     }
@@ -485,7 +488,7 @@ PyTypeObject py_c_double_type = {
     .tp_members = c_double_members,
     .tp_init = &c_double_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_double_finalizer,
+    .tp_dealloc = &c_double_finalizer,
 };
 
 // ----- c_double: functions and methods -----
@@ -601,6 +604,8 @@ static void c_double_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->freeOnDel))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_double.append
@@ -813,7 +818,7 @@ PyTypeObject py_c_float_type = {
     .tp_members = c_float_members,
     .tp_init = &c_float_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_float_finalizer,
+    .tp_dealloc = &c_float_finalizer,
 };
 
 // ----- c_float: functions and methods -----
@@ -929,6 +934,8 @@ static void c_float_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->freeOnDel))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_float.append
@@ -1134,8 +1141,7 @@ PyTypeObject py_c_bool_type = {
     .tp_methods = c_bool_methods,
     .tp_init = &c_bool_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize =
-        &c_bool_finalizer, // TODO: use .tp_getset for PyC_c_bool's attributes
+    .tp_dealloc = &c_bool_finalizer,
 };
 
 // ----- c_bool: functions and methods -----
@@ -1188,9 +1194,8 @@ static PyObject *c_bool_getattr(PyObject *self, char *attr) {
 // PyC.c_bool.__del__
 static void c_bool_finalizer(PyObject *self) {
   // TODO: implement c_bool_finalizer
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  return;
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_bool.append
@@ -1312,7 +1317,7 @@ PyTypeObject py_c_short_type = {
     .tp_members = c_short_members,
     .tp_init = &c_short_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_short_finalizer,
+    .tp_dealloc = &c_short_finalizer,
 };
 
 PyTypeObject py_c_ushort_type = {
@@ -1329,7 +1334,7 @@ PyTypeObject py_c_ushort_type = {
     .tp_members = c_short_members,
     .tp_init = &c_short_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_short_finalizer,
+    .tp_dealloc = &c_short_finalizer,
 };
 
 // ----- c_short: functions and methods -----
@@ -1450,6 +1455,8 @@ static void c_short_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->freeOnDel))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_short.append
@@ -1680,7 +1687,7 @@ PyTypeObject py_c_long_type = {
     .tp_members = c_long_members,
     .tp_init = &c_long_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_long_finalizer,
+    .tp_dealloc = &c_long_finalizer,
 };
 
 PyTypeObject py_c_ulong_type = {
@@ -1697,7 +1704,7 @@ PyTypeObject py_c_ulong_type = {
     .tp_members = c_long_members,
     .tp_init = &c_long_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_long_finalizer,
+    .tp_dealloc = &c_long_finalizer,
 };
 
 // ----- c_long: functions and methods -----
@@ -1820,6 +1827,8 @@ static void c_long_finalizer(PyObject *self) {
 
   if ((selfType->freeOnDel) && (selfType->freeOnDel))
     free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_long.append
@@ -2041,7 +2050,7 @@ PyTypeObject py_c_char_type = {
     .tp_methods = c_char_methods,
     .tp_init = &c_char_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize =
+    .tp_dealloc =
         &c_char_finalizer, // TODO: use .tp_getset for PyC_c_char's attributes
 };
 
@@ -2116,9 +2125,8 @@ static PyObject *c_char_getattr(PyObject *self, char *attr) {
 // PyC.c_char.__del__
 static void c_char_finalizer(PyObject *self) {
   // TODO: implement c_char_finalizer
-
   PyC_c_char *selfType = (PyC_c_char *)self;
-  return;
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_char.append
@@ -2278,7 +2286,7 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
           array_p_Structure_getat(selfType->structure->attrUnderlyingStructs,
                                   i),
           array_p_Union_getat(selfType->structure->attrUnderlyingUnions, i),
-          selfType->parentModule); // TODO: update for structs and module
+          selfType->parentModule);
     }
   }
 
@@ -2325,7 +2333,8 @@ static void c_struct_finalizer(PyObject *self) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   // free(selfType->pointer);
-  // Py_TYPE(self)->tp_free((PyObject *)self);
+  Py_DECREF(selfType->parentModule);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_struct.__call__
@@ -2339,6 +2348,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = selfType->structure;
     result->pointer = malloc(selfType->structure->structSize);
+    Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
     return (PyObject *)result;
@@ -2348,7 +2358,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
   return NULL;
 }
 
-// helper function; TODO: try and remove
+// helper function
 PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   // TODO: implement
   typedef struct PyC_c_new {
@@ -2484,7 +2494,7 @@ PyTypeObject py_c_union_type = {
     .tp_members = c_union_members,
     .tp_init = &c_union_init,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &c_union_finalizer,
+    .tp_dealloc = &c_union_finalizer,
 };
 
 // c_union methods
@@ -2547,6 +2557,10 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_union_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
+
+  // free(selfType->pointer);
+  Py_DECREF(selfType->parentModule);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_union.__call__
@@ -2560,6 +2574,7 @@ static PyObject *c_union_call(PyObject *self, PyObject *args,
     PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
     result->u = selfType->u;
     result->pointer = malloc(selfType->u->unionSize);
+    Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
     return (PyObject *)result;
@@ -2568,7 +2583,7 @@ static PyObject *c_union_call(PyObject *self, PyObject *args,
   return NULL;
 }
 
-// helper function; TODO: try and remove
+// helper function
 PyObject *create_py_c_union(Union *u, PyObject *module) {
   typedef struct PyC_c_new {
     PyC_c_union super;

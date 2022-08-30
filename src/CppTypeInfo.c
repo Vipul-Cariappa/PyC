@@ -252,6 +252,19 @@ raise_error:
   return false;
 }
 
+bool Symbols_clearFunction(Function *s) {
+  array_FunctionType_clear(s->functionTypes);
+  return true;
+}
+
+bool Symbols_clearFunctionType(FunctionType *s) {
+  array_p_ffi_type_clear(s->argsType);
+  array_CXTypeKind_clear(s->argsUnderlyingType);
+  // array_p_Structure_clear(s->argsUnderlyingStructs);
+  // array_p_Union_clear(s->argsUnderlyingUnions);
+  return true;
+}
+
 bool Symbols_appendStructure(Symbols *sym, Structure s) {
 
   // createing ffi_type for the given struct
@@ -261,6 +274,7 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
   s.type.elements = NULL;
 
   if (s.attrCount) {
+    assert(s.type.elements == NULL);
     s.type.elements = calloc(s.attrCount + 1, sizeof(ffi_type *));
 
     for (size_t i = 0; i < s.attrCount; i++) {
@@ -270,7 +284,10 @@ bool Symbols_appendStructure(Symbols *sym, Structure s) {
 
     ffi_cif cif;
     if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, &s.type, NULL) != FFI_OK) {
-      abort(); // TODO: raise error
+      PyErr_SetString(
+          py_BindingError,
+          "Could not figure out attribute type of the given struct");
+      return false;
     }
   }
 
@@ -307,6 +324,21 @@ raise_error:
   else
     PyErr_SetString(py_BindingError, "Unknown error occured");
   return false;
+}
+
+bool Symbols_clearStructure(Structure *s) {
+  array_str_clear(s->attrNames);
+  array_p_ffi_type_clear(s->attrTypes);
+  array_CXTypeKind_clear(s->attrUnderlyingType);
+  array_p_Structure_clear(s->attrUnderlyingStructs);
+  array_p_Union_clear(s->attrUnderlyingUnions);
+  array_long_long_clear(s->offsets);
+
+  if (s->type.elements) {
+    free(s->type.elements);
+  }
+
+  return true;
 }
 
 bool Symbols_appendUnion(Symbols *sym, Union u) {
@@ -373,6 +405,20 @@ raise_error:
   return true;
 }
 
+bool Symbols_clearUnion(Union *s) {
+  array_str_clear(s->attrNames);
+  array_p_ffi_type_clear(s->attrTypes);
+  array_CXTypeKind_clear(s->attrUnderlyingType);
+  array_p_Structure_clear(s->attrUnderlyingStructs);
+  array_p_Union_clear(s->attrUnderlyingUnions);
+
+  if (s->type.elements) {
+    free(s->type.elements);
+  }
+
+  return true;
+}
+
 bool Symbols_appendGlobal(Symbols *sym, Global g) {
   if (!list_Global_append(sym->globals, g))
     goto raise_error;
@@ -392,10 +438,10 @@ raise_error:
   return false;
 }
 
+bool Symbols_clearGlobal(Global *s) { return true; }
+
 bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
                            const char *type_name, CXType type) {
-
-  // TODO: rewrite
   TypeDef typeDef;
   typeDef.type_name = type_name;
   typeDef.name = typedef_name;
@@ -415,13 +461,12 @@ bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
 raise_error:
   if (errno == ENOMEM)
     PyErr_NoMemory();
-  else if (errno == EINVAL)
-    PyErr_SetString(py_BindingError,
-                    "Incompatible typedef name found in translation unit");
   else
     PyErr_SetString(py_BindingError, "Unknown error occured");
   return false;
 }
+
+bool Symbols_clearTypedef(TypeDef *s) { return true; }
 
 bool Symbols_appendClass(Symbols *sym, Class c) {
   // TODO: implement Symbols_appendClass
@@ -454,14 +499,11 @@ Symbols *create_Symbol(const char *name) {
 }
 
 void free_Symbols(Symbols *sym) {
-  // free(sym->name);
-
-  // TODO: free FunctionType
   list_Function_clear(sym->funcs);
 
   list_Structure_clear(sym->structs);
 
-  list_Union_new(sym->unions);
+  list_Union_clear(sym->unions);
 
   list_Global_clear(sym->globals);
 
@@ -494,8 +536,6 @@ bool Symbols_parse(Symbols *sym, const char *header) {
 
 enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
                                       CXClientData client_data) {
-  // TODO: implement
-
   if (clang_getCursorKind(cursor) == CXCursor_FieldDecl) {
     const char *name = clang_getCString(clang_getCursorSpelling(cursor));
     CXType type = clang_getCursorType(cursor);
@@ -915,7 +955,10 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                  array_str_getat(obj.attrNames, i)));
     }
 
-    Symbols_appendStructure(symbols, obj);
+    if (!Symbols_appendStructure(symbols, obj)) {
+      // TODO: clear stuff
+      return CXChildVisit_Break;
+    }
   }
 
   // unions
@@ -941,7 +984,6 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
   }
   // typedef
   else if (clang_getCursorKind(cursor) == CXCursor_TypedefDecl) {
-    // TODO: implement parseing typedef
     CXType underlying_type = clang_getTypedefDeclUnderlyingType(cursor);
     CXType cursor_cxtype = clang_getCursorType(cursor);
     CXString name = clang_getTypedefName(cursor_cxtype);
@@ -951,10 +993,8 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     if (!Symbols_appendTypedef(symbols, typedef_name, type_name,
                                underlying_type)) {
-      // TODO: check errors
       return CXChildVisit_Break;
     }
-    // printf("%s: %s\n", type_name, typedef_name);
   }
 
   // global variables
@@ -981,13 +1021,22 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       return CXChildVisit_Break;
     }
   } else {
-    // const char *name = clang_getCString(clang_getCursorSpelling(cursor));
-    // const char *type_name =
-    //     clang_getCString(clang_getTypeSpelling(clang_getCursorType(cursor)));
-    // printf("cursor: %s : %i\ntype: %s : %i\n", name,
-    //        clang_getCursorKind(cursor), type_name,
-    //        clang_getCursorType(cursor).kind);
-    // TODO: display type info
+    // raising error because unknow type found
+    const char *name = clang_getCString(clang_getCursorSpelling(cursor));
+    const char *type_name =
+        clang_getCString(clang_getTypeSpelling(clang_getCursorType(cursor)));
+
+#if defined(DEBUG)
+    PyErr_Format(py_BindingError,
+                 "Could not figure out type info\nGiven cursor: %s: cursor "
+                 "kind: %i\n\ttype: %s type kind: %i",
+                 name, clang_getCursorKind(cursor), type_name,
+                 clang_getCursorType(cursor).kind);
+#else
+    PyErr_SetString(py_BindingError, "Could not figure out type info");
+#endif
+
+    return CXChildVisit_Break;
   }
 
   return CXChildVisit_Continue;

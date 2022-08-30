@@ -239,9 +239,9 @@ typedef struct PyC_c_struct {
   PyObject *pyDictRepr;   // python dict representation of struct:
                           // key: attr name value: c_type
   PyObject *parentModule; //
-  // PyObject *child_ptrs;   // TODO: update with c_types object PyList if
-  // underlying type is pointer
-} PyC_c_struct; // TODO: update with new struct design
+  PyObject *child_ptrs; // TODO: update with c_types object PyList if underlying
+                        // type is pointer
+} PyC_c_struct;
 
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_struct_getattr(PyObject *self, char *attr);
@@ -259,9 +259,8 @@ static PyObject *c_struct_to_pointer(PyObject *self);
 static Py_ssize_t c_struct_len(PyObject *self);
 static PyObject *c_struct_getitem(PyObject *self, PyObject *attr);
 static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value);
-PyObject *
-create_py_c_struct(Structure *structure,
-                   PyObject *module); // helper function; TODO: try and remove
+PyObject *create_py_c_struct(Structure *structure,
+                             PyObject *module); // helper function
 
 // c_union
 extern PyTypeObject py_c_union_type;
@@ -273,11 +272,13 @@ typedef struct PyC_c_union {
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
-  size_t _i;              // for iteration purpose
-  PyObject *pyDictRepr;   // python dict representation of union:
-                          // key: attr name value: c_type
-  PyObject *parentModule; //
-} PyC_c_union;            // TODO: update with new struct design
+  size_t _i;            // for iteration purpose
+  PyObject *pyDictRepr; // python dict representation of union:
+                        // key: attr name value: c_type
+  PyObject *parentModule;
+  PyObject *child_ptr; // TODO: update with c_types object PyList if underlying
+                       // type is pointer
+} PyC_c_union;
 
 static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_union_getattr(PyObject *self, char *attr);
@@ -294,6 +295,5 @@ static PyObject *c_union_to_pointer(PyObject *self);
 static Py_ssize_t c_union_len(PyObject *self);
 static PyObject *c_union_getitem(PyObject *self, PyObject *attr);
 static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value);
-PyObject *
-create_py_c_union(Union *u,
-                  PyObject *module); // helper function; TODO: try and remove
+PyObject *create_py_c_union(Union *u,
+                            PyObject *module); // helper function
