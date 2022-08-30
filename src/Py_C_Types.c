@@ -2303,7 +2303,9 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
     if (!(strcmp(attr, array_str_getat(selfType->structure->attrNames, i)))) {
       ffi_type *type =
           array_p_ffi_type_getat(selfType->structure->attrTypes, i);
-      void *data = pyArg_to_cppArg(pValue, *type);
+
+      bool should_free = false;
+      void *data = pyArg_to_cppArg(pValue, *type, &should_free);
 
       if (type->type == FFI_TYPE_POINTER) {
         memcpy((char *)(selfType->pointer) +
@@ -2317,8 +2319,12 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
         memcpy((char *)(selfType->pointer) +
                    (array_long_long_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
+      }
+
+      if (should_free) {
         free(data);
       }
+
       return 0;
     }
   }
@@ -2347,7 +2353,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
   if (obj) {
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = selfType->structure;
-    result->pointer = malloc(selfType->structure->structSize);
+    result->pointer = malloc(selfType->structure->structSize); // FIXME: malloc
     Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
@@ -2534,7 +2540,8 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
     if (!(strcmp(attr, array_str_getat(selfType->u->attrNames, i)))) {
       ffi_type *type = array_p_ffi_type_getat(selfType->u->attrTypes, i);
 
-      void *data = pyArg_to_cppArg(pValue, *type);
+      bool should_free = false;
+      void *data = pyArg_to_cppArg(pValue, *type, &should_free);
 
       if (type->type == FFI_TYPE_POINTER) {
         memcpy((selfType->pointer), data, type->size);
@@ -2543,8 +2550,12 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
                ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
         memcpy((selfType->pointer), data, type->size);
+      }
+
+      if (should_free) {
         free(data);
       }
+
       return 0;
     }
   }
@@ -2573,7 +2584,7 @@ static PyObject *c_union_call(PyObject *self, PyObject *args,
   if (obj) {
     PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
     result->u = selfType->u;
-    result->pointer = malloc(selfType->u->unionSize);
+    result->pointer = malloc(selfType->u->unionSize); // FIXME: malloc
     Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
@@ -2622,7 +2633,7 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   if (obj) {
     PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
     result->u = u;
-    result->pointer = malloc(u->unionSize);
+    result->pointer = malloc(u->unionSize); // FIXME ?
     result->parentModule = module;
 
     return (PyObject *)result;

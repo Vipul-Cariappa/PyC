@@ -8,13 +8,14 @@
 
 #define MAX_SIZE 1024
 
-void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
+void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   void *data = NULL;
 
   switch (type.type) {
   case FFI_TYPE_SINT8:
   case FFI_TYPE_UINT8: {
     data = malloc(1);
+    *should_free = true;
     int8_t i = (int8_t)PyLong_AsLong(arg);
     memcpy(data, &i, 1);
     break;
@@ -22,6 +23,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   case FFI_TYPE_SINT16:
   case FFI_TYPE_UINT16: {
     data = malloc(2);
+    *should_free = true;
     int16_t i = (int16_t)PyLong_AsLong(arg);
     memcpy(data, &i, 2);
     break;
@@ -30,6 +32,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   case FFI_TYPE_SINT32:
   case FFI_TYPE_UINT32: {
     data = malloc(4);
+    *should_free = true;
     int32_t i = (int32_t)PyLong_AsLong(arg);
     memcpy(data, &i, 4);
     break;
@@ -37,18 +40,21 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
   case FFI_TYPE_SINT64:
   case FFI_TYPE_UINT64: {
     data = malloc(8);
+    *should_free = true;
     int64_t i = (int64_t)PyLong_AsLong(arg);
     memcpy(data, &i, 8);
     break;
   }
   case FFI_TYPE_FLOAT: {
     data = malloc(sizeof(float));
+    *should_free = true;
     float i = (float)PyFloat_AsDouble(arg);
     memcpy(data, &i, sizeof(float));
     break;
   }
   case FFI_TYPE_DOUBLE: {
     data = malloc(sizeof(double));
+    *should_free = true;
     double i = (double)PyFloat_AsDouble(arg);
     memcpy(data, &i, sizeof(double));
     break;
@@ -81,12 +87,14 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
       break;
     } else { // assume char*; TODO: check type info
       data = (void *)PyUnicode_AsUTF8(arg);
+      *should_free = true;
       break;
     }
   case FFI_TYPE_STRUCT: {
     if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
       PyC_c_struct *py_struct_type = (PyC_c_struct *)arg;
       data = malloc(py_struct_type->structure->structSize);
+      *should_free = true;
       memcpy(data, py_struct_type->pointer,
              py_struct_type->structure->structSize);
       break;
@@ -95,6 +103,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type) {
     if (PyObject_IsInstance(arg, (PyObject *)&py_c_union_type)) {
       PyC_c_union *py_union_type = (PyC_c_union *)arg;
       data = malloc(py_union_type->u->unionSize);
+      *should_free = true;
       memcpy(data, py_union_type->pointer, py_union_type->u->unionSize);
       break;
     }
@@ -588,6 +597,7 @@ void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type,
         *(double *)x = (double)PyFloat_AsDouble(arg_float);
         break;
       case FFI_TYPE_POINTER:
+        free(x);
         // TODO: verify what is it pointing to from UnderlyingType
         if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
             PyObject_IsInstance(pyArg, (PyObject *)&py_c_uint_type)) {

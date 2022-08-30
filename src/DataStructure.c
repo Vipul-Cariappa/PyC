@@ -770,6 +770,7 @@ bool list_Structure_setat(list_Structure_t *li, Structure val, size_t index) {
     node = node->next;
   }
 
+  Symbols_clearStructure(&(node->element));
   node->element = val;
   return true;
 }
@@ -1137,6 +1138,7 @@ bool list_Union_setat(list_Union_t *li, Union val, size_t index) {
     node = node->next;
   }
 
+  Symbols_clearUnion(&(node->element));
   node->element = val;
   return true;
 }
@@ -1501,6 +1503,7 @@ bool list_Global_setat(list_Global_t *li, Global val, size_t index) {
     node = node->next;
   }
 
+  Symbols_clearGlobal(&(node->element));
   node->element = val;
   return true;
 }
@@ -1760,6 +1763,7 @@ bool list_TypeDef_setat(list_TypeDef_t *li, TypeDef val, size_t index) {
     node = node->next;
   }
 
+  Symbols_clearTypedef(&(node->element));
   node->element = val;
   return true;
 }
@@ -2024,6 +2028,7 @@ bool list_FunctionType_setat(list_FunctionType_t *li, FunctionType val,
     node = node->next;
   }
 
+  Symbols_clearFunctionType(&(node->element));
   node->element = val;
   return true;
 }
@@ -2284,6 +2289,7 @@ bool list_Function_setat(list_Function_t *li, Function val, size_t index) {
     node = node->next;
   }
 
+  Symbols_clearFunction(&(node->element));
   node->element = val;
   return true;
 }
@@ -2538,6 +2544,7 @@ bool list_Class_setat(list_Class_t *li, Class val, size_t index) {
     node = node->next;
   }
 
+  // Symbols_clearClass(&(node->element));
   node->element = val;
   return true;
 }
