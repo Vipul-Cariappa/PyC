@@ -353,6 +353,111 @@ bool array_str_clear(array_str_t *arr) {
   return true;
 }
 
+/* array_p_void_t functions & methods */
+
+/*
+  creates and returns a new array_p_void_t pointer
+*/
+array_p_void_t *array_p_void_new() {
+  array_p_void_t *arr = malloc(sizeof(array_p_void_t));
+  if (!arr) {
+    errno = ENOMEM;
+    return NULL;
+  }
+
+  arr->array = calloc(4, sizeof(void *));
+  if (!arr->array) {
+    free(arr);
+    errno = ENOMEM;
+    return NULL;
+  }
+
+  memset(arr->array, 0, 4 * sizeof(void *));
+  arr->capacity = 4;
+  arr->size = 0;
+
+  return arr;
+}
+
+/*
+  returns the size of the array
+*/
+size_t array_p_void_size(array_p_void_t *arr) { return arr->size; }
+
+/*
+  appends val to the end of the array arr
+*/
+bool array_p_void_append(array_p_void_t *arr, void *val) {
+  if (arr->size < arr->capacity) {
+    arr->array[arr->size++] = val;
+    return true;
+  } else {
+    arr->array = realloc(arr->array, ((arr->capacity + 4) * sizeof(void *)));
+
+    if (arr->array) {
+      memset(arr->array + arr->size, 0, 4 * sizeof(void *));
+      arr->capacity += 4;
+
+      arr->array[arr->size++] = val;
+      return true;
+    }
+    errno = ENOMEM;
+    return false;
+  }
+}
+
+/*
+  removes and returns the last value in the array arr
+*/
+void *array_p_void_pop(array_p_void_t *arr) {
+  if (arr->size == 0) {
+    errno = EINVAL;
+    return 0;
+  }
+
+  void *last_value = arr->array[--(arr->size)];
+  arr->array[arr->size] = NULL;
+
+  if (arr->size + 4 < arr->capacity) {
+    arr->array = realloc(arr->array, ((arr->capacity - 4) * sizeof(void *)));
+    arr->capacity -= 4;
+  }
+
+  return last_value;
+}
+
+/*
+  sets val at index in array arr
+*/
+bool array_p_void_setat(array_p_void_t *arr, void *val, size_t index) {
+  if (index < arr->size) {
+    arr->array[index] = val;
+    return true;
+  }
+  errno = ENOMEM;
+  return false;
+}
+
+/*
+  returns the value at index in array arr
+*/
+void *array_p_void_getat(array_p_void_t *arr, size_t index) {
+  if (index < arr->size) {
+    return arr->array[index];
+  }
+  errno = EINVAL;
+  return 0;
+}
+
+/*
+  clear the arr and frees all allocated memory
+*/
+bool array_p_void_clear(array_p_void_t *arr) {
+  free(arr->array);
+  free(arr);
+  return true;
+}
+
 /* array_p_ffi_type_t functions & methods */
 
 /*

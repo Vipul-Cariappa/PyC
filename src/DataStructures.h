@@ -18,6 +18,7 @@ typedef struct _array_long_long_t array_long_long_t;
 typedef struct _array_size_t_t array_size_t_t;
 typedef struct _array_str_t array_str_t;
 typedef struct _array_CXTypeKind_t array_CXTypeKind_t;
+typedef struct _array_p_void_t array_p_void_t;
 typedef struct _array_p_ffi_type_t array_p_ffi_type_t;
 typedef struct _array_Structure_t array_Structure_t;
 typedef struct _array_Union_t array_Union_t;
@@ -170,6 +171,22 @@ bool array_CXTypeKind_setat(array_CXTypeKind_t *arr, enum CXTypeKind val,
                             size_t index);
 enum CXTypeKind array_CXTypeKind_getat(array_CXTypeKind_t *arr, size_t index);
 bool array_CXTypeKind_clear(array_CXTypeKind_t *arr);
+
+/* array of p_void declarations */
+
+struct _array_p_void_t {
+  void **array;
+  size_t size;
+  size_t capacity;
+};
+
+array_p_void_t *array_p_void_new();
+size_t array_p_void_size(array_p_void_t *arr);
+bool array_p_void_append(array_p_void_t *arr, void *val);
+void *array_p_void_pop(array_p_void_t *arr);
+bool array_p_void_setat(array_p_void_t *arr, void *val, size_t index);
+void *array_p_void_getat(array_p_void_t *arr, size_t index);
+bool array_p_void_clear(array_p_void_t *arr);
 
 /* array of p_ffi_type declarations */
 

@@ -5,7 +5,10 @@
 #include "Python.h"
 #include "ffi.h"
 
-extern PyObject *PyC; // python PyC module
+extern PyObject *PyC;         // python PyC module
+void PyClear_PyC(void *self); // module clear function
+extern array_p_void_t
+    *EXTRA_HEAP_MEMORY; // allocated memory to be freed at destruction of module
 
 extern PyObject *py_CppError;     // python Exception CppError
 extern PyObject *py_BindingError; // python Exception BindingError

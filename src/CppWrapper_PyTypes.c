@@ -90,7 +90,8 @@ PyMethodDef PyC_Methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1,
-                          PyC_Methods};
+                          PyC_Methods,           NULL,    NULL,    NULL,
+                          &PyClear_PyC};
 
 // loads *.so file into the running program and parses the header file for
 // symbols

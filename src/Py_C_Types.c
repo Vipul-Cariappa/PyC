@@ -2076,7 +2076,7 @@ static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->isPointer = true;
     selfType->isArray = true;
 
-    char *string = malloc(len + 1);
+    char *string = malloc(len + 1); // FIXME: ?
     strcpy(string, value);
     selfType->pointer = string;
     selfType->arraySize = len;
@@ -2375,10 +2375,22 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   PyTypeObject *py_c_new_type =
       malloc(sizeof(PyTypeObject)); // TODO: free this malloc
 
+  if (py_c_new_type) {
+    array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
+  } else {
+    return PyErr_NoMemory();
+  }
+
   char *struct_name =
       malloc(7 + strlen(structure->name)); // TODO: free this malloc
   strcpy(struct_name, "PyCpp.");
   strcat(struct_name, structure->name);
+
+  if (struct_name) {
+    array_p_void_append(EXTRA_HEAP_MEMORY, struct_name);
+  } else {
+    return PyErr_NoMemory();
+  }
 
   *py_c_new_type = (PyTypeObject){
       PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
@@ -2405,7 +2417,7 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   if (obj) {
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = structure;
-    result->pointer = malloc(structure->structSize);
+    result->pointer = malloc(structure->structSize);  // FIXME ?
     result->parentModule = module;
 
     return (PyObject *)result;
@@ -2604,6 +2616,12 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   PyTypeObject *py_c_new_type =
       malloc(sizeof(PyTypeObject)); // TODO: free this malloc
 
+  if (py_c_new_type) {
+    array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
+  } else {
+    return PyErr_NoMemory();
+  }
+
   char *struct_name = malloc(7 + strlen(u->name)); // TODO: free this malloc
   strcpy(struct_name, "PyCpp.");
   strcat(struct_name, u->name);
@@ -2617,6 +2635,12 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
       .tp_new = PyType_GenericNew,
       .tp_base = &py_c_union_type,
   };
+
+  if (struct_name) {
+    array_p_void_append(EXTRA_HEAP_MEMORY, struct_name);
+  } else {
+    return PyErr_NoMemory();
+  }
 
   if (PyType_Ready(py_c_new_type) < 0) {
     return NULL;
