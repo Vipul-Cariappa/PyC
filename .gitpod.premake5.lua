@@ -1,5 +1,5 @@
 workspace "PyC"
-    configurations { "Debug", "TestCoverage", "Release" }
+    configurations { "Debug", "TestCoverage", "Release", "MemoryTest" }
 
 project "PyC"
     kind "SharedLib"
@@ -25,3 +25,8 @@ project "PyC"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+
+    filter "configurations:MemoryTest"
+        buildoptions { "-fsanitize=address" }
+        defines { "DEBUG" }
+        symbols "On"
