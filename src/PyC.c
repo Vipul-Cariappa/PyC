@@ -230,7 +230,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
 void PyClear_PyC(void *self) {
   size_t len = array_p_void_size(EXTRA_HEAP_MEMORY);
   for (size_t i = 0; i < len; i++) {
-    free(array_p_void_getat(EXTRA_HEAP_MEMORY, i));
+    // free(array_p_void_getat(EXTRA_HEAP_MEMORY, i));
   }
 
   array_p_void_clear(EXTRA_HEAP_MEMORY);

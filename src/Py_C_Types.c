@@ -150,6 +150,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       if (pointer_value == Py_None) {
         selfType->value = 0;
         selfType->pointer = NULL;
+        selfType->freeOnDel = false;
         selfType->isPointer = true;
         selfType->isArray = false;
         selfType->arraySize = 0;
@@ -168,6 +169,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     int value = PyLong_AsLongLong(arg_1);
 
     selfType->value = value;
+    selfType->freeOnDel = false;
     selfType->pointer = &(selfType->value);
     selfType->isPointer = false;
     selfType->isArray = false;
@@ -181,6 +183,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     size_t len = PyTuple_Size(arg_1);
 
     selfType->value = 0;
+    selfType->freeOnDel = true;
     selfType->pointer = calloc(len + 1, sizeof(int));
     selfType->isPointer = true;
     selfType->isArray = true;
@@ -249,7 +252,7 @@ static PyObject *c_int_next(PyObject *self) {
 static void c_int_finalizer(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -2076,7 +2079,7 @@ static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->isPointer = true;
     selfType->isArray = true;
 
-    char *string = malloc(len + 1); // FIXME: ?
+    char *string = malloc(len + 1);
     strcpy(string, value);
     selfType->pointer = string;
     selfType->arraySize = len;
@@ -2126,6 +2129,11 @@ static PyObject *c_char_getattr(PyObject *self, char *attr) {
 static void c_char_finalizer(PyObject *self) {
   // TODO: implement c_char_finalizer
   PyC_c_char *selfType = (PyC_c_char *)self;
+
+  if (selfType->isPointer) {
+    free(selfType->pointer);
+  }
+
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -2417,7 +2425,8 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   if (obj) {
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = structure;
-    result->pointer = malloc(structure->structSize);  // FIXME ?
+    result->pointer = malloc(structure->structSize); // FIXME ?
+    Py_INCREF(module);
     result->parentModule = module;
 
     return (PyObject *)result;

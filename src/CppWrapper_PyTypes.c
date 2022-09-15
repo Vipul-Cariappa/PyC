@@ -237,6 +237,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
         (PyC_CppFunction *)PyObject_CallObject(obj, NULL);
     pyCppFunction->funcType = funcType;
     pyCppFunction->so = selfType->so;
+    Py_INCREF(self);
     pyCppFunction->parentModule = self;
 
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name,

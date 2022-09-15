@@ -559,6 +559,7 @@ void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type,
 
       assert(PyErr_Occurred() == NULL);
       PyObject *arg_num = PyNumber_Long(pyArg);
+      PyErr_Clear();
       PyObject *arg_float = PyNumber_Float(pyArg);
       PyErr_Clear();
 

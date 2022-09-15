@@ -36,6 +36,8 @@ long increment_1(long x) { return ++x; }
 short add_short(short x, short y) { return x + y; }
 
 char *add(char *s, int n) {
+  // TODO: change logic to not use c++ class. proper destruction of c++ class is
+  // not implemented
   std::string *result = new std::string("");
   std::string str = std::string(s);
 
@@ -49,6 +51,8 @@ char *add(char *s, int n) {
 long long add_long_long(long long x, long long y) { return x + y; }
 
 char *repeat_char(char s, int n) {
+  // TODO: change logic to not use c++ class. proper destruction of c++ class is
+  // not implemented
   std::string *result = new std::string("");
   char x[2];
   x[0] = s;
@@ -69,10 +73,13 @@ int copy_int(int *destination, int *source) {
 }
 
 char *concat(char *x, char *y) {
-  std::string a = std::string(x);
-  std::string b = std::string(y);
-  std::string *result = new std::string(a + b);
-  return (char *)result->c_str();
+  size_t len_x = strlen(x);
+  size_t len = len_x + strlen(y) + 1;
+  char *result = (char *)malloc(len); // FIXME: to free
+  strcpy(result, x);
+  stpcpy(result + len_x, y);
+
+  return result;
 }
 
 double pi(int n) {
