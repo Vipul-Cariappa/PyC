@@ -6,6 +6,18 @@
 #include "structmember.h"
 #include <stddef.h>
 
+struct Custom_s_PyTypeObject {
+  PyTypeObject _;
+  Structure *s;
+  PyObject *parentModule;
+};
+
+struct Custom_u_PyTypeObject {
+  PyTypeObject _;
+  Union *u;
+  PyObject *parentModule;
+};
+
 // TODO: better error msg fro c_utypes (unsigned types)
 
 // ----- c_void -----
@@ -2236,8 +2248,8 @@ PyMappingMethods c_struct_as_mapping = {
 PyMemberDef c_struct_members[] = {
     {"is_array", T_BOOL, offsetof(PyC_c_struct, isArray), READONLY,
      "PyC.c_struct.is_array"},
-    {"__python_representation", T_OBJECT, offsetof(PyC_c_struct, pyDictRepr),
-     READONLY, "PyC.c_struct.__python_representation"},
+    // {"__python_representation", T_OBJECT, offsetof(PyC_c_struct, pyDictRepr),
+    //  READONLY, "PyC.c_struct.__python_representation"},
     {NULL, 0, 0, 0, NULL}};
 
 PyMethodDef c_struct_methods[] = {
@@ -2266,7 +2278,6 @@ PyTypeObject py_c_struct_type = {
     .tp_init = &c_struct_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_struct_finalizer,
-    // TODO: use .tp_getset for PyC_c_int's attributes
 };
 
 // c_struct methods
@@ -2275,12 +2286,19 @@ PyTypeObject py_c_struct_type = {
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
+  Structure *s = ((struct Custom_s_PyTypeObject *)self->ob_type)->s;
+
+  selfType->structure = s;
+  selfType->freeOnDel = true;
+  selfType->parentModule =
+      ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
+  selfType->pointer = malloc(s->structSize);
+
   return 0;
 }
 
 // PyC.c_struct.__getattr__
 static PyObject *c_struct_getattr(PyObject *self, char *attr) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
@@ -2346,7 +2364,9 @@ static void c_struct_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  // free(selfType->pointer);
+  if (selfType->pointer && selfType->freeOnDel) {
+    free(selfType->pointer);
+  }
   Py_DECREF(selfType->parentModule);
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -2362,6 +2382,7 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
     PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
     result->structure = selfType->structure;
     result->pointer = malloc(selfType->structure->structSize); // FIXME: malloc
+    result->freeOnDel = true;
     Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
@@ -2374,14 +2395,8 @@ static PyObject *c_struct_call(PyObject *self, PyObject *args,
 
 // helper function
 PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
-  // TODO: implement
-  typedef struct PyC_c_new {
-    PyC_c_struct super;
-    // PyObject_HEAD;
-  } PyC_c_new;
-
-  PyTypeObject *py_c_new_type =
-      malloc(sizeof(PyTypeObject)); // TODO: free this malloc
+  struct Custom_s_PyTypeObject *py_c_new_type =
+      malloc(sizeof(struct Custom_s_PyTypeObject)); // TODO: free this malloc
 
   if (py_c_new_type) {
     array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
@@ -2400,17 +2415,23 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
     return PyErr_NoMemory();
   }
 
-  *py_c_new_type = (PyTypeObject){
-      PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
-      .tp_basicsize = sizeof(PyC_c_new),
-      .tp_itemsize = 0,
-      .tp_flags = Py_TPFLAGS_DEFAULT,
-      .tp_doc = struct_name,
-      .tp_new = PyType_GenericNew,
-      .tp_base = &py_c_struct_type,
+  *py_c_new_type = (struct Custom_s_PyTypeObject){
+      ._ =
+          (PyTypeObject){
+              PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
+              .tp_basicsize = sizeof(PyC_c_struct),
+              .tp_itemsize = 0,
+              .tp_flags = Py_TPFLAGS_DEFAULT,
+              .tp_doc = struct_name,
+              .tp_new = PyType_GenericNew,
+              .tp_base = &py_c_struct_type,
+          },
+      .s = structure,
+      .parentModule = module,
   };
+  Py_INCREF(module);
 
-  if (PyType_Ready(py_c_new_type) < 0) {
+  if (PyType_Ready((PyTypeObject *)py_c_new_type) < 0) {
     return NULL;
   }
 
@@ -2423,14 +2444,9 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
 
   PyObject *obj = PyObject_GetAttrString(PyC, structure->name);
   if (obj) {
-    PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
-    result->structure = structure;
-    result->pointer = malloc(structure->structSize); // FIXME ?
-    Py_INCREF(module);
-    result->parentModule = module;
-
-    return (PyObject *)result;
+    return obj;
   }
+
   PyErr_SetString(py_BindingError,
                   "Unable to access PyCpp.c_struct base class");
   return NULL;
@@ -2493,8 +2509,8 @@ PyMappingMethods c_union_as_mapping = {
 PyMemberDef c_union_members[] = {
     {"is_array", T_BOOL, offsetof(PyC_c_union, isArray), READONLY,
      "PyC.c_union.is_array"},
-    {"__python_representation", T_OBJECT, offsetof(PyC_c_union, pyDictRepr),
-     READONLY, "PyC.c_union.__python_representation"},
+    // {"__python_representation", T_OBJECT, offsetof(PyC_c_union, pyDictRepr),
+    //  READONLY, "PyC.c_union.__python_representation"},
     {NULL, 0, 0, 0, NULL}};
 
 PyMethodDef c_union_methods[] = {
@@ -2528,7 +2544,15 @@ PyTypeObject py_c_union_type = {
 
 // PyC.c_union.__init__
 static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+  Union *s = ((struct Custom_u_PyTypeObject *)self->ob_type)->u;
+
+  selfType->u = s;
+  selfType->freeOnDel = true;
+  selfType->parentModule =
+      ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
+  selfType->pointer = malloc(s->unionSize);
+
   return 0;
 }
 
@@ -2590,7 +2614,9 @@ static void c_union_finalizer(PyObject *self) {
   // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  // free(selfType->pointer);
+  if (selfType->pointer && selfType->freeOnDel) {
+    free(selfType->pointer);
+  }
   Py_DECREF(selfType->parentModule);
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -2606,6 +2632,7 @@ static PyObject *c_union_call(PyObject *self, PyObject *args,
     PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
     result->u = selfType->u;
     result->pointer = malloc(selfType->u->unionSize); // FIXME: malloc
+    result->freeOnDel = true;
     Py_INCREF(selfType->parentModule);
     result->parentModule = selfType->parentModule;
 
@@ -2617,13 +2644,8 @@ static PyObject *c_union_call(PyObject *self, PyObject *args,
 
 // helper function
 PyObject *create_py_c_union(Union *u, PyObject *module) {
-  typedef struct PyC_c_new {
-    PyC_c_union super;
-    // PyObject_HEAD;
-  } PyC_c_new;
-
-  PyTypeObject *py_c_new_type =
-      malloc(sizeof(PyTypeObject)); // TODO: free this malloc
+  struct Custom_u_PyTypeObject *py_c_new_type =
+      malloc(sizeof(struct Custom_u_PyTypeObject)); // TODO: free this malloc
 
   if (py_c_new_type) {
     array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
@@ -2635,23 +2657,29 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   strcpy(struct_name, "PyCpp.");
   strcat(struct_name, u->name);
 
-  *py_c_new_type = (PyTypeObject){
-      PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
-      .tp_basicsize = sizeof(PyC_c_new),
-      .tp_itemsize = 0,
-      .tp_flags = Py_TPFLAGS_DEFAULT,
-      .tp_doc = struct_name,
-      .tp_new = PyType_GenericNew,
-      .tp_base = &py_c_union_type,
-  };
-
   if (struct_name) {
     array_p_void_append(EXTRA_HEAP_MEMORY, struct_name);
   } else {
     return PyErr_NoMemory();
   }
 
-  if (PyType_Ready(py_c_new_type) < 0) {
+  *py_c_new_type = (struct Custom_u_PyTypeObject){
+      ._ =
+          (PyTypeObject){
+              PyVarObject_HEAD_INIT(NULL, 0).tp_name = struct_name,
+              .tp_basicsize = sizeof(PyC_c_union),
+              .tp_itemsize = 0,
+              .tp_flags = Py_TPFLAGS_DEFAULT,
+              .tp_doc = struct_name,
+              .tp_new = PyType_GenericNew,
+              .tp_base = &py_c_union_type,
+          },
+      .u = u,
+      .parentModule = module,
+  };
+  Py_INCREF(module);
+
+  if (PyType_Ready((PyTypeObject *)py_c_new_type) < 0) {
     return NULL;
   }
 
@@ -2664,13 +2692,9 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
 
   PyObject *obj = PyObject_GetAttrString(PyC, u->name);
   if (obj) {
-    PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
-    result->u = u;
-    result->pointer = malloc(u->unionSize); // FIXME ?
-    result->parentModule = module;
-
-    return (PyObject *)result;
+    return obj;
   }
+
   PyErr_SetString(py_BindingError, "Unable to access PyCpp.c_union base class");
   return NULL;
 }

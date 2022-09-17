@@ -529,10 +529,12 @@ Class list_Class_getat(list_Class_t *arr, size_t index);
 Class *list_Class_get_ptr_at(list_Class_t *arr, size_t index);
 bool list_Class_clear(list_Class_t *arr);
 
-// FIXME: dont know where to put this functions
 bool Symbols_clearUnion(Union *s);
 bool Symbols_clearStructure(Structure *s);
 bool Symbols_clearFunction(Function *s);
 bool Symbols_clearFunctionType(FunctionType *s);
 bool Symbols_clearGlobal(Global *s);
 bool Symbols_clearTypedef(TypeDef *s);
+
+// TODO: Merge DataStructure.c and CppTypeInfo.c
+// TODO: Maybe change functions in DataStructure to preprocessor defines

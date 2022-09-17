@@ -391,6 +391,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
           PyC_c_struct *resultStruct = (PyC_c_struct *)result;
           free(resultStruct->pointer);
           resultStruct->pointer = *(void **)arg;
+          resultStruct->freeOnDel = false;
 
           Py_DECREF(obj);
           return result;
@@ -406,6 +407,7 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
           PyC_c_union *resultUnion = (PyC_c_union *)result;
           free(resultUnion->pointer);
           resultUnion->pointer = *(void **)arg;
+          resultUnion->freeOnDel = false;
 
           Py_DECREF(obj);
           return result;

@@ -728,7 +728,6 @@ bool array_Structure_append(array_Structure_t *arr, Structure val) {
   removes and returns the last value in the array arr
 */
 Structure array_Structure_pop(array_Structure_t *arr) {
-  // TODO: clean allocated memory pointed by the Structure
   if (arr->size == 0) {
     errno = EINVAL;
     return (Structure){0};
@@ -1097,7 +1096,6 @@ bool array_Union_append(array_Union_t *arr, Union val) {
   removes and returns the last value in the array arr
 */
 Union array_Union_pop(array_Union_t *arr) {
-  // TODO: clean allocated memory pointed by the Union
   if (arr->size == 0) {
     errno = EINVAL;
     return (Union){0};
@@ -1151,7 +1149,6 @@ Union *array_Union_get_ptr_at(array_Union_t *arr, size_t index) {
   clear the arr and frees all allocated memory
 */
 bool array_Union_clear(array_Union_t *arr) {
-  // TODO: clean allocated memory pointed by each Union in array
   for (size_t i = 0; i < arr->size; i++) {
     Symbols_clearUnion(arr->array + i);
   }
