@@ -2269,7 +2269,6 @@ PyTypeObject py_c_struct_type = {
     .tp_getattr = &c_struct_getattr,
     .tp_setattr = &c_struct_setattr,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_call = c_struct_call,
     .tp_doc = "PyCpp.c_struct",
     .tp_iter = &c_struct_iter,
     .tp_iternext = &c_struct_next,
@@ -2292,6 +2291,8 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   selfType->freeOnDel = true;
   selfType->parentModule =
       ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
+  Py_INCREF(selfType->parentModule);
+
   selfType->pointer = malloc(s->structSize);
 
   return 0;
@@ -2371,28 +2372,6 @@ static void c_struct_finalizer(PyObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-// PyC.c_struct.__call__
-static PyObject *c_struct_call(PyObject *self, PyObject *args,
-                               PyObject *kwargs) {
-  // TODO: implement
-  PyC_c_struct *selfType = (PyC_c_struct *)self;
-
-  PyObject *obj = PyObject_GetAttrString(PyC, selfType->structure->name);
-  if (obj) {
-    PyC_c_struct *result = (PyC_c_struct *)PyObject_CallObject(obj, NULL);
-    result->structure = selfType->structure;
-    result->pointer = malloc(selfType->structure->structSize); // FIXME: malloc
-    result->freeOnDel = true;
-    Py_INCREF(selfType->parentModule);
-    result->parentModule = selfType->parentModule;
-
-    return (PyObject *)result;
-  }
-  PyErr_SetString(py_BindingError,
-                  "Unable to access PyCpp.c_struct base class");
-  return NULL;
-}
-
 // helper function
 PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   struct Custom_s_PyTypeObject *py_c_new_type =
@@ -2429,7 +2408,7 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
       .s = structure,
       .parentModule = module,
   };
-  Py_INCREF(module);
+  // Py_INCREF(module);
 
   if (PyType_Ready((PyTypeObject *)py_c_new_type) < 0) {
     return NULL;
@@ -2438,7 +2417,6 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   Py_INCREF(py_c_new_type);
   if (PyModule_AddObject(PyC, structure->name, (PyObject *)py_c_new_type) < 0) {
     Py_DECREF(py_c_new_type);
-    Py_DECREF(PyC);
     return NULL;
   }
 
@@ -2529,7 +2507,6 @@ PyTypeObject py_c_union_type = {
     .tp_getattr = &c_union_getattr,
     .tp_setattr = &c_union_setattr,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_call = c_union_call,
     .tp_doc = "PyCpp.c_union",
     .tp_iter = &c_union_iter,
     .tp_iternext = &c_union_next,
@@ -2551,6 +2528,7 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   selfType->freeOnDel = true;
   selfType->parentModule =
       ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
+  Py_INCREF(selfType->parentModule);
   selfType->pointer = malloc(s->unionSize);
 
   return 0;
@@ -2621,27 +2599,6 @@ static void c_union_finalizer(PyObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-// PyC.c_union.__call__
-static PyObject *c_union_call(PyObject *self, PyObject *args,
-                              PyObject *kwargs) {
-  // TODO: implement
-  PyC_c_union *selfType = (PyC_c_union *)self;
-
-  PyObject *obj = PyObject_GetAttrString(PyC, selfType->u->name);
-  if (obj) {
-    PyC_c_union *result = (PyC_c_union *)PyObject_CallObject(obj, NULL);
-    result->u = selfType->u;
-    result->pointer = malloc(selfType->u->unionSize); // FIXME: malloc
-    result->freeOnDel = true;
-    Py_INCREF(selfType->parentModule);
-    result->parentModule = selfType->parentModule;
-
-    return (PyObject *)result;
-  }
-  PyErr_SetString(py_BindingError, "Unable to access PyCpp.c_union base class");
-  return NULL;
-}
-
 // helper function
 PyObject *create_py_c_union(Union *u, PyObject *module) {
   struct Custom_u_PyTypeObject *py_c_new_type =
@@ -2677,7 +2634,7 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
       .u = u,
       .parentModule = module,
   };
-  Py_INCREF(module);
+  // Py_INCREF(module);
 
   if (PyType_Ready((PyTypeObject *)py_c_new_type) < 0) {
     return NULL;
@@ -2686,7 +2643,6 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   Py_INCREF(py_c_new_type);
   if (PyModule_AddObject(PyC, u->name, (PyObject *)py_c_new_type) < 0) {
     Py_DECREF(py_c_new_type);
-    Py_DECREF(PyC);
     return NULL;
   }
 
