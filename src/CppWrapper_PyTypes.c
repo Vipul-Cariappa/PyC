@@ -401,28 +401,30 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   FunctionType *funcType =
       array_FunctionType_get_ptr_at(selfType->funcType->functionTypes, funcNum);
 
-  // getting function
+  if (!funcType->func) {
+
+    // getting function
 #if defined(__linux__)
-  void *func =
-      dlsym(selfType->so,
-            funcType->mangledName); // TODO: store the func* in FunctionType
-  if (!func) {
-    PyErr_SetString(py_CppError, dlerror());
-    return NULL;
-  }
+    void *func = dlsym(selfType->so, funcType->mangledName);
+    if (!func) {
+      PyErr_SetString(py_CppError, dlerror());
+      return NULL;
+    }
 #endif
 
 #if defined(_WIN32)
-  void *func = GetProcAddress(selfType->so, funcType->mangledName);
+    void *func = GetProcAddress(selfType->so, funcType->mangledName);
 
-  if (!func) {
-    PyErr_SetString(
-        py_CppError,
-        "Could not get the required symbol"); // TODO: better error message
-    return NULL;
-  }
+    if (!func) {
+      PyErr_SetString(
+          py_CppError,
+          "Could not get the required symbol"); // TODO: better error message
+      return NULL;
+    }
 #endif
 
+    funcType->func = func;
+  }
   size_t args_count = funcType->argsCount;
 
   array_p_ffi_type_t *args_list = funcType->argsType;
@@ -449,7 +451,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, &funcType->returnType,
                    ffi_args) == FFI_OK) {
-    ffi_call(&cif, (void (*)())func, rc, args_values);
+    ffi_call(&cif, funcType->func, rc, args_values);
   }
 
   PyObject *result =
@@ -477,7 +479,6 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 // PyCpp.CppFunction.__del__
 static void Cpp_FunctionGC(PyObject *self) {
-  // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
 
   Py_DECREF(selfType->parentModule);

@@ -711,6 +711,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
     FunctionType funcType;
     funcType.mangledName = mangledName;
+    funcType.func = NULL;
 
     Structure *underlyingReturnStructType = NULL;
     Union *underlyingReturnUnionType = NULL;

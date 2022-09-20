@@ -18,8 +18,8 @@ typedef struct PyC_c_void {
 
 static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static void c_void_finalizer(PyObject *self);
-static PyObject *c_void_do_free(PyObject *self, PyObject *args,
-                                PyObject *kwargs);
+static PyObject *c_void_free_on_del(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
 
 // c_type: c_int
 extern PyTypeObject py_c_int_type;
@@ -43,8 +43,8 @@ static void c_int_finalizer(PyObject *self);
 static PyObject *c_int_append(PyObject *self, PyObject *args);
 static PyObject *c_int_pop(PyObject *self);
 static PyObject *c_int_value(PyObject *self);
-static PyObject *c_int_donot_free(PyObject *self, PyObject *args,
-                                  PyObject *kwargs);
+static PyObject *c_int_free_on_del(PyObject *self, PyObject *args,
+                                   PyObject *kwargs);
 static PyObject *c_int_to_pointer(PyObject *self);
 static PyObject *c_int_to_int(PyObject *self);
 static Py_ssize_t c_int_len(PyObject *self);
@@ -72,8 +72,8 @@ static void c_double_finalizer(PyObject *self);
 static PyObject *c_double_append(PyObject *self, PyObject *args);
 static PyObject *c_double_pop(PyObject *self);
 static PyObject *c_double_value(PyObject *self);
-static PyObject *c_double_donot_free(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
+static PyObject *c_double_free_on_del(PyObject *self, PyObject *args,
+                                      PyObject *kwargs);
 static PyObject *c_double_to_pointer(PyObject *self);
 static PyObject *c_double_to_float(PyObject *self);
 static Py_ssize_t c_double_len(PyObject *self);
@@ -100,8 +100,8 @@ static void c_bool_finalizer(PyObject *self);
 static PyObject *c_bool_append(PyObject *self, PyObject *args);
 static PyObject *c_bool_pop(PyObject *self);
 static PyObject *c_bool_value(PyObject *self);
-static PyObject *c_bool_donot_free(PyObject *self, PyObject *args,
-                                   PyObject *kwargs);
+static PyObject *c_bool_free_on_del(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
 static PyObject *c_bool_to_pointer(PyObject *self);
 static int c_bool_to_bool(PyObject *self);
 static Py_ssize_t c_bool_len(PyObject *self);
@@ -128,8 +128,8 @@ static void c_char_finalizer(PyObject *self);
 static PyObject *c_char_append(PyObject *self, PyObject *args);
 static PyObject *c_char_pop(PyObject *self);
 static PyObject *c_char_value(PyObject *self);
-static PyObject *c_char_donot_free(PyObject *self, PyObject *args,
-                                   PyObject *kwargs);
+static PyObject *c_char_free_on_del(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
 static PyObject *c_char_to_pointer(PyObject *self);
 static PyObject *c_char_to_str(PyObject *self);
 static Py_ssize_t c_char_len(PyObject *self);
@@ -157,8 +157,8 @@ static void c_float_finalizer(PyObject *self);
 static PyObject *c_float_append(PyObject *self, PyObject *args);
 static PyObject *c_float_pop(PyObject *self);
 static PyObject *c_float_value(PyObject *self);
-static PyObject *c_float_donot_free(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+static PyObject *c_float_free_on_del(PyObject *self, PyObject *args,
+                                     PyObject *kwargs);
 static PyObject *c_float_to_pointer(PyObject *self);
 static PyObject *c_float_to_float(PyObject *self);
 static Py_ssize_t c_float_len(PyObject *self);
@@ -187,8 +187,8 @@ static void c_short_finalizer(PyObject *self);
 static PyObject *c_short_append(PyObject *self, PyObject *args);
 static PyObject *c_short_pop(PyObject *self);
 static PyObject *c_short_value(PyObject *self);
-static PyObject *c_short_donot_free(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+static PyObject *c_short_free_on_del(PyObject *self, PyObject *args,
+                                     PyObject *kwargs);
 static PyObject *c_short_to_pointer(PyObject *self);
 static PyObject *c_short_to_int(PyObject *self);
 static Py_ssize_t c_short_len(PyObject *self);
@@ -217,8 +217,8 @@ static void c_long_finalizer(PyObject *self);
 static PyObject *c_long_append(PyObject *self, PyObject *args);
 static PyObject *c_long_pop(PyObject *self);
 static PyObject *c_long_value(PyObject *self);
-static PyObject *c_long_donot_free(PyObject *self, PyObject *args,
-                                   PyObject *kwargs);
+static PyObject *c_long_free_on_del(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
 static PyObject *c_long_to_pointer(PyObject *self);
 static PyObject *c_long_to_int(PyObject *self);
 static Py_ssize_t c_long_len(PyObject *self);
@@ -253,8 +253,8 @@ static PyObject *c_struct_iter(PyObject *self);
 static PyObject *c_struct_next(PyObject *self);
 static PyObject *c_struct_append(PyObject *self, PyObject *args);
 static PyObject *c_struct_pop(PyObject *self);
-static PyObject *c_struct_donot_free(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
+static PyObject *c_struct_free_on_del(PyObject *self, PyObject *args,
+                                      PyObject *kwargs);
 static PyObject *c_struct_to_pointer(PyObject *self);
 static Py_ssize_t c_struct_len(PyObject *self);
 static PyObject *c_struct_getitem(PyObject *self, PyObject *attr);
@@ -289,8 +289,8 @@ static PyObject *c_union_iter(PyObject *self);
 static PyObject *c_union_next(PyObject *self);
 static PyObject *c_union_append(PyObject *self, PyObject *args);
 static PyObject *c_union_pop(PyObject *self);
-static PyObject *c_union_donot_free(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+static PyObject *c_union_free_on_del(PyObject *self, PyObject *args,
+                                     PyObject *kwargs);
 static PyObject *c_union_to_pointer(PyObject *self);
 static Py_ssize_t c_union_len(PyObject *self);
 static PyObject *c_union_getitem(PyObject *self, PyObject *attr);

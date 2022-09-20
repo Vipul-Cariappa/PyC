@@ -377,8 +377,39 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       return result;
     }
     case CXType_Char_U:
-    case CXType_Char_S:
-      return PyUnicode_FromString(*(char **)arg);
+    case CXType_Char_S: {
+      PyObject *obj = PyObject_GetAttrString(PyC, "c_char");
+      if (!obj) {
+        return NULL;
+      }
+
+      PyObject *str = PyUnicode_FromString("");
+      PyObject *args = PyTuple_New(1);
+      if (!str && !args) {
+        return NULL;
+      }
+
+      PyTuple_SetItem(args, 0, str);
+
+      PyObject *result = PyObject_Call(obj, args, NULL);
+      if (!result) {
+        Py_DECREF(obj);
+        Py_DECREF(args);
+        return NULL;
+      }
+
+      PyC_c_char *c_char = (PyC_c_char *)result;
+      c_char->pointer = *(char **)arg;
+      c_char->freeOnDel = false;
+      c_char->isPointer = true;
+      c_char->isArray = false;
+      c_char->arrayCapacity = 0;
+      c_char->arraySize = 0;
+
+      Py_DECREF(obj);
+      Py_DECREF(args);
+      return result;
+    }
 
     case CXType_Record:
     case CXType_Elaborated: {

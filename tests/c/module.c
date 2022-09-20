@@ -26,7 +26,7 @@ int write_int(int *destination, int value) {
 }
 
 long *returns_pointer() {
-  long *result = malloc(sizeof(long)); // FIXME: to free
+  long *result = malloc(sizeof(long));
   *result = 0;
 
   *result = (*result << 8) + 0;
@@ -60,7 +60,7 @@ unsigned long long invert_bit(unsigned long long x, unsigned long long pos) {
 char *concat(char *x, char *y) {
   size_t len_x = strlen(x);
   size_t len = len_x + strlen(y) + 1;
-  char *result = (char *)malloc(len); // FIXME: to free
+  char *result = (char *)malloc(len);
   strcpy(result, x);
   stpcpy(result + len_x, y);
 
@@ -86,7 +86,7 @@ struct _RECT get_rect(int x, int y) {
 }
 
 RECT *rect_add(RECT *a, RECT *b) {
-  RECT *result = (RECT *)malloc(sizeof(RECT)); // FIXME: to free
+  RECT *result = (RECT *)malloc(sizeof(RECT));
   result->x = a->x + b->x;
   result->y = a->y + b->y;
   return result;
@@ -113,7 +113,7 @@ union Number creat_number_with_int(int x) {
 }
 
 union Number *creat_number_ptr_with_int(int x) {
-  union Number *n = malloc(sizeof(union Number)); // FIXME: to free
+  union Number *n = malloc(sizeof(union Number));
   n->i = x;
   return n;
 }

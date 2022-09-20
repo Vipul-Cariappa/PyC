@@ -36,24 +36,20 @@ long increment_1(long x) { return ++x; }
 short add_short(short x, short y) { return x + y; }
 
 char *add(char *s, int n) {
-  // TODO: change logic to not use c++ class. proper destruction of c++ class is
-  // not implemented
-  std::string *result = new std::string("");
+  std::string result = std::string("");
   std::string str = std::string(s);
 
   for (int i = 0; i < n; i++) {
-    *result += str;
+    result += str;
   }
 
-  return (char *)result->c_str();
+  return strdup(result.c_str());
 }
 
 long long add_long_long(long long x, long long y) { return x + y; }
 
 char *repeat_char(char s, int n) {
-  // TODO: change logic to not use c++ class. proper destruction of c++ class is
-  // not implemented
-  std::string *result = new std::string("");
+  std::string result = std::string("");
   char x[2];
   x[0] = s;
   x[1] = 0;
@@ -61,10 +57,10 @@ char *repeat_char(char s, int n) {
   std::string str = std::string(x);
 
   for (int i = 0; i < n; i++) {
-    *result += str;
+    result += str;
   }
 
-  return (char *)result->c_str();
+  return strdup(result.c_str());
 }
 
 int copy_int(int *destination, int *source) {
@@ -73,13 +69,7 @@ int copy_int(int *destination, int *source) {
 }
 
 char *concat(char *x, char *y) {
-  size_t len_x = strlen(x);
-  size_t len = len_x + strlen(y) + 1;
-  char *result = (char *)malloc(len); // FIXME: to free
-  strcpy(result, x);
-  stpcpy(result + len_x, y);
-
-  return result;
+  return strdup((std::string(x) + std::string(y)).c_str());
 }
 
 double pi(int n) {
@@ -96,28 +86,20 @@ double pi(int n) {
   return pi;
 }
 
-// RECT *get_rect(int x, int y)
-// {
-//     RECT *result = (RECT *)malloc(sizeof(RECT));
-//     result->x = x;
-//     result->y = y;
-//     return result;
-// }
+RECT *get_rect(int x, int y) {
+  RECT *result = (RECT *)malloc(sizeof(RECT));
+  result->x = x;
+  result->y = y;
+  return result;
+}
 
-// RECT *rect_add(RECT *a, RECT *b)
-// {
-//     RECT *result = (RECT *)malloc(sizeof(RECT));
-//     result->x = a->x + b->x;
-//     result->y = a->y + b->y;
-//     return result;
-// }
+RECT *rect_add(RECT *a, RECT *b) {
+  RECT *result = (RECT *)malloc(sizeof(RECT));
+  result->x = a->x + b->x;
+  result->y = a->y + b->y;
+  return result;
+}
 
-// int get_area(RECT a)
-// {
-//     return a.x * a.y;
-// }
+int get_area(RECT a) { return a.x * a.y; }
 
-// int get_periment(RECT a)
-// {
-//     return 2 * (a.x + a.y);
-// }
+int get_periment(RECT a) { return 2 * (a.x + a.y); }

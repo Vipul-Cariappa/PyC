@@ -92,6 +92,7 @@ struct _FunctionType {
   Structure *returnUnderlyingStruct;     // for type convertion
   Union *returnUnderlyingUnion;          // for type convertion
   size_t argsCount;
+  void (*func)(); // pointer to the function
 };
 
 struct _Function {

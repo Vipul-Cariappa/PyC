@@ -748,8 +748,11 @@ Structure array_Structure_pop(array_Structure_t *arr) {
 */
 bool array_Structure_setat(array_Structure_t *arr, Structure val,
                            size_t index) {
-  // TODO: clean allocated memory pointed by the existing Structure
   if (index < arr->size) {
+    if ((arr->array[index]).name) {
+      Symbols_clearStructure(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -1116,6 +1119,10 @@ Union array_Union_pop(array_Union_t *arr) {
 */
 bool array_Union_setat(array_Union_t *arr, Union val, size_t index) {
   if (index < arr->size) {
+    if ((arr->array[index]).name) {
+      Symbols_clearUnion(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -1459,7 +1466,6 @@ bool array_Global_append(array_Global_t *arr, Global val) {
   removes and returns the last value in the array arr
 */
 Global array_Global_pop(array_Global_t *arr) {
-  // TODO: clean allocated memory pointed by the Global
   if (arr->size == 0) {
     errno = EINVAL;
     return (Global){0};
@@ -1480,6 +1486,10 @@ Global array_Global_pop(array_Global_t *arr) {
 */
 bool array_Global_setat(array_Global_t *arr, Global val, size_t index) {
   if (index < arr->size) {
+    if ((arr->array[index]).name) {
+      Symbols_clearGlobal(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -1513,7 +1523,6 @@ Global *array_Global_get_ptr_at(array_Global_t *arr, size_t index) {
   clear the arr and frees all allocated memory
 */
 bool array_Global_clear(array_Global_t *arr) {
-  // TODO: clean allocated memory pointed by each Global in array
   for (size_t i = 0; i < arr->size; i++) {
     Symbols_clearGlobal(arr->array + i);
   }
@@ -1719,7 +1728,6 @@ bool array_TypeDef_append(array_TypeDef_t *arr, TypeDef val) {
   removes and returns the last value in the array arr
 */
 TypeDef array_TypeDef_pop(array_TypeDef_t *arr) {
-  // TODO: clean allocated memory pointed by the TypeDef
   if (arr->size == 0) {
     errno = EINVAL;
     return (TypeDef){0};
@@ -1740,6 +1748,10 @@ TypeDef array_TypeDef_pop(array_TypeDef_t *arr) {
 */
 bool array_TypeDef_setat(array_TypeDef_t *arr, TypeDef val, size_t index) {
   if (index < arr->size) {
+    if ((arr->array[index]).name) {
+      Symbols_clearTypedef(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -1773,7 +1785,6 @@ TypeDef *array_TypeDef_get_ptr_at(array_TypeDef_t *arr, size_t index) {
   clear the arr and frees all allocated memory
 */
 bool array_TypeDef_clear(array_TypeDef_t *arr) {
-  // TODO: clean allocated memory pointed by each TypeDef in array
   for (size_t i = 0; i < arr->size; i++) {
     Symbols_clearTypedef(arr->array + i);
   }
@@ -1980,7 +1991,6 @@ bool array_FunctionType_append(array_FunctionType_t *arr, FunctionType val) {
   removes and returns the last value in the array arr
 */
 FunctionType array_FunctionType_pop(array_FunctionType_t *arr) {
-  // TODO: clean allocated memory pointed by the FunctionType
   if (arr->size == 0) {
     errno = EINVAL;
     return (FunctionType){0};
@@ -2003,6 +2013,10 @@ FunctionType array_FunctionType_pop(array_FunctionType_t *arr) {
 bool array_FunctionType_setat(array_FunctionType_t *arr, FunctionType val,
                               size_t index) {
   if (index < arr->size) {
+    if ((arr->array[index]).mangledName) {
+      Symbols_clearFunctionType(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -2037,7 +2051,6 @@ FunctionType *array_FunctionType_get_ptr_at(array_FunctionType_t *arr,
   clear the arr and frees all allocated memory
 */
 bool array_FunctionType_clear(array_FunctionType_t *arr) {
-  // TODO: clean allocated memory pointed by each FunctionType in array
   for (size_t i = 0; i < arr->size; i++) {
     Symbols_clearFunctionType(arr->array + i);
   }
@@ -2245,7 +2258,6 @@ bool array_Function_append(array_Function_t *arr, Function val) {
   removes and returns the last value in the array arr
 */
 Function array_Function_pop(array_Function_t *arr) {
-  // TODO: clean allocated memory pointed by the Function
   if (arr->size == 0) {
     errno = EINVAL;
     return (Function){0};
@@ -2266,6 +2278,10 @@ Function array_Function_pop(array_Function_t *arr) {
 */
 bool array_Function_setat(array_Function_t *arr, Function val, size_t index) {
   if (index < arr->size) {
+    if ((arr->array[index]).name) {
+      Symbols_clearFunction(arr->array + index);
+    }
+
     arr->array[index] = val;
     return true;
   }
@@ -2299,7 +2315,6 @@ Function *array_Function_get_ptr_at(array_Function_t *arr, size_t index) {
   clear the arr and frees all allocated memory
 */
 bool array_Function_clear(array_Function_t *arr) {
-  // TODO: clean allocated memory pointed by each Function in array
   for (size_t i = 0; i < arr->size; i++) {
     Symbols_clearFunction(arr->array + i);
   }
@@ -2504,7 +2519,6 @@ bool array_Class_append(array_Class_t *arr, Class val) {
   removes and returns the last value in the array arr
 */
 Class array_Class_pop(array_Class_t *arr) {
-  // TODO: clean allocated memory pointed by the Class
   if (arr->size == 0) {
     errno = EINVAL;
     return (Class){0};
@@ -2524,6 +2538,7 @@ Class array_Class_pop(array_Class_t *arr) {
   sets val at index in array arr
 */
 bool array_Class_setat(array_Class_t *arr, Class val, size_t index) {
+  // TODO: clean allocated memory pointed by each Class in array
   if (index < arr->size) {
     arr->array[index] = val;
     return true;
