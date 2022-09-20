@@ -27,6 +27,11 @@ PyMethodDef c_void_methods[] = {
      METH_VARARGS | METH_KEYWORDS, "c_int.free_on_del()"},
     {NULL, NULL, 0, NULL}};
 
+PyMemberDef c_void_members[] = {{"_free_on_del", T_BOOL,
+                                 offsetof(PyC_c_void, freeOnDel), READONLY,
+                                 "PyC.c_void._free_on_del"},
+                                {NULL, 0, 0, 0, NULL}};
+
 PyTypeObject py_c_void_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_void",
     .tp_basicsize = sizeof(PyC_c_void),
@@ -37,7 +42,7 @@ PyTypeObject py_c_void_type = {
     // .tp_iter = &c_void_iter,
     // .tp_iternext = &c_void_next,
     .tp_methods = c_void_methods,
-    // .tp_members = c_void_members,
+    .tp_members = c_void_members,
     .tp_init = &c_void_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_void_finalizer,
@@ -103,6 +108,8 @@ PyMethodDef c_int_methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_int_members[] = {
+    {"_free_on_del", T_BOOL, offsetof(PyC_c_int, freeOnDel), READONLY,
+     "PyC.c_int._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_int, isPointer), READONLY,
      "PyC.c_int.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_int, isArray), READONLY,
@@ -479,6 +486,8 @@ PyMethodDef c_double_methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_double_members[] = {
+    {"_free_on_del", T_BOOL, offsetof(PyC_c_double, freeOnDel), READONLY,
+     "PyC.c_douPyC_c_double._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_double, isPointer), READONLY,
      "PyC.c_double.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_double, isArray), READONLY,
@@ -807,6 +816,8 @@ PyMethodDef c_float_methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_float_members[] = {
+    {"_free_on_del", T_BOOL, offsetof(PyC_c_float, freeOnDel), READONLY,
+     "PyC.c_float._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_float, isPointer), READONLY,
      "PyC.c_float.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_float, isArray), READONLY,
@@ -1289,6 +1300,8 @@ PyMethodDef c_short_methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_short_members[] = {
+    {"_free_on_del", T_BOOL, offsetof(PyC_c_short, freeOnDel), READONLY,
+     "PyC.c_short._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_short, isPointer), READONLY,
      "PyC.c_short.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_short, isArray), READONLY,
@@ -1657,6 +1670,8 @@ PyMethodDef c_long_methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_long_members[] = {
+    {"_free_on_del", T_BOOL, offsetof(PyC_c_long, freeOnDel), READONLY,
+     "PyC.c_long._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_long, isPointer), READONLY,
      "PyC.c_long.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_long, isArray), READONLY,
