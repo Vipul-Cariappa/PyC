@@ -1,6 +1,5 @@
 #define PY_SSIZE_T_CLEAN
 #include "CppTypeInfo.h"
-#include "DataStructures.h"
 #include "PyC.h"
 #include "Py_C_Types.h"
 #include "Python.h"
@@ -399,7 +398,7 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   FunctionType *funcType =
-      array_FunctionType_get_ptr_at(selfType->funcType->functionTypes, funcNum);
+      FunctionType_array_get_ptr_at(selfType->funcType->functionTypes, funcNum);
 
   if (!funcType->func) {
 
@@ -427,14 +426,14 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
   size_t args_count = funcType->argsCount;
 
-  array_p_ffi_type_t *args_list = funcType->argsType;
+  p_ffi_type_array_t *args_list = funcType->argsType;
   ffi_cif cif;
   ffi_type **ffi_args =
       (ffi_type **)malloc(sizeof(ffi_type *) * (args_count + 1));
   void *rc = malloc(sizeof(funcType->returnType.size));
 
   for (int i = 0; i < args_count; i++) {
-    ffi_args[i] = array_p_ffi_type_getat(args_list, i);
+    ffi_args[i] = p_ffi_type_array_getat(args_list, i);
   }
   ffi_args[args_count] = NULL;
 

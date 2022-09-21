@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CppTypeInfo.h"
-#include "DataStructures.h"
+#include "DS.h"
 #include "Python.h"
 #include "ffi.h"
 
 extern PyObject *PyC;         // python PyC module
 void PyClear_PyC(void *self); // module clear function
-extern array_p_void_t
+extern p_void_array_t
     *EXTRA_HEAP_MEMORY; // allocated memory to be freed at destruction of module
 
 extern PyObject *py_CppError;     // python Exception CppError
@@ -20,7 +20,7 @@ extern PyModuleDef PyC_Module;
 const char *ffi_type_To_char_p(ffi_type type);
 const char *CXTypeKind_TO_char_p(enum CXTypeKind type);
 ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name);
-void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type,
+void **pyArgs_to_cppArgs(PyObject *args, p_ffi_type_array_t *args_type,
                          bool *free_at, void **extras_to_free);
 int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);
 PyObject *cppArg_to_pyArg(void *arg, ffi_type type,

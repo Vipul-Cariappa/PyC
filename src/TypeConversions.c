@@ -1,5 +1,4 @@
 #define PY_SSIZE_T_CLEAN
-#include "DataStructures.h"
 #include "PyC.h"
 #include "Py_C_Types.h"
 #include "Python.h"
@@ -472,16 +471,16 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
         for (size_t i = 0; i < underlying_struct->attrCount; i++) {
           PyObject *attr_name = PyUnicode_FromString(
-              array_str_getat(underlying_struct->attrNames, i));
+              str_array_getat(underlying_struct->attrNames, i));
 
           PyObject *item = cppArg_to_pyArg(
               (char *)arg_data +
-                  (array_long_long_getat(underlying_struct->offsets, i) / 8),
-              *array_p_ffi_type_getat(underlying_struct->attrTypes, i),
-              array_CXTypeKind_getat(underlying_struct->attrUnderlyingType, i),
-              array_p_Structure_getat(underlying_struct->attrUnderlyingStructs,
+                  (long_long_array_getat(underlying_struct->offsets, i) / 8),
+              *p_ffi_type_array_getat(underlying_struct->attrTypes, i),
+              CXTypeKind_array_getat(underlying_struct->attrUnderlyingType, i),
+              p_Structure_array_getat(underlying_struct->attrUnderlyingStructs,
                                       i),
-              array_p_Union_getat(underlying_struct->attrUnderlyingUnions, i),
+              p_Union_array_getat(underlying_struct->attrUnderlyingUnions, i),
               module);
 
           if (PyObject_SetAttr(result, attr_name, item)) {
@@ -515,15 +514,15 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
 
         for (size_t i = 0; i < underlying_union->attrCount; i++) {
           PyObject *attr_name = PyUnicode_FromString(
-              array_str_getat(underlying_union->attrNames, i));
+              str_array_getat(underlying_union->attrNames, i));
 
           PyObject *item = cppArg_to_pyArg(
               (void *)arg_data,
-              *array_p_ffi_type_getat(underlying_union->attrTypes, i),
-              array_CXTypeKind_getat(underlying_union->attrUnderlyingType, i),
-              array_p_Structure_getat(underlying_union->attrUnderlyingStructs,
+              *p_ffi_type_array_getat(underlying_union->attrTypes, i),
+              CXTypeKind_array_getat(underlying_union->attrUnderlyingType, i),
+              p_Structure_array_getat(underlying_union->attrUnderlyingStructs,
                                       i),
-              array_p_Union_getat(underlying_union->attrUnderlyingUnions, i),
+              p_Union_array_getat(underlying_union->attrUnderlyingUnions, i),
               module);
 
           if (PyObject_SetAttr(result, attr_name, item)) {
@@ -559,9 +558,9 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
   }
 }
 
-void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type,
+void **pyArgs_to_cppArgs(PyObject *args, p_ffi_type_array_t *args_type,
                          bool *free_at, void **extras_to_free) {
-  size_t args_len = array_p_ffi_type_size(args_type);
+  size_t args_len = p_ffi_type_array_size(args_type);
 
   if (PyTuple_Size(args) != args_len) {
     PyErr_SetString(py_BindingError,
@@ -572,7 +571,7 @@ void **pyArgs_to_cppArgs(PyObject *args, array_p_ffi_type_t *args_type,
   void **rvalue = (void **)malloc(sizeof(void *) * (args_len + 1));
 
   for (int i = 0; i < args_len; i++) {
-    ffi_type type = *array_p_ffi_type_getat(args_type, i);
+    ffi_type type = *p_ffi_type_array_getat(args_type, i);
     PyObject *pyArg = PyTuple_GetItem(args, i);
 
     if (pyArg == Py_True) {
@@ -773,13 +772,13 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
 
   for (int i = 0; i < funcCount; i++) {
     FunctionType *funcType =
-        array_FunctionType_get_ptr_at(funcs->functionTypes, i);
+        FunctionType_array_get_ptr_at(funcs->functionTypes, i);
 
     size_t funcTypeArgsCount = funcType->argsCount;
     if ((argsCount == funcTypeArgsCount) && (argsCount != 0)) {
       for (int j = 0; j < argsCount; j++) {
         ffi_type *type_from_decl =
-            array_p_ffi_type_getat(funcType->argsType, j);
+            p_ffi_type_array_getat(funcType->argsType, j);
         PyObject *pyArg = PyTuple_GetItem(args, j);
 
         switch (type_from_decl->type) {

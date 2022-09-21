@@ -1,6 +1,5 @@
 #define PY_SSIZE_T_CLEAN
 #include "Py_C_Types.h"
-#include "DataStructures.h"
 #include "PyC.h"
 #include "Python.h"
 #include "structmember.h"
@@ -2297,16 +2296,16 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
     PyErr_Clear();
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
-    if (!(strcmp(attr, array_str_getat(selfType->structure->attrNames, i)))) {
+    if (!(strcmp(attr, str_array_getat(selfType->structure->attrNames, i)))) {
       char *data = (char *)selfType->pointer;
 
       return cppArg_to_pyArg(
-          data + (array_long_long_getat(selfType->structure->offsets, i) / 8),
-          *array_p_ffi_type_getat(selfType->structure->attrTypes, i),
-          array_CXTypeKind_getat(selfType->structure->attrUnderlyingType, i),
-          array_p_Structure_getat(selfType->structure->attrUnderlyingStructs,
+          data + (long_long_array_getat(selfType->structure->offsets, i) / 8),
+          *p_ffi_type_array_getat(selfType->structure->attrTypes, i),
+          CXTypeKind_array_getat(selfType->structure->attrUnderlyingType, i),
+          p_Structure_array_getat(selfType->structure->attrUnderlyingStructs,
                                   i),
-          array_p_Union_getat(selfType->structure->attrUnderlyingUnions, i),
+          p_Union_array_getat(selfType->structure->attrUnderlyingUnions, i),
           selfType->parentModule);
     }
   }
@@ -2321,24 +2320,24 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
-    if (!(strcmp(attr, array_str_getat(selfType->structure->attrNames, i)))) {
+    if (!(strcmp(attr, str_array_getat(selfType->structure->attrNames, i)))) {
       ffi_type *type =
-          array_p_ffi_type_getat(selfType->structure->attrTypes, i);
+          p_ffi_type_array_getat(selfType->structure->attrTypes, i);
 
       bool should_free = false;
       void *data = pyArg_to_cppArg(pValue, *type, &should_free);
 
       if (type->type == FFI_TYPE_POINTER) {
         memcpy((char *)(selfType->pointer) +
-                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
+                   (long_long_array_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
       } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
         memcpy((char *)(selfType->pointer) +
-                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
+                   (long_long_array_getat(selfType->structure->offsets, i) / 8),
                data, ((PyC_c_struct *)pValue)->structure->structSize);
       } else {
         memcpy((char *)(selfType->pointer) +
-                   (array_long_long_getat(selfType->structure->offsets, i) / 8),
+                   (long_long_array_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
       }
 
@@ -2372,7 +2371,7 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
       malloc(sizeof(struct Custom_s_PyTypeObject)); // TODO: free this malloc
 
   if (py_c_new_type) {
-    array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
+    p_void_array_append(EXTRA_HEAP_MEMORY, py_c_new_type);
   } else {
     return PyErr_NoMemory();
   }
@@ -2383,7 +2382,7 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   strcat(struct_name, structure->name);
 
   if (struct_name) {
-    array_p_void_append(EXTRA_HEAP_MEMORY, struct_name);
+    p_void_array_append(EXTRA_HEAP_MEMORY, struct_name);
   } else {
     return PyErr_NoMemory();
   }
@@ -2553,15 +2552,15 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
     PyErr_Clear();
 
   for (size_t i = 0; i < selfType->u->attrCount; i++) {
-    if (!(strcmp(attr, array_str_getat(selfType->u->attrNames, i)))) {
+    if (!(strcmp(attr, str_array_getat(selfType->u->attrNames, i)))) {
       char *data = (char *)selfType->pointer;
 
       return cppArg_to_pyArg(
           (selfType->pointer),
-          *array_p_ffi_type_getat(selfType->u->attrTypes, i),
-          array_CXTypeKind_getat(selfType->u->attrUnderlyingType, i),
-          array_p_Structure_getat(selfType->u->attrUnderlyingStructs, i),
-          array_p_Union_getat(selfType->u->attrUnderlyingUnions, i),
+          *p_ffi_type_array_getat(selfType->u->attrTypes, i),
+          CXTypeKind_array_getat(selfType->u->attrUnderlyingType, i),
+          p_Structure_array_getat(selfType->u->attrUnderlyingStructs, i),
+          p_Union_array_getat(selfType->u->attrUnderlyingUnions, i),
           selfType->parentModule);
     }
   }
@@ -2574,8 +2573,8 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_union *selfType = (PyC_c_union *)self;
 
   for (size_t i = 0; i < selfType->u->attrCount; i++) {
-    if (!(strcmp(attr, array_str_getat(selfType->u->attrNames, i)))) {
-      ffi_type *type = array_p_ffi_type_getat(selfType->u->attrTypes, i);
+    if (!(strcmp(attr, str_array_getat(selfType->u->attrNames, i)))) {
+      ffi_type *type = p_ffi_type_array_getat(selfType->u->attrTypes, i);
 
       bool should_free = false;
       void *data = pyArg_to_cppArg(pValue, *type, &should_free);
@@ -2619,7 +2618,7 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
       malloc(sizeof(struct Custom_u_PyTypeObject)); // TODO: free this malloc
 
   if (py_c_new_type) {
-    array_p_void_append(EXTRA_HEAP_MEMORY, py_c_new_type);
+    p_void_array_append(EXTRA_HEAP_MEMORY, py_c_new_type);
   } else {
     return PyErr_NoMemory();
   }
@@ -2629,7 +2628,7 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   strcat(struct_name, u->name);
 
   if (struct_name) {
-    array_p_void_append(EXTRA_HEAP_MEMORY, struct_name);
+    p_void_array_append(EXTRA_HEAP_MEMORY, struct_name);
   } else {
     return PyErr_NoMemory();
   }
