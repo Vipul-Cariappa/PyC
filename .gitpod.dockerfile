@@ -4,7 +4,7 @@ FROM gitpod/workspace-full
 RUN sudo apt-get update \
  && sudo apt-get install -y \
     python3-dev \
-    libclang-dev \
+    libclang-12-dev \
     libffi-dev \
     clangd-12 \
     bear \
