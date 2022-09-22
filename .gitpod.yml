@@ -1,9 +1,16 @@
 image:
   file: .gitpod.dockerfile
 
+prebuilds:
+    master: true  # enable for the default branch
+    branches: true  # enable for all branches in this repo
+    pullRequests: false # disable for pull requests coming from this repo
+    pullRequestsFromForks: false  # disable for pull requests coming from forks
+
 tasks:
-  - command: |
+  - init: |
       premake5 --file=.gitpod.premake5.lua gmake
+  - command: |
       bear make
       sh ./.gitpod.run.sh
 
