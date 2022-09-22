@@ -1,5 +1,5 @@
 workspace "PyC"
-    configurations { "Debug", "TestCoverage", "Release" }
+    configurations { "Debug", "TestCoverage", "Release", "MemoryTest" }
 
 project "PyC"
     kind "SharedLib"
@@ -8,9 +8,9 @@ project "PyC"
     files { "src/**.h", "src/**.c", "src/**.hpp", "src/**.cpp" }
     excludes { "test/**" }
 
-    includedirs { "/usr/include/python3.8", "/usr/include", "/usr/lib/llvm-15/include/", "/usr/include/qlibc/" }
+    includedirs { "/usr/include/python3.8", "/usr/include", "/usr/lib/llvm-15/include/" }
     libdirs { "/usr/lib", "/usr/lib/llvm-15/lib/" }
-    links { "python3.8", "ffi", "clang-15", "qlibc" }
+    links { "python3.8", "ffi", "clang-15" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -25,3 +25,8 @@ project "PyC"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+
+    filter "configurations:MemoryTest"
+        buildoptions { "-fsanitize=address" }
+        defines { "DEBUG" }
+        symbols "On"

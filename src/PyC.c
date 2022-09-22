@@ -4,12 +4,18 @@
 #include "Python.h"
 
 PyObject *PyC;
+p_void_array_t *EXTRA_HEAP_MEMORY;
 
 PyObject *py_CppError;
 PyObject *py_BindingError;
 
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
+
+  EXTRA_HEAP_MEMORY = p_void_array_new();
+  if (!EXTRA_HEAP_MEMORY) {
+    return PyErr_NoMemory();
+  }
 
   // creating module
   m = PyModule_Create(&PyC_Module);
@@ -219,4 +225,13 @@ PyMODINIT_FUNC PyInit_PyC(void) {
 
   PyC = m;
   return m;
+}
+
+void PyClear_PyC(void *self) {
+  size_t len = p_void_array_size(EXTRA_HEAP_MEMORY);
+  for (size_t i = 0; i < len; i++) {
+    // free(array_p_void_getat(EXTRA_HEAP_MEMORY, i));
+  }
+
+  p_void_array_clear(EXTRA_HEAP_MEMORY);
 }

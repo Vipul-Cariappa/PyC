@@ -3,10 +3,38 @@
 #include "PyC.h"
 #include "Py_C_Types.h"
 #include "Python.h"
+#if defined(__linux__)
 #include <dlfcn.h>
+#endif
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#if defined(_WIN32)
+void DisplayErrorText(DWORD dwLastError) {
+  HMODULE hModule = NULL; // default to system source
+  LPSTR MessageBuffer;
+  DWORD dwBufferLength;
+
+  DWORD dwFormatFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                        FORMAT_MESSAGE_IGNORE_INSERTS |
+                        FORMAT_MESSAGE_FROM_SYSTEM;
+
+  if (dwBufferLength = FormatMessageA(dwFormatFlags, hModule, dwLastError,
+                                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                      (LPSTR)&MessageBuffer, 0, NULL)) {
+    DWORD dwBytesWritten;
+
+    WriteFile(GetStdHandle(STD_ERROR_HANDLE), MessageBuffer, dwBufferLength,
+              &dwBytesWritten, NULL);
+
+    LocalFree(MessageBuffer);
+  }
+}
+#endif
 
 CXString (*mangled_name_getter_fn)(CXCursor) = &clang_getCursorSpelling;
 
@@ -20,7 +48,7 @@ typedef struct PyC_CppModule {
   void *so;
   Symbols *symbols;
   int loaded;
-  PyObject *cache_dict; // cache created function wrappers and structs
+  PyObject *cache_dict; // cache function wrappers and structs & union
 } PyC_CppModule;
 
 typedef struct PyC_CppFunction {
@@ -28,12 +56,6 @@ typedef struct PyC_CppFunction {
   void *so;
   PyObject *parentModule;
 } PyC_CppFunction;
-
-typedef struct PyC_CppStruct // FIXME: modify it with new design
-{
-  PyObject_HEAD Structure *structType;
-  void *data;
-} PyC_CppStruct;
 
 PyTypeObject py_CppModuleType = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.CppModule",
@@ -45,7 +67,7 @@ PyTypeObject py_CppModuleType = {
     .tp_doc = CPP_MODULE_DOC_STRING,
     .tp_init = &Cpp_ModuleInit,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_ModuleGC,
+    .tp_dealloc = &Cpp_ModuleGC,
 };
 
 PyTypeObject py_CppFunctionType = {
@@ -56,7 +78,7 @@ PyTypeObject py_CppFunctionType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
-    .tp_finalize = &Cpp_FunctionGC,
+    .tp_dealloc = &Cpp_FunctionGC,
 };
 
 PyMethodDef PyC_Methods[] = {
@@ -67,14 +89,17 @@ PyMethodDef PyC_Methods[] = {
     {NULL, NULL, 0, NULL}};
 
 PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1,
-                          PyC_Methods};
+                          PyC_Methods,           NULL,    NULL,    NULL,
+                          &PyClear_PyC};
 
 // loads *.so file into the running program and parses the header file for
 // symbols
 static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs) {
   PyObject *obj = PyObject_GetAttrString(PyC, "CppModule");
   if (obj) {
-    return PyObject_Call(obj, args, kwargs);
+    PyObject *result = PyObject_Call(obj, args, kwargs);
+    Py_DECREF(obj);
+    return result;
   }
 
   PyErr_SetString(py_BindingError, "Unable to access PyCpp.CppModule");
@@ -101,7 +126,14 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
   const char *library;
   const char *header;
   if (!PyArg_ParseTuple(args, "ss", &library, &header)) {
-    return 0;
+    return -1;
+  }
+
+  library = strdup(library);
+  header = strdup(header);
+  if (!header && !library) {
+    PyErr_NoMemory();
+    return -1;
   }
 
   if (kwargs) {
@@ -138,10 +170,29 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
     return -1;
   }
 
-  // print_Symbols(selfType->symbols);
-
   // opening the shared library
+#if defined(__linux__)
   void *so = dlopen(library, RTLD_NOW);
+#endif
+
+#if defined(_WIN32)
+  printf("%s\n", library);
+
+  const size_t cSize = strlen(library) + 1;
+  wchar_t *wc = malloc(cSize * sizeof(wchar_t));
+  mbstowcs(wc, library, cSize);
+
+  HINSTANCE so = LoadLibrary(wc);
+
+  free(wc);
+
+  // if (!so) {
+  // unsigned long error_code = GetLastError();
+  // printf("ERRORNO: %d", error_code);
+  // DisplayErrorText(error_code);
+  // }
+#endif
+
   if (!so) {
     PyErr_SetString(py_BindingError, "Unable to load the shared library. "
                                      "Possible reasons: file does not exist");
@@ -160,8 +211,7 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs) {
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
 
-  PyObject *py_attr_name =
-      PyUnicode_FromString(attr); // TODO: decrement refrence count
+  PyObject *py_attr_name = PyUnicode_FromString(attr);
 
   int cached = PyDict_Contains(selfType->cache_dict, py_attr_name);
   if (cached == 1) {
@@ -170,6 +220,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     Py_DECREF(py_attr_name);
     return result;
   } else if (cached == -1) {
+    Py_DECREF(py_attr_name);
     return NULL;
   }
 
@@ -177,66 +228,97 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 
   if (funcType) {
     PyObject *obj = PyObject_GetAttrString(PyC, "CppFunction");
-    if (obj) {
-      PyC_CppFunction *pyCppFunction =
-          (PyC_CppFunction *)PyObject_CallObject(obj, NULL);
-      pyCppFunction->funcType = funcType;
-      pyCppFunction->so = selfType->so;
-      pyCppFunction->parentModule = self;
-
-      if (PyDict_SetItem(selfType->cache_dict, py_attr_name,
-                         (PyObject *)pyCppFunction)) {
-        return NULL;
-      }
-
-      return (PyObject *)pyCppFunction;
+    if (!obj) {
+      return NULL;
     }
-  } else if (errno != 0)
+
+    PyC_CppFunction *pyCppFunction =
+        (PyC_CppFunction *)PyObject_CallObject(obj, NULL);
+    pyCppFunction->funcType = funcType;
+    pyCppFunction->so = selfType->so;
+    Py_INCREF(self);
+    pyCppFunction->parentModule = self;
+
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name,
+                       (PyObject *)pyCppFunction)) {
+      Py_DECREF(obj);
+      Py_DECREF(py_attr_name);
+      return NULL;
+    }
+    Py_DECREF(obj);
+    Py_DECREF(py_attr_name);
+    return (PyObject *)pyCppFunction;
+
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Global *globalVar = Symbols_getGlobal(selfType->symbols, attr);
 
   if (globalVar) {
+#if defined(__linux__)
     void *var = dlsym(selfType->so, attr);
 
     if (!var) {
+      Py_DECREF(py_attr_name);
       PyErr_SetString(py_CppError, dlerror());
       return NULL;
     }
+#endif
+
+#if defined(_WIN32)
+    void *var = GetProcAddress(selfType->so, attr);
+
+    if (!var) {
+      PyErr_SetString(
+          py_CppError,
+          "Could not get the required symbol"); // TODO: better error message
+      return NULL;
+    }
+#endif
 
     return cppArg_to_pyArg(var, globalVar->type, globalVar->underlyingType,
-                           NULL, NULL,
-                           self); // TODO: update NULL for global structs
-  } else if (errno != 0)
+                           globalVar->underlyingStruct,
+                           globalVar->underlyingUnion, self);
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Structure *structVar = Symbols_getStructure(selfType->symbols, attr);
 
   if (structVar) {
     PyObject *result = create_py_c_struct(structVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      Py_DECREF(py_attr_name);
       return NULL;
     }
 
     return result;
   }
 
-  else if (errno != 0)
+  else if (errno != 0) {
+    Py_DECREF(py_attr_name);
     return NULL;
+  }
 
   Union *unionVar = Symbols_getUnion(selfType->symbols, attr);
 
   if (unionVar) {
     PyObject *result = create_py_c_union(unionVar, self);
     if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      Py_DECREF(py_attr_name);
       return NULL;
     }
-
+    Py_DECREF(py_attr_name);
     return result;
+  } else if (errno != 0) {
+    Py_DECREF(py_attr_name);
+    return NULL;
   }
 
-  else if (errno != 0)
-    return NULL;
+  Py_DECREF(py_attr_name);
 
   TypeDef *tdVar = Symbols_getTypeDef(selfType->symbols, attr);
 
@@ -246,17 +328,18 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
       switch (tdVar->type) {
       case CXType_Elaborated:
       case CXType_Record: {
-        Structure *s =
-            Symbols_getStructure(selfType->symbols, (tdVar->type_name) + 7);
-        if (s) {
+        if (strncmp(tdVar->type_name, "struct ", 7) == 0) {
           return Cpp_ModuleGet(self, (char *)(tdVar->type_name) + 7);
         }
-        Union *u = Symbols_getUnion(selfType->symbols, (tdVar->type_name) + 6);
-        if (u) {
+        if (strncmp(tdVar->type_name, "union ", 6) == 0) {
           return Cpp_ModuleGet(self, (char *)(tdVar->type_name) + 6);
         }
       }
-      default:;
+      default:
+        PyErr_SetString(py_BindingError,
+                        "Internal Error. "
+                        "Could not figure out underlying type of typedef");
+        return NULL;
       }
     }
   }
@@ -280,8 +363,21 @@ static int Cpp_ModuleSet(PyObject *self, char *attr, PyObject *pValue) {
 
 static void Cpp_ModuleGC(PyObject *self) {
   PyC_CppModule *selfType = (PyC_CppModule *)self;
+#if defined(__linux__)
   dlclose(selfType->so);
+#endif
+
+#if defined(_WIN32)
+  FreeLibrary(selfType->so);
+#endif
+
+  Py_DECREF(selfType->cache_dict);
+  free((void *)selfType->header_name);
+  free((void *)selfType->library_name);
+
   free_Symbols(selfType->symbols);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyCpp.CppFunction.__call__
@@ -302,50 +398,88 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   FunctionType *funcType =
-      qvector_getat(selfType->funcType->functionTypes, funcNum, false);
+      FunctionType_array_get_ptr_at(selfType->funcType->functionTypes, funcNum);
 
-  // getting function
-  void *func =
-      dlsym(selfType->so,
-            qlist_getat(selfType->funcType->mangledNames, funcNum, NULL,
-                        false)); // TODO: store the func* in FunctionType
-  if (!func) {
-    PyErr_SetString(py_CppError, dlerror());
-    return NULL;
+  if (!funcType->func) {
+
+    // getting function
+#if defined(__linux__)
+    void *func = dlsym(selfType->so, funcType->mangledName);
+    if (!func) {
+      PyErr_SetString(py_CppError, dlerror());
+      return NULL;
+    }
+#endif
+
+#if defined(_WIN32)
+    void *func = GetProcAddress(selfType->so, funcType->mangledName);
+
+    if (!func) {
+      PyErr_SetString(
+          py_CppError,
+          "Could not get the required symbol"); // TODO: better error message
+      return NULL;
+    }
+#endif
+
+    funcType->func = func;
   }
-
   size_t args_count = funcType->argsCount;
 
-  qvector_t *args_list = funcType->argsType;
+  p_ffi_type_array_t *args_list = funcType->argsType;
   ffi_cif cif;
   ffi_type **ffi_args =
       (ffi_type **)malloc(sizeof(ffi_type *) * (args_count + 1));
   void *rc = malloc(sizeof(funcType->returnType.size));
 
   for (int i = 0; i < args_count; i++) {
-    ffi_args[i] = qvector_getat(args_list, i, false);
+    ffi_args[i] = p_ffi_type_array_getat(args_list, i);
   }
   ffi_args[args_count] = NULL;
 
-  void **args_values = pyArgs_to_cppArgs(args, args_list);
+  bool *where_to_free = malloc(args_count * sizeof(bool));
+  memset(where_to_free, 0, args_count * sizeof(bool));
+  void **extra_stuff_to_free = malloc(args_count * sizeof(void *));
+  memset(extra_stuff_to_free, 0, args_count * sizeof(void *));
+
+  void **args_values =
+      pyArgs_to_cppArgs(args, args_list, where_to_free, extra_stuff_to_free);
   if (!args_values) {
     return NULL;
   }
 
   if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, &funcType->returnType,
                    ffi_args) == FFI_OK) {
-    ffi_call(&cif, (void (*)())func, rc, args_values);
+    ffi_call(&cif, funcType->func, rc, args_values);
   }
 
-  return cppArg_to_pyArg(
-      rc, funcType->returnType, funcType->returnsUnderlyingType,
-      funcType->returnUnderlyingStruct, funcType->returnUnderlyingUnion,
-      selfType->parentModule);
+  PyObject *result =
+      cppArg_to_pyArg(rc, funcType->returnType, funcType->returnsUnderlyingType,
+                      funcType->returnUnderlyingStruct,
+                      funcType->returnUnderlyingUnion, selfType->parentModule);
+
+  free(ffi_args);
+  for (size_t i = 0; i < args_count; i++) {
+    if (where_to_free[i]) {
+      free(args_values[i]);
+    }
+    if (extra_stuff_to_free[i]) {
+      free(extra_stuff_to_free[i]);
+    }
+  }
+
+  free(where_to_free);
+  free(extra_stuff_to_free);
+  free(args_values);
+  free(rc);
+
+  return result;
 }
 
 // PyCpp.CppFunction.__del__
 static void Cpp_FunctionGC(PyObject *self) {
-  // TODO: implement
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
-  return;
+
+  Py_DECREF(selfType->parentModule);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }

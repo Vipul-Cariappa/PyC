@@ -1,101 +1,127 @@
 #pragma once
+#include "DS.h"
 #include "ffi.h"
-#include "qlibc.h"
 #include "clang-c/Index.h"
+#include <stdbool.h>
 
-typedef struct Global {
+typedef struct _Global Global;
+typedef struct _Structure Structure;
+typedef struct _Union Union;
+typedef struct _Class Class;
+typedef struct _FunctionType FunctionType;
+typedef struct _Function Function;
+typedef struct _TypeDef TypeDef;
+typedef struct _Symbols Symbols;
+
+DS_ARRAY_DEC(str, char *);
+DS_ARRAY_DEC(CXTypeKind, enum CXTypeKind);
+DS_ARRAY_DEC(p_ffi_type, ffi_type *);
+DS_ARRAY_DEC(p_Structure, Structure *);
+DS_ARRAY_DEC(p_Union, Union *);
+DS_ARRAY_DEC(long_long, long long);
+DS_ARRAY_DEC(p_void, void *);
+
+DS_ARRAY_DEC(FunctionType, FunctionType);
+
+DS_LIST_DEC(Function, Function);
+DS_LIST_DEC(Global, Global);
+DS_LIST_DEC(Structure, Structure);
+DS_LIST_DEC(Union, Union);
+DS_LIST_DEC(TypeDef, TypeDef);
+DS_LIST_DEC(Class, Class);
+
+struct _Global {
   const char *name;
   // const char *mangledName;
   ffi_type type;
   enum CXTypeKind underlyingType;
-} Global;
+  Structure *underlyingStruct; // for type convertion
+  Union *underlyingUnion;      // for type convertion
+};
 
-typedef struct Structure {
+struct _Structure {
   const char *name;
-  qlist_t *attrNames;                       // list of attribute names
-  qvector_t *attrTypes;                     // vector of attribute's ffi_type
-  enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
-  struct Structure **attrUnderlyingStructs; // array of underlying
-                                            // struct type for pointers
-  struct Union **attrUnderlyingUnions;      // array of underlying
-                                            // unions type for pointers
-  long long *offsets;                       // record the offsets of attributes
+  str_array_t *attrNames;                     // list of attribute names
+  p_ffi_type_array_t *attrTypes;              // vector of attribute's ffi_type
+  CXTypeKind_array_t *attrUnderlyingType;     // array of CXTypeKind
+  p_Structure_array_t *attrUnderlyingStructs; // array of underlying
+                                              // struct type for pointers
+  p_Union_array_t *attrUnderlyingUnions;      // array of underlying
+                                              // unions type for pointers
+  long_long_array_t *offsets; // record the offsets of attributes
   ffi_type type;
   size_t attrCount;
   size_t structSize;
-} Structure;
+};
 
-typedef struct Union {
+struct _Union {
   const char *name;
-  qlist_t *attrNames;                       // list of attribute names
-  qvector_t *attrTypes;                     // vector of attribute's ffi_type
-  enum CXTypeKind *attrUnderlyingType;      // array of CXTypeKind
-  struct Structure **attrUnderlyingStructs; // array of underlying
-                                            // struct type for pointers
-  struct Union **attrUnderlyingUnions;      // array of underlying
-                                            // unions type for pointers
+  str_array_t *attrNames;                     // list of attribute names
+  p_ffi_type_array_t *attrTypes;              // vector of attribute's ffi_type
+  CXTypeKind_array_t *attrUnderlyingType;     // array of CXTypeKind
+  p_Structure_array_t *attrUnderlyingStructs; // array of underlying
+                                              // struct type for pointers
+  p_Union_array_t *attrUnderlyingUnions;      // array of underlying
+                                              // unions type for pointers
   ffi_type type;
   size_t attrCount;
   size_t unionSize;
-} Union;
+};
 
-typedef struct Class {
+struct _Class {
   // TODO: Implement
-} Class;
+  int f;
+};
 
-typedef struct FunctionType {
+struct _FunctionType {
+  const char *mangledName;
   ffi_type returnType;
-  qvector_t *argsType;                   // vector of ffi_type
-  enum CXTypeKind *argsUnderlyingType;   // array of CXTypeKind
-  enum CXTypeKind returnsUnderlyingType; //  CXTypeKind
-  // Structure **argsUnderlyingStructs;   // for checking for proper struct
-  // matching
-  Structure *returnUnderlyingStruct; // for type convertion
-  Union *returnUnderlyingUnion;      // for type convertion
+  p_ffi_type_array_t *argsType;           // vector of ffi_type
+  CXTypeKind_array_t *argsUnderlyingType; // array of CXTypeKind
+  enum CXTypeKind returnsUnderlyingType;  //  CXTypeKind
+  p_Structure_array_t
+      *argsUnderlyingStructs;            // checking for proper struct matching
+  p_Union_array_t *argsUnderlyingUnions; // checking for proper union matching
+  Structure *returnUnderlyingStruct;     // for type convertion
+  Union *returnUnderlyingUnion;          // for type convertion
   size_t argsCount;
-} FunctionType;
+  void (*func)(); // pointer to the function
+};
 
-typedef struct Function {
+struct _Function {
   const char *name;
-  qlist_t *mangledNames;    // vector of mangled names
-  qvector_t *functionTypes; // vector of struct FunctionTypes
+  FunctionType_array_t *functionTypes; // vector of struct FunctionTypes
   size_t funcCount;
-} Function;
+};
 
-typedef struct TypeDef {
+struct _TypeDef {
+  const char *name;
   const char *type_name;
-  const char *typedef_name;
   enum CXTypeKind type;
   enum CXTypeKind underlying_type; // Used if underlying type is pointer
-} TypeDef;
+};
 
-typedef struct Symbols {
+struct _Symbols {
   const char *name;
 
-  qlist_t *funcsNames; // vector of function names
-  qhashtbl_t *funcs;   // mapping of function names to struct Function
+  Function_list_t *funcs; // mapping of function names to struct Function
   size_t funcCount;
 
-  qlist_t *structsNames; // vector of struct names
-  qhashtbl_t *structs;   // mapping of struct names to struct Structure
+  Structure_list_t *structs; // mapping of struct names to struct Structure
   size_t structsCount;
 
-  qlist_t *unionsNames; // vector of union names
-  qhashtbl_t *unions;   // mapping of union names to union Structure
+  Union_list_t *unions; // mapping of union names to union Structure
   size_t unionsCount;
 
-  qlist_t *classesNames; // vector of class names
-  qhashtbl_t *classes;   // mapping of class names to struct Class
+  Class_list_t *classes; // mapping of class names to struct Class
   size_t classesCount;
 
-  qlist_t *globalsNames; // vector of global names
-  qhashtbl_t *globals;   // mapping of global names to struct Global
+  Global_list_t *globals; // mapping of global names to struct Global
   size_t globalsCount;
 
-  qlist_t *typedefsNames; // vector of typedef names
-  qhashtbl_t *typedefs;   // mapping of typedef names to struct TypedDef
+  TypeDef_list_t *typedefs; // mapping of typedef names to struct TypedDef
   size_t typedefsCount;
-} Symbols;
+};
 
 void print_Function(Function func);
 void print_Structure(Structure structure);
@@ -123,3 +149,10 @@ bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
 Symbols *create_Symbol(const char *name);
 void free_Symbols(Symbols *sym);
 bool Symbols_parse(Symbols *sym, const char *header);
+
+bool Symbols_clearTypedef(TypeDef s);
+bool Symbols_clearGlobal(Global s);
+bool Symbols_clearUnion(Union s);
+bool Symbols_clearStructure(Structure s);
+bool Symbols_clearFunctionType(FunctionType s);
+bool Symbols_clearFunction(Function s);

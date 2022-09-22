@@ -11,13 +11,12 @@ module = Extension(
         "src/CppWrapper_PyTypes.c",
         "src/PyC.c",
         "src/TypeConversions.c",
-        "src/Py_C_Types.c"
+        "src/Py_C_Types.c",
     ],
     include_dirs=[
         "src/",
         "/usr/include/python3.9",
         "/usr/local/include",
-        "/usr/include/qlibc",
         "/usr/lib/llvm-10/include",
     ],
     library_dirs=[
@@ -28,7 +27,6 @@ module = Extension(
     libraries=[
         "ffi",
         "clang-10",
-        "qlibc",
     ],
     extra_compile_args=[
         "-ftest-coverage",

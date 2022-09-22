@@ -11,12 +11,12 @@ class TestBasic(unittest.TestCase):
         # c
         self.assertEqual(cModule.MAX, 5_000_000)
         self.assertAlmostEqual(cModule.f, 3.14, 4)
-        self.assertEqual(cModule.PROGRAM, "C/C++")
+        self.assertEqual(str(cModule.PROGRAM), "C/C++")
 
         # cpp
         self.assertEqual(cppModule.MAX, 5_000_000)
         self.assertAlmostEqual(cppModule.f, 3.14, 4)
-        self.assertEqual(cppModule.PROGRAM, "C/C++")
+        self.assertEqual(str(cppModule.PROGRAM), "C/C++")
 
     def test_simple_functions(self):
         # c
@@ -28,10 +28,13 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(cModule.invert(0))
         self.assertFalse(cModule.invert(True))
         self.assertAlmostEqual(cModule.pi(1_000_000), 3.14159, 4)
-        self.assertEqual(
-            cModule.concat(
+        
+        full_name = cModule.concat(
                 "Vipul ", "Cariappa"
-            ),
+            )
+        full_name.free_on_del(True)
+        self.assertEqual(
+            str(full_name),
             "Vipul Cariappa"
         )
 
@@ -41,12 +44,19 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(cppModule.add_short(2, 4), 6)
         self.assertEqual(cppModule.increment_1(12), 13)
         self.assertEqual(cppModule.add(24, 46), 70)
-        self.assertEqual(cppModule.add("Vipul", 2), "VipulVipul")
+
+        string = cppModule.add("Vipul", 2)
+        string.free_on_del(True)
+        self.assertEqual(str(string), "VipulVipul")
+
         self.assertAlmostEqual(cppModule.pi(1_000_000), 3.14159, 4)
-        self.assertEqual(
-            cppModule.concat(
+
+        string = cppModule.concat(
                 "Vipul ", "Cariappa"
-            ),
+            )
+        string.free_on_del(True)
+        self.assertEqual(
+            str(string),
             "Vipul Cariappa"
         )
 
@@ -122,12 +132,19 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(str(c_string_empty), "")
         self.assertEqual(str(c_string_char), "#")
         self.assertEqual(str(c_string), string)
+        
+        string2 = cppModule.add(string, 2)
+        string2.free_on_del(True)
+        self.assertEqual(str(string2), string+string)
 
-        self.assertEqual(cppModule.add(string, 2), string+string)
-        self.assertEqual(cppModule.repeat_char(c_string_char, 2), "##")
+        string = cppModule.repeat_char(c_string_char, 2)
+        string.free_on_del(True)
+        self.assertEqual(str(string), "##")
 
     def test_pointer_return_funcs(self):
-        self.assertEqual(cModule.returns_pointer().value(), 465826769270)
+        long_ptr = cModule.returns_pointer()
+        long_ptr.free_on_del(True)
+        self.assertEqual(long_ptr.value(), 465826769270)
 
     def test_function_with_c_types(self):
         self.assertEqual(cModule.add(PyC.c_int(24), PyC.c_int(46)), 70)
@@ -161,6 +178,7 @@ class TestBasic(unittest.TestCase):
         
         t = cModule.get_rect(1, 2)
         f = cModule.rect_add(r1, r2)
+        f.free_on_del(True)
         
         self.assertEqual(t.x, 1)
         self.assertEqual(t.y, 2)
@@ -252,6 +270,7 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(num1.i, 4800)
         
         num2 = cModule.creat_number_ptr_with_int(4800)
+        num2.free_on_del(True)
         self.assertEqual(num2.i, 4800)
 
 
