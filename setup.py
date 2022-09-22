@@ -12,7 +12,6 @@ module = Extension(
         "src/PyC.c",
         "src/TypeConversions.c",
         "src/Py_C_Types.c",
-        "src/DataStructure.c",
     ],
     include_dirs=[
         "src/",
