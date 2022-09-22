@@ -13,7 +13,9 @@
 
 void (*nullFunc)() = NULL;
 
-DS_ARRAY_DEF(str, char *, nullFunc);
+void str_clear(char *s) { free(s); }
+
+DS_ARRAY_DEF(str, char *, str_clear);
 DS_ARRAY_DEF(CXTypeKind, enum CXTypeKind, nullFunc);
 DS_ARRAY_DEF(p_ffi_type, ffi_type *, nullFunc);
 DS_ARRAY_DEF(p_Structure, Structure *, nullFunc);
@@ -614,7 +616,6 @@ enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
 
   const char *name = clangString_to_CString(clang_getCursorSpelling(cursor));
   str_array_append(obj->attrNames, (char *)name);
-  free((void *)name);
 
   Structure *underlyingAttrStructType = NULL;
   Union *underlyingAttrUnionType = NULL;
@@ -670,7 +671,6 @@ enum CXChildVisitResult struct_visitor(CXCursor cursor, CXCursor parent,
 
   const char *name = clangString_to_CString(clang_getCursorSpelling(cursor));
   str_array_append(obj->attrNames, (char *)name);
-  free((void *)name);
 
   Structure *underlyingAttrStructType = NULL;
   Union *underlyingAttrUnionType = NULL;
