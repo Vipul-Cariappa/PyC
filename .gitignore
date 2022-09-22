@@ -269,3 +269,5 @@ bin/
 PyC.sln
 PyC.vcxproj
 PyC.vcxproj.user
+run.sh
+premake5.lua
