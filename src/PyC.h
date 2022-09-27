@@ -37,31 +37,20 @@ static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr);
 static int Cpp_ModuleSet(PyObject *self, char *attr, PyObject *pValue);
 static void Cpp_ModuleGC(PyObject *self);
+static int Cpp_ModuleTraverse(PyObject *self, visitproc visit, void *arg);
+static int Cpp_ModuleClear(PyObject *self);
 
 static PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args,
                                   PyObject *kwargs);
 static void Cpp_FunctionGC(PyObject *self);
+static int Cpp_FunctionTraverse(PyObject *self, visitproc visit, void *arg);
+static int Cpp_FunctionClear(PyObject *self);
 
 static PyObject *Cpp_StructGet(PyObject *self, char *attr);
 static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue);
 static PyObject *Cpp_StructCall(PyObject *self, PyObject *args,
                                 PyObject *kwargs);
 static void Cpp_StructGC(PyObject *self);
-
-static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs);
-static PyObject *c_int_iter(PyObject *self);
-static PyObject *c_int_getattr(PyObject *self, char *attr);
-static void c_int_finalizer(PyObject *self);
-static PyObject *c_int_append(PyObject *self, PyObject *args);
-static PyObject *c_int_pop(PyObject *self);
-static PyObject *c_int_value(PyObject *self);
-static PyObject *c_int_donot_free(PyObject *self, PyObject *args,
-                                  PyObject *kwargs);
-static PyObject *c_int_to_pointer(PyObject *self);
-static PyObject *c_int_to_int(PyObject *self);
-static Py_ssize_t c_int_len(PyObject *self);
-static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
-static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
 CXString GET_MANGLED_NAME(CXCursor cursor);
 
