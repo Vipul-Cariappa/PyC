@@ -383,7 +383,9 @@ static PyObject *c_int_to_pointer(PyObject *self) {
   // TODO: implement c_int_to_pointer
 
   PyC_c_int *selfType = (PyC_c_int *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_int.__int__
@@ -724,7 +726,9 @@ static PyObject *c_double_to_pointer(PyObject *self) {
   // TODO: implement c_double_to_pointer
 
   PyC_c_double *selfType = (PyC_c_double *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_double.__float__
@@ -1054,7 +1058,9 @@ static PyObject *c_float_to_pointer(PyObject *self) {
   // TODO: implement c_float_to_pointer
 
   PyC_c_float *selfType = (PyC_c_float *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_float.__float__
@@ -1190,12 +1196,15 @@ static PyObject *c_bool_iter(PyObject *self) {
   // TODO: implement c_bool_iter
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.__del__
 static void c_bool_finalizer(PyObject *self) {
   // TODO: implement c_bool_finalizer
+
   PyC_c_bool *selfType = (PyC_c_bool *)self;
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -1205,7 +1214,9 @@ static PyObject *c_bool_append(PyObject *self, PyObject *args) {
   // TODO: implement c_bool_append
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.pop
@@ -1213,7 +1224,9 @@ static PyObject *c_bool_pop(PyObject *self) {
   // TODO: implement c_bool_pop
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.value
@@ -1232,7 +1245,9 @@ static PyObject *c_bool_free_on_del(PyObject *self, PyObject *args,
   // TODO: implement c_bool_free_on_del
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.to_pointer
@@ -1240,7 +1255,9 @@ static PyObject *c_bool_to_pointer(PyObject *self) {
   // TODO: implement c_bool_to_pointer
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.__bool__
@@ -1258,7 +1275,9 @@ static Py_ssize_t c_bool_len(PyObject *self) {
   // TODO: implement c_bool_len
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  return 0;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 // PyC.c_bool.__getitem__
@@ -1266,7 +1285,9 @@ static PyObject *c_bool_getitem(PyObject *self, PyObject *attr) {
   // TODO: implement c_bool_getitem
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_bool.__setitem__
@@ -1274,7 +1295,9 @@ static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   // TODO: implement c_bool_setitem
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-  return 0;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 // ----- c_short -----
@@ -1571,7 +1594,9 @@ static PyObject *c_short_to_pointer(PyObject *self) {
   // TODO: implement c_short_to_pointer
 
   PyC_c_short *selfType = (PyC_c_short *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_short.__short__
@@ -1943,7 +1968,9 @@ static PyObject *c_long_to_pointer(PyObject *self) {
   // TODO: implement c_long_to_pointer
 
   PyC_c_long *selfType = (PyC_c_long *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_long.__int__
@@ -2109,12 +2136,13 @@ static PyObject *c_char_iter(PyObject *self) {
   // TODO: implement c_char_iter
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_char.__del__
 static void c_char_finalizer(PyObject *self) {
-  // TODO: implement c_char_finalizer
   PyC_c_char *selfType = (PyC_c_char *)self;
 
   if (selfType->isPointer && selfType->freeOnDel) {
@@ -2129,7 +2157,9 @@ static PyObject *c_char_append(PyObject *self, PyObject *args) {
   // TODO: implement c_char_append
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_char.pop
@@ -2137,7 +2167,9 @@ static PyObject *c_char_pop(PyObject *self) {
   // TODO: implement c_char_pop
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_char.value
@@ -2178,7 +2210,9 @@ static PyObject *c_char_to_pointer(PyObject *self) {
   // TODO: implement c_char_to_pointer
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_char.__char__
@@ -2210,7 +2244,9 @@ static PyObject *c_char_getitem(PyObject *self, PyObject *attr) {
   // TODO: implement c_char_getitem
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  Py_RETURN_NONE;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 // PyC.c_char.__setitem__
@@ -2218,7 +2254,9 @@ static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   // TODO: implement c_char_setitem
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-  return 0;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 // ----- c_struct -----
@@ -2270,7 +2308,6 @@ PyTypeObject py_c_struct_type = {
 
 // PyC.c_struct.__init__
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
   Structure *s = ((struct Custom_s_PyTypeObject *)self->ob_type)->s;
 
@@ -2315,8 +2352,6 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
 
 // PyC.c_struct.__setattr__
 static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
-  // TODO: implement
-
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
@@ -2355,7 +2390,6 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 
 // PyC.c_struct.__del__
 static void c_struct_finalizer(PyObject *self) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   if (selfType->pointer && selfType->freeOnDel) {
@@ -2401,7 +2435,6 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
       .s = structure,
       .parentModule = module,
   };
-  // Py_INCREF(module);
 
   if (PyType_Ready((PyTypeObject *)py_c_new_type) < 0) {
     return NULL;
@@ -2425,22 +2458,34 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
 
 static PyObject *c_struct_iter(PyObject *self) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_struct_next(PyObject *self) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_struct_append(PyObject *self, PyObject *args) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_struct_pop(PyObject *self) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_struct_free_on_del(PyObject *self, PyObject *args,
@@ -2461,23 +2506,35 @@ static PyObject *c_struct_free_on_del(PyObject *self, PyObject *args,
 }
 
 static PyObject *c_struct_to_pointer(PyObject *self) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static Py_ssize_t c_struct_len(PyObject *self) {
   // TODO: implement
-  return 0;
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   // TODO: implement
-  return 0;
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 // ----- c_union -----
@@ -2602,7 +2659,6 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
 
 // PyC.c_union.__del__
 static void c_union_finalizer(PyObject *self) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
   if (selfType->pointer && selfType->freeOnDel) {
@@ -2670,22 +2726,34 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
 
 static PyObject *c_union_iter(PyObject *self) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_union_next(PyObject *self) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_union_append(PyObject *self, PyObject *args) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_union_pop(PyObject *self) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static PyObject *c_union_free_on_del(PyObject *self, PyObject *args,
@@ -2706,21 +2774,33 @@ static PyObject *c_union_free_on_del(PyObject *self, PyObject *args,
 }
 
 static PyObject *c_union_to_pointer(PyObject *self) {
-  // TODO :implement
-  Py_RETURN_NONE;
+  // TODO: implement
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static Py_ssize_t c_union_len(PyObject *self) {
   // TODO: implement
-  return 0;
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
 
 static PyObject *c_union_getitem(PyObject *self, PyObject *attr) {
   // TODO: implement
-  Py_RETURN_NONE;
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return NULL;
 }
 
 static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   // TODO: implement
-  return 0;
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  PyErr_SetNone(PyExc_NotImplementedError);
+  return -1;
 }
