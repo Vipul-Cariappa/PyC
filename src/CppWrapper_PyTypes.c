@@ -63,11 +63,13 @@ PyTypeObject py_CppModuleType = {
     .tp_itemsize = 0,
     .tp_getattr = &Cpp_ModuleGet,
     .tp_setattr = &Cpp_ModuleSet,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     .tp_doc = CPP_MODULE_DOC_STRING,
     .tp_init = &Cpp_ModuleInit,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &Cpp_ModuleGC,
+    .tp_traverse = &Cpp_ModuleTraverse,
+    .tp_clear = &Cpp_ModuleClear,
 };
 
 PyTypeObject py_CppFunctionType = {
@@ -75,10 +77,12 @@ PyTypeObject py_CppFunctionType = {
     .tp_basicsize = sizeof(PyC_CppFunction),
     .tp_itemsize = 0,
     .tp_call = &Cpp_FunctionCall,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     .tp_doc = CPP_FUNCTION_DOC_STRING,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &Cpp_FunctionGC,
+    .tp_traverse = &Cpp_FunctionTraverse,
+    .tp_clear = &Cpp_FunctionClear,
 };
 
 PyMethodDef PyC_Methods[] = {
@@ -371,13 +375,29 @@ static void Cpp_ModuleGC(PyObject *self) {
   FreeLibrary(selfType->so);
 #endif
 
-  Py_DECREF(selfType->cache_dict);
+  PyObject_GC_UnTrack(self);
+  Cpp_ModuleClear(self);
+
   free((void *)selfType->header_name);
   free((void *)selfType->library_name);
 
   free_Symbols(selfType->symbols);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static int Cpp_ModuleTraverse(PyObject *self, visitproc visit, void *arg) {
+  PyC_CppModule *selfType = (PyC_CppModule *)self;
+
+  Py_VISIT(selfType->cache_dict);
+  return 0;
+}
+
+static int Cpp_ModuleClear(PyObject *self) {
+  PyC_CppModule *selfType = (PyC_CppModule *)self;
+
+  Py_CLEAR(selfType->cache_dict);
+  return 0;
 }
 
 // PyCpp.CppFunction.__call__
@@ -480,6 +500,21 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 static void Cpp_FunctionGC(PyObject *self) {
   PyC_CppFunction *selfType = (PyC_CppFunction *)self;
 
-  Py_DECREF(selfType->parentModule);
+  PyObject_GC_UnTrack(self);
+  Cpp_FunctionClear(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static int Cpp_FunctionTraverse(PyObject *self, visitproc visit, void *arg) {
+  PyC_CppFunction *selfType = (PyC_CppFunction *)self;
+
+  Py_VISIT(selfType->parentModule);
+  return 0;
+}
+
+static int Cpp_FunctionClear(PyObject *self) {
+  PyC_CppFunction *selfType = (PyC_CppFunction *)self;
+
+  Py_CLEAR(selfType->parentModule);
+  return 0;
 }

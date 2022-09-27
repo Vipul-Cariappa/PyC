@@ -219,8 +219,7 @@ class TestBasic(unittest.TestCase):
         self.assertAlmostEqual(snump.num.d, 3.1415, 4)
         self.assertEqual(snump.x.value(), 10)
         self.assertEqual(snump.y.value(), 20)
-
-        
+      
     def test_unions(self):
         num = cModule.Number()
         num.c = 10
