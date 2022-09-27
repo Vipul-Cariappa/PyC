@@ -361,7 +361,7 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
 }
 
 static int Cpp_ModuleSet(PyObject *self, char *attr, PyObject *pValue) {
-  PyErr_SetString(py_BindingError, "Cannot Assign Values to LuaModule Objects");
+  PyErr_SetString(py_BindingError, "Cannot Assign Values to CppModule Objects");
   return -1;
 }
 
