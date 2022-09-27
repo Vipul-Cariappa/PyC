@@ -48,6 +48,8 @@ static PyObject *c_int_freeOnDel_getter(PyObject *self, void *closure);
 static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
                                   void *closure);
 static PyObject *c_int_to_int(PyObject *self);
+static PyObject *c_int_to_float(PyObject *self);
+static int c_int_to_bool(PyObject *self);
 static Py_ssize_t c_int_len(PyObject *self);
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
 static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
@@ -76,7 +78,9 @@ static PyObject *c_double_value(PyObject *self);
 static PyObject *c_double_freeOnDel_getter(PyObject *self, void *closure);
 static int c_double_freeOnDel_setter(PyObject *self, PyObject *value,
                                      void *closure);
+static PyObject *c_double_to_int(PyObject *self);
 static PyObject *c_double_to_float(PyObject *self);
+static int c_double_to_bool(PyObject *self);
 static Py_ssize_t c_double_len(PyObject *self);
 static PyObject *c_double_getitem(PyObject *self, PyObject *attr);
 static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value);
@@ -92,6 +96,7 @@ typedef struct PyC_c_bool {
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
+  size_t _i; // for iteration purpose
 } PyC_c_bool;
 
 static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -104,6 +109,8 @@ static PyObject *c_bool_value(PyObject *self);
 static PyObject *c_bool_freeOnDel_getter(PyObject *self, void *closure);
 static int c_bool_freeOnDel_setter(PyObject *self, PyObject *value,
                                    void *closure);
+static PyObject *c_bool_to_int(PyObject *self);
+static PyObject *c_bool_to_float(PyObject *self);
 static int c_bool_to_bool(PyObject *self);
 static Py_ssize_t c_bool_len(PyObject *self);
 static PyObject *c_bool_getitem(PyObject *self, PyObject *attr);
@@ -161,7 +168,9 @@ static PyObject *c_float_value(PyObject *self);
 static PyObject *c_float_freeOnDel_getter(PyObject *self, void *closure);
 static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
                                     void *closure);
+static PyObject *c_float_to_int(PyObject *self);
 static PyObject *c_float_to_float(PyObject *self);
+static int c_float_to_bool(PyObject *self);
 static Py_ssize_t c_float_len(PyObject *self);
 static PyObject *c_float_getitem(PyObject *self, PyObject *attr);
 static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value);
@@ -192,6 +201,8 @@ static PyObject *c_short_freeOnDel_getter(PyObject *self, void *closure);
 static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
                                     void *closure);
 static PyObject *c_short_to_int(PyObject *self);
+static PyObject *c_short_to_float(PyObject *self);
+static int c_short_to_bool(PyObject *self);
 static Py_ssize_t c_short_len(PyObject *self);
 static PyObject *c_short_getitem(PyObject *self, PyObject *attr);
 static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value);
@@ -222,6 +233,8 @@ static PyObject *c_long_freeOnDel_getter(PyObject *self, void *closure);
 static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
                                    void *closure);
 static PyObject *c_long_to_int(PyObject *self);
+static PyObject *c_long_to_float(PyObject *self);
+static int c_long_to_bool(PyObject *self);
 static Py_ssize_t c_long_len(PyObject *self);
 static PyObject *c_long_getitem(PyObject *self, PyObject *attr);
 static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value);

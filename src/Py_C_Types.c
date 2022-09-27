@@ -97,6 +97,8 @@ static int c_void_freeOnDel_setter(PyObject *self, PyObject *value,
 // ----- c_int -----
 PyNumberMethods c_int_as_int = {
     .nb_int = &c_int_to_int,
+    .nb_float = &c_int_to_float,
+    .nb_bool = &c_int_to_bool,
 };
 
 PyMappingMethods c_int_as_mapping = {
@@ -185,7 +187,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         Py_DECREF(key);
         return 0;
       } else {
-        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+        PyErr_SetString(py_BindingError, "calling c_int with pointer keyword "
                                          "is restricted for internal use only");
         Py_DECREF(key);
         return -1;
@@ -195,9 +197,14 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
 
   if (PyNumber_Check(arg_1)) {
-    int value = PyLong_AsLongLong(arg_1);
+    PyObject *tmp = PyNumber_Long(arg_1);
+    int value = PyLong_AsLongLong(tmp);
 
     selfType->value = value;
     selfType->freeOnDel = false;
@@ -207,6 +214,8 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
+
+    Py_DECREF(tmp);
 
     return 0;
 
@@ -226,13 +235,25 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError,
-                        "Expected tuple of intergers or interger");
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Expected all elements of the sequence to be int or float");
         return -1;
       }
 
-      int value = PyLong_AsLongLong(element);
+      PyObject *tmp = PyNumber_Long(element);
+
+      int value = PyLong_AsLong(tmp);
       selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
     }
 
     selfType->pointer[len] = 0;
@@ -240,7 +261,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  PyErr_SetString(PyExc_TypeError, "Expected tuple or interger");
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
   return -1;
 }
 
@@ -268,10 +289,10 @@ static PyObject *c_int_next(PyObject *self) {
 
   if (selfType->arraySize > index) {
     if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
-      rvalue = PyLong_FromLongLong(selfType->value);
+      rvalue = PyLong_FromLongLong(*(selfType->pointer));
     }
 
-    rvalue = PyLong_FromLongLong((unsigned int)selfType->value);
+    rvalue = PyLong_FromLongLong((unsigned int)*(selfType->pointer));
   }
 
   (selfType->_i)++;
@@ -369,10 +390,10 @@ static PyObject *c_int_value(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
-    return PyLong_FromLongLong(selfType->value);
+    return PyLong_FromLongLong(*(selfType->pointer));
   }
 
-  return PyLong_FromLongLong((unsigned int)selfType->value);
+  return PyLong_FromLongLong((unsigned int)*(selfType->pointer));
 }
 
 // PyC.c_int.__int__
@@ -380,10 +401,32 @@ static PyObject *c_int_to_int(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
-    return PyLong_FromLongLong(selfType->value);
+    return PyLong_FromLongLong(*(selfType->pointer));
   }
 
-  return PyLong_FromLongLong((unsigned int)selfType->value);
+  return PyLong_FromLongLong((unsigned int)*(selfType->pointer));
+}
+
+// PyC.c_int.__float__
+static PyObject *c_int_to_float(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
+    return PyFloat_FromDouble(*(selfType->pointer));
+  }
+
+  return PyFloat_FromDouble((unsigned int)*(selfType->pointer));
+}
+
+// PyC.c_int.__bool__
+static int c_int_to_bool(PyObject *self) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // PyC.c_int.__len__
@@ -482,7 +525,9 @@ static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
 
 // ----- c_double -----
 PyNumberMethods c_double_as_double = {
+    .nb_int = &c_double_to_int,
     .nb_float = &c_double_to_float,
+    .nb_bool = &c_double_to_bool,
 };
 
 PyMappingMethods c_double_as_mapping = {
@@ -554,8 +599,9 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         Py_DECREF(key);
         return 0;
       } else {
-        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
-                                         "is restricted for internal use only");
+        PyErr_SetString(py_BindingError,
+                        "calling c_double with pointer keyword "
+                        "is restricted for internal use only");
         Py_DECREF(key);
         return -1;
       }
@@ -564,8 +610,13 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected float or sequence of floats");
+    return -1;
+  }
 
   if (PyNumber_Check(arg_1)) {
+    PyObject *tmp = PyNumber_Float(arg_1);
     double value = PyFloat_AsDouble(arg_1);
 
     selfType->value = value;
@@ -575,6 +626,8 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
+
+    Py_DECREF(tmp);
 
     return 0;
 
@@ -593,12 +646,24 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be float or int");
         return -1;
       }
 
-      double value = PyFloat_AsDouble(element);
+      PyObject *tmp = PyNumber_Float(element);
+
+      double value = PyFloat_AsDouble(tmp);
       selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
     }
 
     selfType->pointer[len] = 0;
@@ -606,7 +671,7 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  PyErr_SetString(PyExc_TypeError, "Expected tuple or float");
+  PyErr_SetString(PyExc_TypeError, "Expected float or sequence of floats");
   return -1;
 }
 
@@ -722,13 +787,30 @@ static PyObject *c_double_pop(PyObject *self) {
 // PyC.c_double.value
 static PyObject *c_double_value(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
-  return PyFloat_FromDouble(selfType->value);
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_double.__int__
+static PyObject *c_double_to_int(PyObject *self) {
+  PyC_c_double *selfType = (PyC_c_double *)self;
+  return PyLong_FromDouble(*(selfType->pointer));
 }
 
 // PyC.c_double.__float__
 static PyObject *c_double_to_float(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
-  return PyFloat_FromDouble(selfType->value);
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_double.__bool__
+static int c_double_to_bool(PyObject *self) {
+  PyC_c_double *selfType = (PyC_c_double *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // PyC.c_double.__len__
@@ -822,7 +904,9 @@ static int c_double_freeOnDel_setter(PyObject *self, PyObject *value,
 
 // ----- c_float -----
 PyNumberMethods c_float_as_float = {
+    .nb_int = &c_float_to_int,
     .nb_float = &c_float_to_float,
+    .nb_bool = &c_float_to_bool,
 };
 
 PyMappingMethods c_float_as_mapping = {
@@ -893,7 +977,7 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         Py_DECREF(key);
         return 0;
       } else {
-        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+        PyErr_SetString(py_BindingError, "calling c_float with pointer keyword "
                                          "is restricted for internal use only");
         Py_DECREF(key);
         return -1;
@@ -903,9 +987,14 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of floats");
+    return -1;
+  }
 
   if (PyNumber_Check(arg_1)) {
-    float value = PyFloat_AsDouble(arg_1);
+    PyObject *tmp = PyNumber_Float(arg_1);
+    float value = PyFloat_AsDouble(tmp);
 
     selfType->value = value;
     selfType->pointer = &(selfType->value);
@@ -914,6 +1003,8 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
+
+    Py_DECREF(tmp);
 
     return 0;
 
@@ -932,12 +1023,24 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be float or int");
         return -1;
       }
 
-      float value = PyFloat_AsDouble(element);
+      PyObject *tmp = PyNumber_Float(element);
+
+      float value = PyFloat_AsDouble(tmp);
       selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
     }
 
     selfType->pointer[len] = 0;
@@ -945,7 +1048,7 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  PyErr_SetString(PyExc_TypeError, "Expected tuple or float");
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of floats");
   return -1;
 }
 
@@ -1061,13 +1164,29 @@ static PyObject *c_float_pop(PyObject *self) {
 // PyC.c_float.value
 static PyObject *c_float_value(PyObject *self) {
   PyC_c_float *selfType = (PyC_c_float *)self;
-  return PyFloat_FromDouble(selfType->value);
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_float.__int__
+static PyObject *c_float_to_int(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  return PyLong_FromDouble(*(selfType->pointer));
 }
 
 // PyC.c_float.__float__
 static PyObject *c_float_to_float(PyObject *self) {
   PyC_c_float *selfType = (PyC_c_float *)self;
-  return PyFloat_FromDouble(selfType->value);
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_float.__bool__
+static int c_float_to_bool(PyObject *self) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // PyC.c_float.__len__
@@ -1162,6 +1281,8 @@ static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
 // ----- c_bool -----
 // TODO: support array / pointer
 PyNumberMethods c_bool_as_bool = {
+    .nb_int = &c_bool_to_int,
+    .nb_float = &c_bool_to_float,
     .nb_bool = &c_bool_to_bool,
 };
 
@@ -1208,6 +1329,34 @@ static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   // TODO: implement keyword args: is_pointer, is_array
 
   PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->freeOnDel = false;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
+      }
+    }
+    Py_DECREF(key);
+  }
 
   int value;
   if (!PyArg_ParseTuple(args, "p", &value)) {
@@ -1266,17 +1415,31 @@ static PyObject *c_bool_pop(PyObject *self) {
 static PyObject *c_bool_value(PyObject *self) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  if (selfType->value) {
+  if (*(selfType->pointer)) {
     Py_RETURN_TRUE;
   }
   Py_RETURN_FALSE;
+}
+
+// PyC.c_bool.__int__
+static PyObject *c_bool_to_int(PyObject *self) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_bool.__float__
+static PyObject *c_bool_to_float(PyObject *self) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  return PyFloat_FromDouble(*(selfType->pointer));
 }
 
 // PyC.c_bool.__bool__
 static int c_bool_to_bool(PyObject *self) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  if (selfType->value) {
+  if (*(selfType->pointer)) {
     return 1;
   }
   return 0;
@@ -1344,6 +1507,8 @@ static int c_bool_freeOnDel_setter(PyObject *self, PyObject *value,
 // ----- c_short -----
 PyNumberMethods c_short_as_short = {
     .nb_int = &c_short_to_int,
+    .nb_float = &c_short_to_float,
+    .nb_bool = &c_short_to_bool,
 };
 
 PyMappingMethods c_short_as_mapping = {
@@ -1442,9 +1607,14 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
 
   if (PyNumber_Check(arg_1)) {
-    short value = PyLong_AsLong(arg_1);
+    PyObject *tmp = PyNumber_Long(arg_1);
+    short value = PyLong_AsLong(tmp);
 
     selfType->value = value;
     selfType->pointer = &(selfType->value);
@@ -1453,6 +1623,8 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
+
+    Py_DECREF(tmp);
 
     return 0;
 
@@ -1471,12 +1643,24 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be int or float");
         return -1;
       }
 
-      short value = PyLong_AsLong(element);
+      PyObject *tmp = PyNumber_Long(element);
+
+      short value = PyLong_AsLong(tmp);
       selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
     }
 
     selfType->pointer[len] = 0;
@@ -1484,7 +1668,8 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  PyErr_SetString(PyExc_TypeError, "Expected tuple or int");
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+
   return -1;
 }
 
@@ -1614,19 +1799,40 @@ static PyObject *c_short_value(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    return PyLong_FromLongLong((unsigned short)(selfType->value));
+    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
   }
-  return PyLong_FromLongLong(selfType->value);
+  return PyLong_FromLongLong(*(selfType->pointer));
 }
 
-// PyC.c_short.__short__
+// PyC.c_short.__float__
+static PyObject *c_short_to_float(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+    return PyFloat_FromDouble((unsigned short)(*(selfType->pointer)));
+  }
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_short.__int__
 static PyObject *c_short_to_int(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    return PyLong_FromLongLong((unsigned short)(selfType->value));
+    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
   }
-  return PyLong_FromLongLong(selfType->value);
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_short.__bool__
+static int c_short_to_bool(PyObject *self) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // PyC.c_short.__len__
@@ -1724,6 +1930,8 @@ static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
 // ----- c_long -----
 PyNumberMethods c_long_as_long = {
     .nb_int = &c_long_to_int,
+    .nb_float = &c_long_to_float,
+    .nb_bool = &c_long_to_bool,
 };
 
 PyMappingMethods c_long_as_mapping = {
@@ -1816,9 +2024,14 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   }
 
   PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
 
   if (PyNumber_Check(arg_1)) {
-    long value = PyLong_AsLong(arg_1);
+    PyObject *tmp = PyNumber_Long(arg_1);
+    long value = PyLong_AsLong(tmp);
 
     selfType->value = value;
     selfType->pointer = &(selfType->value);
@@ -1827,6 +2040,8 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
+
+    Py_DECREF(tmp);
 
     return 0;
 
@@ -1845,12 +2060,23 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
-        PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be int or float");
         return -1;
       }
+      PyObject *tmp = PyNumber_Long(element);
 
-      long value = PyLong_AsLong(element);
+      long value = PyLong_AsLong(tmp);
       selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
     }
 
     selfType->pointer[len] = 0;
@@ -1858,7 +2084,8 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  PyErr_SetString(PyExc_TypeError, "Expected tuple or int");
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+
   return -1;
 }
 
@@ -1988,9 +2215,9 @@ static PyObject *c_long_value(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    return PyLong_FromLongLong((unsigned long)(selfType->value));
+    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
   }
-  return PyLong_FromLongLong(selfType->value);
+  return PyLong_FromLongLong(*(selfType->pointer));
 }
 
 // PyC.c_long.__int__
@@ -1998,9 +2225,30 @@ static PyObject *c_long_to_int(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    return PyLong_FromLongLong((unsigned long)(selfType->value));
+    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
   }
-  return PyLong_FromLongLong(selfType->value);
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_long.__float__
+static PyObject *c_long_to_float(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+    return PyFloat_FromDouble((unsigned long)(*(selfType->pointer)));
+  }
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_long.__bool__
+static int c_long_to_bool(PyObject *self) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // PyC.c_long.__len__
