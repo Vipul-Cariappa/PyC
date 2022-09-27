@@ -164,12 +164,11 @@ PyTypeObject py_c_uint_type = {
 
 // PyC.c_int.__init__
 static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_int *selfType = (PyC_c_int *)self;
 
   if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
@@ -183,9 +182,14 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         selfType->arraySize = 0;
         selfType->arrayCapacity = 0;
         selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
       }
-
-      return 0;
     }
     Py_DECREF(key);
   }
@@ -206,8 +210,8 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return 0;
 
-  } else if (PyTuple_Check(arg_1)) {
-    size_t len = PyTuple_Size(arg_1);
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
     selfType->freeOnDel = true;
@@ -219,7 +223,7 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
-      PyObject *element = PyTuple_GetItem(arg_1, i);
+      PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
         PyErr_SetString(PyExc_TypeError,
@@ -529,12 +533,11 @@ PyTypeObject py_c_double_type = {
 
 // PyC.c_double.__init__
 static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_double *selfType = (PyC_c_double *)self;
 
   if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
@@ -542,14 +545,20 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       if (pointer_value == Py_None) {
         selfType->value = 0;
         selfType->pointer = NULL;
+        selfType->freeOnDel = false;
         selfType->isPointer = true;
         selfType->isArray = false;
         selfType->arraySize = 0;
         selfType->arrayCapacity = 0;
         selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
       }
-
-      return 0;
     }
     Py_DECREF(key);
   }
@@ -569,8 +578,8 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return 0;
 
-  } else if (PyTuple_Check(arg_1)) {
-    size_t len = PyTuple_Size(arg_1);
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
     selfType->pointer = calloc(len + 1, sizeof(int));
@@ -581,7 +590,7 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
-      PyObject *element = PyTuple_GetItem(arg_1, i);
+      PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
         PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
@@ -863,12 +872,11 @@ PyTypeObject py_c_float_type = {
 
 // PyC.c_float.__init__
 static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_float *selfType = (PyC_c_float *)self;
 
   if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
@@ -876,14 +884,20 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       if (pointer_value == Py_None) {
         selfType->value = 0;
         selfType->pointer = NULL;
+        selfType->freeOnDel = false;
         selfType->isPointer = true;
         selfType->isArray = false;
         selfType->arraySize = 0;
         selfType->arrayCapacity = 0;
         selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
       }
-
-      return 0;
     }
     Py_DECREF(key);
   }
@@ -903,8 +917,8 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return 0;
 
-  } else if (PyTuple_Check(arg_1)) {
-    size_t len = PyTuple_Size(arg_1);
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
     selfType->pointer = calloc(len + 1, sizeof(int));
@@ -915,7 +929,7 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
-      PyObject *element = PyTuple_GetItem(arg_1, i);
+      PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
         PyErr_SetString(PyExc_TypeError, "Expected tuple of floats or float");
@@ -1397,12 +1411,11 @@ PyTypeObject py_c_ushort_type = {
 
 // PyC.c_short.__init__
 static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_short *selfType = (PyC_c_short *)self;
 
   if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
     PyObject *key = PyUnicode_FromFormat("pointer");
     if (PyDict_Contains(kwargs, key) == 1) {
       PyObject *pointer_value = PyDict_GetItem(kwargs, key);
@@ -1410,14 +1423,20 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       if (pointer_value == Py_None) {
         selfType->value = 0;
         selfType->pointer = NULL;
+        selfType->freeOnDel = false;
         selfType->isPointer = true;
         selfType->isArray = false;
         selfType->arraySize = 0;
         selfType->arrayCapacity = 0;
         selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
       }
-
-      return 0;
     }
     Py_DECREF(key);
   }
@@ -1437,8 +1456,8 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return 0;
 
-  } else if (PyTuple_Check(arg_1)) {
-    size_t len = PyTuple_Size(arg_1);
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
     selfType->pointer = calloc(len + 1, sizeof(int));
@@ -1449,7 +1468,7 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
-      PyObject *element = PyTuple_GetItem(arg_1, i);
+      PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
         PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
@@ -1772,9 +1791,6 @@ PyTypeObject py_c_ulong_type = {
 
 // PyC.c_long.__init__
 static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_long *selfType = (PyC_c_long *)self;
 
   PyObject *key = PyUnicode_FromFormat("pointer");
@@ -1814,8 +1830,8 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return 0;
 
-  } else if (PyTuple_Check(arg_1)) {
-    size_t len = PyTuple_Size(arg_1);
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
     selfType->pointer = calloc(len + 1, sizeof(int));
@@ -1826,7 +1842,7 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
-      PyObject *element = PyTuple_GetItem(arg_1, i);
+      PyObject *element = PySequence_GetItem(arg_1, i);
 
       if (!(PyNumber_Check(element))) {
         PyErr_SetString(PyExc_TypeError, "Expected tuple of ints or int");
