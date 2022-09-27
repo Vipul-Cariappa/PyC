@@ -32,7 +32,7 @@ class TestBasic(unittest.TestCase):
         full_name = cModule.concat(
                 "Vipul ", "Cariappa"
             )
-        full_name.free_on_del(True)
+        full_name.free_on_no_reference = True
         self.assertEqual(
             str(full_name),
             "Vipul Cariappa"
@@ -46,7 +46,7 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(cppModule.add(24, 46), 70)
 
         string = cppModule.add("Vipul", 2)
-        string.free_on_del(True)
+        string.free_on_no_reference = True
         self.assertEqual(str(string), "VipulVipul")
 
         self.assertAlmostEqual(cppModule.pi(1_000_000), 3.14159, 4)
@@ -54,7 +54,7 @@ class TestBasic(unittest.TestCase):
         string = cppModule.concat(
                 "Vipul ", "Cariappa"
             )
-        string.free_on_del(True)
+        string.free_on_no_reference = True
         self.assertEqual(
             str(string),
             "Vipul Cariappa"
@@ -134,16 +134,16 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(str(c_string), string)
         
         string2 = cppModule.add(string, 2)
-        string2.free_on_del(True)
+        string2.free_on_no_reference = True
         self.assertEqual(str(string2), string+string)
 
         string = cppModule.repeat_char(c_string_char, 2)
-        string.free_on_del(True)
+        string.free_on_no_reference = True
         self.assertEqual(str(string), "##")
 
     def test_pointer_return_funcs(self):
         long_ptr = cModule.returns_pointer()
-        long_ptr.free_on_del(True)
+        long_ptr.free_on_no_reference = True
         self.assertEqual(long_ptr.value(), 465826769270)
 
     def test_function_with_c_types(self):
@@ -178,7 +178,7 @@ class TestBasic(unittest.TestCase):
         
         t = cModule.get_rect(1, 2)
         f = cModule.rect_add(r1, r2)
-        f.free_on_del(True)
+        f.free_on_no_reference = True
         
         self.assertEqual(t.x, 1)
         self.assertEqual(t.y, 2)
@@ -269,7 +269,7 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(num1.i, 4800)
         
         num2 = cModule.creat_number_ptr_with_int(4800)
-        num2.free_on_del(True)
+        num2.free_on_no_reference = True
         self.assertEqual(num2.i, 4800)
 
 

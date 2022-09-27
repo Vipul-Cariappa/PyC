@@ -10,16 +10,17 @@ extern PyTypeObject py_c_void_type;
 typedef struct PyC_c_void {
   PyObject_HEAD void *pointer;
   bool freeOnDel;
-  // bool isArray;
-  // size_t arraySize;
-  // size_t arrayCapacity;
-  // size_t _i; // for iteration purpose
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i; // for iteration purpose
 } PyC_c_void;
 
 static int c_void_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static void c_void_finalizer(PyObject *self);
-static PyObject *c_void_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+static PyObject *c_void_freeOnDel_getter(PyObject *self, void *closure);
+static int c_void_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure);
 
 // c_type: c_int
 extern PyTypeObject py_c_int_type;
@@ -43,9 +44,9 @@ static void c_int_finalizer(PyObject *self);
 static PyObject *c_int_append(PyObject *self, PyObject *args);
 static PyObject *c_int_pop(PyObject *self);
 static PyObject *c_int_value(PyObject *self);
-static PyObject *c_int_free_on_del(PyObject *self, PyObject *args,
-                                   PyObject *kwargs);
-static PyObject *c_int_to_pointer(PyObject *self);
+static PyObject *c_int_freeOnDel_getter(PyObject *self, void *closure);
+static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
+                                  void *closure);
 static PyObject *c_int_to_int(PyObject *self);
 static Py_ssize_t c_int_len(PyObject *self);
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
@@ -72,9 +73,9 @@ static void c_double_finalizer(PyObject *self);
 static PyObject *c_double_append(PyObject *self, PyObject *args);
 static PyObject *c_double_pop(PyObject *self);
 static PyObject *c_double_value(PyObject *self);
-static PyObject *c_double_free_on_del(PyObject *self, PyObject *args,
-                                      PyObject *kwargs);
-static PyObject *c_double_to_pointer(PyObject *self);
+static PyObject *c_double_freeOnDel_getter(PyObject *self, void *closure);
+static int c_double_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure);
 static PyObject *c_double_to_float(PyObject *self);
 static Py_ssize_t c_double_len(PyObject *self);
 static PyObject *c_double_getitem(PyObject *self, PyObject *attr);
@@ -100,9 +101,9 @@ static void c_bool_finalizer(PyObject *self);
 static PyObject *c_bool_append(PyObject *self, PyObject *args);
 static PyObject *c_bool_pop(PyObject *self);
 static PyObject *c_bool_value(PyObject *self);
-static PyObject *c_bool_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
-static PyObject *c_bool_to_pointer(PyObject *self);
+static PyObject *c_bool_freeOnDel_getter(PyObject *self, void *closure);
+static int c_bool_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure);
 static int c_bool_to_bool(PyObject *self);
 static Py_ssize_t c_bool_len(PyObject *self);
 static PyObject *c_bool_getitem(PyObject *self, PyObject *attr);
@@ -128,9 +129,9 @@ static void c_char_finalizer(PyObject *self);
 static PyObject *c_char_append(PyObject *self, PyObject *args);
 static PyObject *c_char_pop(PyObject *self);
 static PyObject *c_char_value(PyObject *self);
-static PyObject *c_char_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
-static PyObject *c_char_to_pointer(PyObject *self);
+static PyObject *c_char_freeOnDel_getter(PyObject *self, void *closure);
+static int c_char_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure);
 static PyObject *c_char_to_str(PyObject *self);
 static Py_ssize_t c_char_len(PyObject *self);
 static PyObject *c_char_getitem(PyObject *self, PyObject *attr);
@@ -157,9 +158,9 @@ static void c_float_finalizer(PyObject *self);
 static PyObject *c_float_append(PyObject *self, PyObject *args);
 static PyObject *c_float_pop(PyObject *self);
 static PyObject *c_float_value(PyObject *self);
-static PyObject *c_float_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
-static PyObject *c_float_to_pointer(PyObject *self);
+static PyObject *c_float_freeOnDel_getter(PyObject *self, void *closure);
+static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure);
 static PyObject *c_float_to_float(PyObject *self);
 static Py_ssize_t c_float_len(PyObject *self);
 static PyObject *c_float_getitem(PyObject *self, PyObject *attr);
@@ -187,9 +188,9 @@ static void c_short_finalizer(PyObject *self);
 static PyObject *c_short_append(PyObject *self, PyObject *args);
 static PyObject *c_short_pop(PyObject *self);
 static PyObject *c_short_value(PyObject *self);
-static PyObject *c_short_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
-static PyObject *c_short_to_pointer(PyObject *self);
+static PyObject *c_short_freeOnDel_getter(PyObject *self, void *closure);
+static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure);
 static PyObject *c_short_to_int(PyObject *self);
 static Py_ssize_t c_short_len(PyObject *self);
 static PyObject *c_short_getitem(PyObject *self, PyObject *attr);
@@ -217,9 +218,9 @@ static void c_long_finalizer(PyObject *self);
 static PyObject *c_long_append(PyObject *self, PyObject *args);
 static PyObject *c_long_pop(PyObject *self);
 static PyObject *c_long_value(PyObject *self);
-static PyObject *c_long_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
-static PyObject *c_long_to_pointer(PyObject *self);
+static PyObject *c_long_freeOnDel_getter(PyObject *self, void *closure);
+static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure);
 static PyObject *c_long_to_int(PyObject *self);
 static Py_ssize_t c_long_len(PyObject *self);
 static PyObject *c_long_getitem(PyObject *self, PyObject *attr);
@@ -253,9 +254,9 @@ static PyObject *c_struct_iter(PyObject *self);
 static PyObject *c_struct_next(PyObject *self);
 static PyObject *c_struct_append(PyObject *self, PyObject *args);
 static PyObject *c_struct_pop(PyObject *self);
-static PyObject *c_struct_free_on_del(PyObject *self, PyObject *args,
-                                      PyObject *kwargs);
-static PyObject *c_struct_to_pointer(PyObject *self);
+static PyObject *c_struct_freeOnDel_getter(PyObject *self, void *closure);
+static int c_struct_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure);
 static Py_ssize_t c_struct_len(PyObject *self);
 static PyObject *c_struct_getitem(PyObject *self, PyObject *attr);
 static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value);
@@ -289,9 +290,9 @@ static PyObject *c_union_iter(PyObject *self);
 static PyObject *c_union_next(PyObject *self);
 static PyObject *c_union_append(PyObject *self, PyObject *args);
 static PyObject *c_union_pop(PyObject *self);
-static PyObject *c_union_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
-static PyObject *c_union_to_pointer(PyObject *self);
+static PyObject *c_union_freeOnDel_getter(PyObject *self, void *closure);
+static int c_union_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure);
 static Py_ssize_t c_union_len(PyObject *self);
 static PyObject *c_union_getitem(PyObject *self, PyObject *attr);
 static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value);

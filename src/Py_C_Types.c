@@ -21,27 +21,25 @@ struct Custom_u_PyTypeObject {
 
 // ----- c_void -----
 
-PyMethodDef c_void_methods[] = {
-    {"free_on_del", (PyCFunction)&c_void_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_int.free_on_del()"},
-    {NULL, NULL, 0, NULL}};
+PyMethodDef c_void_methods[] = {{NULL, NULL, 0, NULL}};
 
-PyMemberDef c_void_members[] = {{"_free_on_del", T_BOOL,
-                                 offsetof(PyC_c_void, freeOnDel), READONLY,
-                                 "PyC.c_void._free_on_del"},
-                                {NULL, 0, 0, 0, NULL}};
+PyMemberDef c_void_members[] = {{NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_void_getsetdef[] = {
+    {"free_on_no_reference", &c_void_freeOnDel_getter, &c_void_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_void_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_void",
     .tp_basicsize = sizeof(PyC_c_void),
     .tp_itemsize = 0,
-    // .tp_as_mapping = &c_void_as_mapping,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.c_void",
-    // .tp_iter = &c_void_iter,
-    // .tp_iternext = &c_void_next,
     .tp_methods = c_void_methods,
     .tp_members = c_void_members,
+    .tp_getset = c_void_getsetdef,
     .tp_init = &c_void_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_void_finalizer,
@@ -67,22 +65,33 @@ static void c_void_finalizer(PyObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-// PyC.c_void.free_on_del
-static PyObject *c_void_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
+static PyObject *c_void_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_void *selfType = (PyC_c_void *)self;
-  int value;
 
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
   }
 
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
+  Py_RETURN_FALSE;
+}
 
-  Py_RETURN_NONE;
+static int c_void_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure) {
+  PyC_c_void *selfType = (PyC_c_void *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
 }
 
 // ----- c_int -----
@@ -100,15 +109,15 @@ PyMethodDef c_int_methods[] = {
     {"append", (PyCFunction)&c_int_append, METH_VARARGS, "c_int.append()"},
     {"pop", (PyCFunction)&c_int_pop, METH_NOARGS, "c_int.pop()"},
     {"value", (PyCFunction)&c_int_value, METH_NOARGS, "c_int.value()"},
-    {"free_on_del", (PyCFunction)&c_int_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_int.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_int_to_pointer, METH_NOARGS,
-     "c_int.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
+PyGetSetDef c_int_getsetdef[] = {
+    {"free_on_no_reference", &c_int_freeOnDel_getter, &c_int_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
+
 PyMemberDef c_int_members[] = {
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_int, freeOnDel), READONLY,
-     "PyC.c_int._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_int, isPointer), READONLY,
      "PyC.c_int.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_int, isArray), READONLY,
@@ -127,6 +136,7 @@ PyTypeObject py_c_int_type = {
     .tp_iternext = &c_int_next,
     .tp_methods = c_int_methods,
     .tp_members = c_int_members,
+    .tp_getset = c_int_getsetdef,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_int_finalizer,
@@ -144,6 +154,7 @@ PyTypeObject py_c_uint_type = {
     .tp_iternext = &c_int_next,
     .tp_methods = c_int_methods,
     .tp_members = c_int_members,
+    .tp_getset = c_int_getsetdef,
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_int_finalizer,
@@ -360,34 +371,6 @@ static PyObject *c_int_value(PyObject *self) {
   return PyLong_FromLongLong((unsigned int)selfType->value);
 }
 
-// PyC.c_int.free_on_del
-static PyObject *c_int_free_on_del(PyObject *self, PyObject *args,
-                                   PyObject *kwargs) {
-  PyC_c_int *selfType = (PyC_c_int *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_int.to_pointer
-static PyObject *c_int_to_pointer(PyObject *self) {
-  // TODO: implement c_int_to_pointer
-
-  PyC_c_int *selfType = (PyC_c_int *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_int.__int__
 static PyObject *c_int_to_int(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
@@ -464,6 +447,35 @@ static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_int_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
+                                  void *closure) {
+  PyC_c_int *selfType = (PyC_c_int *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_double -----
 PyNumberMethods c_double_as_double = {
     .nb_float = &c_double_to_float,
@@ -480,20 +492,20 @@ PyMethodDef c_double_methods[] = {
      "c_double.append()"},
     {"pop", (PyCFunction)&c_double_pop, METH_NOARGS, "c_double.pop()"},
     {"value", (PyCFunction)&c_double_value, METH_NOARGS, "c_double.value()"},
-    {"free_on_del", (PyCFunction)&c_double_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_double.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_double_to_pointer, METH_NOARGS,
-     "c_double.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_double_members[] = {
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_double, freeOnDel), READONLY,
-     "PyC.c_douPyC_c_double._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_double, isPointer), READONLY,
      "PyC.c_double.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_double, isArray), READONLY,
      "PyC.c_double.is_array"},
     {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_double_getsetdef[] = {
+    {"free_on_no_reference", &c_double_freeOnDel_getter,
+     &c_double_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_double_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_double",
@@ -507,6 +519,7 @@ PyTypeObject py_c_double_type = {
     .tp_iternext = &c_double_next,
     .tp_methods = c_double_methods,
     .tp_members = c_double_members,
+    .tp_getset = c_double_getsetdef,
     .tp_init = &c_double_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_double_finalizer,
@@ -703,34 +716,6 @@ static PyObject *c_double_value(PyObject *self) {
   return PyFloat_FromDouble(selfType->value);
 }
 
-// PyC.c_double.free_on_del
-static PyObject *c_double_free_on_del(PyObject *self, PyObject *args,
-                                      PyObject *kwargs) {
-  PyC_c_double *selfType = (PyC_c_double *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_double.to_pointer
-static PyObject *c_double_to_pointer(PyObject *self) {
-  // TODO: implement c_double_to_pointer
-
-  PyC_c_double *selfType = (PyC_c_double *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_double.__float__
 static PyObject *c_double_to_float(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
@@ -797,6 +782,35 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_double_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_double *selfType = (PyC_c_double *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_double_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure) {
+  PyC_c_double *selfType = (PyC_c_double *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_float -----
 PyNumberMethods c_float_as_float = {
     .nb_float = &c_float_to_float,
@@ -812,20 +826,20 @@ PyMethodDef c_float_methods[] = {
     {"append", (PyCFunction)&c_float_append, METH_VARARGS, "c_float.append()"},
     {"pop", (PyCFunction)&c_float_pop, METH_NOARGS, "c_float.pop()"},
     {"value", (PyCFunction)&c_float_value, METH_NOARGS, "c_float.value()"},
-    {"free_on_del", (PyCFunction)&c_float_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_float.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_float_to_pointer, METH_NOARGS,
-     "c_float.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_float_members[] = {
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_float, freeOnDel), READONLY,
-     "PyC.c_float._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_float, isPointer), READONLY,
      "PyC.c_float.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_float, isArray), READONLY,
      "PyC.c_float.is_array"},
     {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_float_getsetdef[] = {
+    {"free_on_no_reference", &c_float_freeOnDel_getter,
+     &c_float_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_float_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_float",
@@ -839,6 +853,7 @@ PyTypeObject py_c_float_type = {
     .tp_iternext = &c_float_next,
     .tp_methods = c_float_methods,
     .tp_members = c_float_members,
+    .tp_getset = c_float_getsetdef,
     .tp_init = &c_float_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_float_finalizer,
@@ -1035,34 +1050,6 @@ static PyObject *c_float_value(PyObject *self) {
   return PyFloat_FromDouble(selfType->value);
 }
 
-// PyC.c_float.free_on_del
-static PyObject *c_float_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs) {
-  PyC_c_float *selfType = (PyC_c_float *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_float.to_pointer
-static PyObject *c_float_to_pointer(PyObject *self) {
-  // TODO: implement c_float_to_pointer
-
-  PyC_c_float *selfType = (PyC_c_float *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_float.__float__
 static PyObject *c_float_to_float(PyObject *self) {
   PyC_c_float *selfType = (PyC_c_float *)self;
@@ -1129,6 +1116,35 @@ static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_float_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure) {
+  PyC_c_float *selfType = (PyC_c_float *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_bool -----
 // TODO: support array / pointer
 PyNumberMethods c_bool_as_bool = {
@@ -1145,11 +1161,13 @@ PyMethodDef c_bool_methods[] = {
     {"append", (PyCFunction)&c_bool_append, METH_VARARGS, "c_bool.append()"},
     {"pop", (PyCFunction)&c_bool_pop, METH_NOARGS, "c_bool.pop()"},
     {"value", (PyCFunction)&c_bool_value, METH_NOARGS, "c_bool.value()"},
-    {"free_on_del", (PyCFunction)&c_bool_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_bool.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_bool_to_pointer, METH_NOARGS,
-     "c_bool.to_pointer()"},
     {NULL, NULL, 0, NULL}};
+
+PyGetSetDef c_bool_getsetdef[] = {
+    {"free_on_no_reference", &c_bool_freeOnDel_getter, &c_bool_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_bool_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_bool",
@@ -1161,6 +1179,7 @@ PyTypeObject py_c_bool_type = {
     .tp_doc = "PyCpp.c_bool",
     .tp_iter = &c_bool_iter,
     .tp_methods = c_bool_methods,
+    .tp_getset = c_bool_getsetdef,
     .tp_init = &c_bool_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_bool_finalizer,
@@ -1239,27 +1258,6 @@ static PyObject *c_bool_value(PyObject *self) {
   Py_RETURN_FALSE;
 }
 
-// PyC.c_bool.free_on_del
-static PyObject *c_bool_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
-  // TODO: implement c_bool_free_on_del
-
-  PyC_c_bool *selfType = (PyC_c_bool *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
-// PyC.c_bool.to_pointer
-static PyObject *c_bool_to_pointer(PyObject *self) {
-  // TODO: implement c_bool_to_pointer
-
-  PyC_c_bool *selfType = (PyC_c_bool *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_bool.__bool__
 static int c_bool_to_bool(PyObject *self) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
@@ -1300,6 +1298,35 @@ static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_bool_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_bool_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_short -----
 PyNumberMethods c_short_as_short = {
     .nb_int = &c_short_to_int,
@@ -1315,20 +1342,20 @@ PyMethodDef c_short_methods[] = {
     {"append", (PyCFunction)&c_short_append, METH_VARARGS, "c_short.append()"},
     {"pop", (PyCFunction)&c_short_pop, METH_NOARGS, "c_short.pop()"},
     {"value", (PyCFunction)&c_short_value, METH_NOARGS, "c_short.value()"},
-    {"free_on_del", (PyCFunction)&c_short_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_short.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_short_to_pointer, METH_NOARGS,
-     "c_short.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_short_members[] = {
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_short, freeOnDel), READONLY,
-     "PyC.c_short._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_short, isPointer), READONLY,
      "PyC.c_short.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_short, isArray), READONLY,
      "PyC.c_short.is_array"},
     {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_short_getsetdef[] = {
+    {"free_on_no_reference", &c_short_freeOnDel_getter,
+     &c_short_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_short_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_short",
@@ -1342,6 +1369,7 @@ PyTypeObject py_c_short_type = {
     .tp_iternext = &c_short_next,
     .tp_methods = c_short_methods,
     .tp_members = c_short_members,
+    .tp_getset = c_short_getsetdef,
     .tp_init = &c_short_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_short_finalizer,
@@ -1359,6 +1387,7 @@ PyTypeObject py_c_ushort_type = {
     .tp_iternext = &c_short_next,
     .tp_methods = c_short_methods,
     .tp_members = c_short_members,
+    .tp_getset = c_short_getsetdef,
     .tp_init = &c_short_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_short_finalizer,
@@ -1571,34 +1600,6 @@ static PyObject *c_short_value(PyObject *self) {
   return PyLong_FromLongLong(selfType->value);
 }
 
-// PyC.c_short.free_on_del
-static PyObject *c_short_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs) {
-  PyC_c_short *selfType = (PyC_c_short *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_short.to_pointer
-static PyObject *c_short_to_pointer(PyObject *self) {
-  // TODO: implement c_short_to_pointer
-
-  PyC_c_short *selfType = (PyC_c_short *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_short.__short__
 static PyObject *c_short_to_int(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
@@ -1672,6 +1673,35 @@ static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_short_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure) {
+  PyC_c_short *selfType = (PyC_c_short *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_long -----
 PyNumberMethods c_long_as_long = {
     .nb_int = &c_long_to_int,
@@ -1687,20 +1717,20 @@ PyMethodDef c_long_methods[] = {
     {"append", (PyCFunction)&c_long_append, METH_VARARGS, "c_long.append()"},
     {"pop", (PyCFunction)&c_long_pop, METH_NOARGS, "c_long.pop()"},
     {"value", (PyCFunction)&c_long_value, METH_NOARGS, "c_long.value()"},
-    {"free_on_del", (PyCFunction)&c_long_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_long.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_long_to_pointer, METH_NOARGS,
-     "c_long.to_pointer()"},
     {NULL, NULL, 0, NULL}};
 
 PyMemberDef c_long_members[] = {
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_long, freeOnDel), READONLY,
-     "PyC.c_long._free_on_del"},
     {"is_pointer", T_BOOL, offsetof(PyC_c_long, isPointer), READONLY,
      "PyC.c_long.is_pointer"},
     {"is_array", T_BOOL, offsetof(PyC_c_long, isArray), READONLY,
      "PyC.c_long.is_array"},
     {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_long_getsetdef[] = {
+    {"free_on_no_reference", &c_long_freeOnDel_getter, &c_long_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_long_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_long",
@@ -1714,6 +1744,7 @@ PyTypeObject py_c_long_type = {
     .tp_iternext = &c_long_next,
     .tp_methods = c_long_methods,
     .tp_members = c_long_members,
+    .tp_getset = c_long_getsetdef,
     .tp_init = &c_long_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_long_finalizer,
@@ -1731,6 +1762,7 @@ PyTypeObject py_c_ulong_type = {
     .tp_iternext = &c_long_next,
     .tp_methods = c_long_methods,
     .tp_members = c_long_members,
+    .tp_getset = c_long_getsetdef,
     .tp_init = &c_long_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_long_finalizer,
@@ -1945,34 +1977,6 @@ static PyObject *c_long_value(PyObject *self) {
   return PyLong_FromLongLong(selfType->value);
 }
 
-// PyC.c_long.free_on_del
-static PyObject *c_long_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
-  PyC_c_long *selfType = (PyC_c_long *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_long.to_pointer
-static PyObject *c_long_to_pointer(PyObject *self) {
-  // TODO: implement c_long_to_pointer
-
-  PyC_c_long *selfType = (PyC_c_long *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_long.__int__
 static PyObject *c_long_to_int(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
@@ -2046,6 +2050,35 @@ static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_long_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure) {
+  PyC_c_long *selfType = (PyC_c_long *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_char -----
 // TODO: support array / pointer
 // TODO: support c_uchar
@@ -2060,11 +2093,13 @@ PyMethodDef c_char_methods[] = {
     {"append", (PyCFunction)&c_char_append, METH_VARARGS, "c_char.append()"},
     {"pop", (PyCFunction)&c_char_pop, METH_NOARGS, "c_char.pop()"},
     {"value", (PyCFunction)&c_char_value, METH_NOARGS, "c_char.value()"},
-    {"free_on_del", (PyCFunction)&c_char_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_char.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_char_to_pointer, METH_NOARGS,
-     "c_char.to_pointer()"},
     {NULL, NULL, 0, NULL}};
+
+PyGetSetDef c_char_getsetdef[] = {
+    {"free_on_no_reference", &c_char_freeOnDel_getter, &c_char_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_char_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_char",
@@ -2076,6 +2111,7 @@ PyTypeObject py_c_char_type = {
     .tp_doc = "PyCpp.c_char",
     .tp_iter = &c_char_iter,
     .tp_methods = c_char_methods,
+    .tp_getset = c_char_getsetdef,
     .tp_init = &c_char_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc =
@@ -2187,34 +2223,6 @@ static PyObject *c_char_value(PyObject *self) {
   }
 }
 
-// PyC.c_char.free_on_del
-static PyObject *c_char_free_on_del(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
-  PyC_c_char *selfType = (PyC_c_char *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-// PyC.c_char.to_pointer
-static PyObject *c_char_to_pointer(PyObject *self) {
-  // TODO: implement c_char_to_pointer
-
-  PyC_c_char *selfType = (PyC_c_char *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 // PyC.c_char.__char__
 static PyObject *c_char_to_str(PyObject *self) {
   PyC_c_char *selfType = (PyC_c_char *)self;
@@ -2259,6 +2267,35 @@ static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_char_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_char_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure) {
+  PyC_c_char *selfType = (PyC_c_char *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_struct -----
 
 PyMappingMethods c_struct_as_mapping = {
@@ -2270,8 +2307,6 @@ PyMappingMethods c_struct_as_mapping = {
 PyMemberDef c_struct_members[] = {
     {"is_array", T_BOOL, offsetof(PyC_c_struct, isArray), READONLY,
      "PyC.c_struct.is_array"},
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_struct, freeOnDel), READONLY,
-     "PyC.c_struct._free_on_del"},
     // {"__python_representation", T_OBJECT, offsetof(PyC_c_struct,
     // pyDictRepr),
     //  READONLY, "PyC.c_struct.__python_representation"},
@@ -2281,11 +2316,13 @@ PyMethodDef c_struct_methods[] = {
     {"append", (PyCFunction)&c_struct_append, METH_VARARGS,
      "c_struct.append()"},
     {"pop", (PyCFunction)&c_struct_pop, METH_NOARGS, "c_struct.pop()"},
-    {"free_on_del", (PyCFunction)&c_struct_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_struct.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_struct_to_pointer, METH_NOARGS,
-     "c_struct.to_pointer()"},
     {NULL, NULL, 0, NULL}};
+
+PyGetSetDef c_struct_getsetdef[] = {
+    {"free_on_no_reference", &c_struct_freeOnDel_getter,
+     &c_struct_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_struct_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_struct",
@@ -2299,6 +2336,7 @@ PyTypeObject py_c_struct_type = {
     .tp_iternext = &c_struct_next,
     .tp_methods = c_struct_methods,
     .tp_members = c_struct_members,
+    .tp_getset = c_struct_getsetdef,
     .tp_init = &c_struct_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_struct_finalizer,
@@ -2353,6 +2391,13 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
 // PyC.c_struct.__setattr__
 static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  if (strcmp(attr, "free_on_no_reference") == 0) {
+    PyObject *key = PyUnicode_FromString("free_on_no_reference");
+    int result = PyObject_GenericSetAttr(self, key, pValue);
+    Py_DECREF(key);
+    return result;
+  }
 
   for (size_t i = 0; i < selfType->structure->attrCount; i++) {
     if (!(strcmp(attr, str_array_getat(selfType->structure->attrNames, i)))) {
@@ -2488,31 +2533,6 @@ static PyObject *c_struct_pop(PyObject *self) {
   return NULL;
 }
 
-static PyObject *c_struct_free_on_del(PyObject *self, PyObject *args,
-                                      PyObject *kwargs) {
-  PyC_c_struct *selfType = (PyC_c_struct *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-static PyObject *c_struct_to_pointer(PyObject *self) {
-  // TODO: implement
-  PyC_c_struct *selfType = (PyC_c_struct *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 static Py_ssize_t c_struct_len(PyObject *self) {
   // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
@@ -2537,6 +2557,35 @@ static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
   return -1;
 }
 
+static PyObject *c_struct_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_struct_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure) {
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_union -----
 
 PyMappingMethods c_union_as_mapping = {
@@ -2548,8 +2597,6 @@ PyMappingMethods c_union_as_mapping = {
 PyMemberDef c_union_members[] = {
     {"is_array", T_BOOL, offsetof(PyC_c_union, isArray), READONLY,
      "PyC.c_union.is_array"},
-    {"_free_on_del", T_BOOL, offsetof(PyC_c_union, freeOnDel), READONLY,
-     "PyC.c_union._free_on_del"},
     // {"__python_representation", T_OBJECT, offsetof(PyC_c_union,
     // pyDictRepr),
     //  READONLY, "PyC.c_union.__python_representation"},
@@ -2558,11 +2605,13 @@ PyMemberDef c_union_members[] = {
 PyMethodDef c_union_methods[] = {
     {"append", (PyCFunction)&c_union_append, METH_VARARGS, "c_union.append()"},
     {"pop", (PyCFunction)&c_union_pop, METH_NOARGS, "c_union.pop()"},
-    {"free_on_del", (PyCFunction)&c_union_free_on_del,
-     METH_VARARGS | METH_KEYWORDS, "c_union.free_on_del()"},
-    {"to_pointer", (PyCFunction)&c_union_to_pointer, METH_NOARGS,
-     "c_union.to_pointer()"},
     {NULL, NULL, 0, NULL}};
+
+PyGetSetDef c_union_getsetdef[] = {
+    {"free_on_no_reference", &c_union_freeOnDel_getter,
+     &c_union_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
 
 PyTypeObject py_c_union_type = {
     PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_union",
@@ -2576,6 +2625,7 @@ PyTypeObject py_c_union_type = {
     .tp_iternext = &c_union_next,
     .tp_methods = c_union_methods,
     .tp_members = c_union_members,
+    .tp_getset = c_union_getsetdef,
     .tp_init = &c_union_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_union_finalizer,
@@ -2628,6 +2678,13 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
 // PyC.c_union.__setattr__
 static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
   PyC_c_union *selfType = (PyC_c_union *)self;
+
+  if (strcmp(attr, "free_on_no_reference") == 0) {
+    PyObject *key = PyUnicode_FromString("free_on_no_reference");
+    int result = PyObject_GenericSetAttr(self, key, pValue);
+    Py_DECREF(key);
+    return result;
+  }
 
   for (size_t i = 0; i < selfType->u->attrCount; i++) {
     if (!(strcmp(attr, str_array_getat(selfType->u->attrNames, i)))) {
@@ -2756,31 +2813,6 @@ static PyObject *c_union_pop(PyObject *self) {
   return NULL;
 }
 
-static PyObject *c_union_free_on_del(PyObject *self, PyObject *args,
-                                     PyObject *kwargs) {
-  PyC_c_union *selfType = (PyC_c_union *)self;
-  int value;
-
-  if (!PyArg_ParseTuple(args, "p", &value)) {
-    return NULL;
-  }
-
-  if (value)
-    selfType->freeOnDel = true;
-  else
-    selfType->freeOnDel = false;
-
-  Py_RETURN_NONE;
-}
-
-static PyObject *c_union_to_pointer(PyObject *self) {
-  // TODO: implement
-  PyC_c_union *selfType = (PyC_c_union *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
-}
-
 static Py_ssize_t c_union_len(PyObject *self) {
   // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
@@ -2803,4 +2835,33 @@ static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value) {
 
   PyErr_SetNone(PyExc_NotImplementedError);
   return -1;
+}
+
+static PyObject *c_union_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+static int c_union_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_int.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
 }

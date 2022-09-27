@@ -73,3 +73,9 @@ CXString GET_MANGLED_NAME(CXCursor cursor);
 
 #define PRINT_CPPMODULE_DOC_STRING                                             \
   "prints all the global declarations parsed from translation unit to stdout"
+
+#define C_TYPE_FREE_ON_NO_REFERENCE_DOC                                        \
+  "Set free_on_no_reference to true if allocated memory should be free when "  \
+  "not the variable goes out of scope. The default is true for any c_type "    \
+  "created by user and false for whenever a c_type is returned from a "        \
+  "function call"
