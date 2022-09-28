@@ -2791,6 +2791,8 @@ PyTypeObject py_c_struct_type = {
     .tp_init = &c_struct_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_struct_finalizer,
+    .tp_traverse = &c_struct_Traverse,
+    .tp_clear = &c_struct_Clear,
 };
 
 // c_struct methods
@@ -2914,7 +2916,25 @@ static void c_struct_finalizer(PyObject *self) {
     free(selfType->pointer);
   }
   Py_DECREF(selfType->parentModule);
+  Py_DECREF(selfType->child_ptrs);
+
   Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static int c_struct_Traverse(PyObject *self, visitproc visit, void *arg) {
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  Py_VISIT(selfType->parentModule);
+  Py_VISIT(selfType->child_ptrs);
+  return 0;
+}
+
+static int c_struct_Clear(PyObject *self) {
+  PyC_c_struct *selfType = (PyC_c_struct *)self;
+
+  Py_CLEAR(selfType->parentModule);
+  Py_CLEAR(selfType->child_ptrs);
+  return 0;
 }
 
 // helper function

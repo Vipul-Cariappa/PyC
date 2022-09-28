@@ -263,6 +263,8 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_struct_getattr(PyObject *self, char *attr);
 static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue);
 static void c_struct_finalizer(PyObject *self);
+static int c_struct_Traverse(PyObject *self, visitproc visit, void *arg);
+static int c_struct_Clear(PyObject *self);
 static PyObject *c_struct_call(PyObject *self, PyObject *args,
                                PyObject *kwargs);
 static PyObject *c_struct_iter(PyObject *self);
