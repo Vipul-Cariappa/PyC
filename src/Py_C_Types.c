@@ -1283,7 +1283,6 @@ static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
 }
 
 // ----- c_bool -----
-// TODO: support array / pointer
 PyNumberMethods c_bool_as_bool = {
     .nb_int = &c_bool_to_int,
     .nb_float = &c_bool_to_float,
