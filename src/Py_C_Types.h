@@ -128,10 +128,12 @@ typedef struct PyC_c_char {
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
+  size_t _i; // for iteration purpose
 } PyC_c_char;
 
 static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_char_iter(PyObject *self);
+static PyObject *c_char_next(PyObject *self);
 static PyObject *c_char_getattr(PyObject *self, char *attr);
 static void c_char_finalizer(PyObject *self);
 static PyObject *c_char_append(PyObject *self, PyObject *args);

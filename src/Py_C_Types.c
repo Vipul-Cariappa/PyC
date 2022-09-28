@@ -2515,7 +2515,6 @@ static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
 }
 
 // ----- c_char -----
-// TODO: support array / pointer
 // TODO: support c_uchar
 
 PyMappingMethods c_char_as_mapping = {
@@ -2545,6 +2544,7 @@ PyTypeObject py_c_char_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.c_char",
     .tp_iter = &c_char_iter,
+    .tp_iternext = &c_char_next,
     .tp_methods = c_char_methods,
     .tp_getset = c_char_getsetdef,
     .tp_init = &c_char_init,
@@ -2557,8 +2557,6 @@ PyTypeObject py_c_char_type = {
 
 // PyC.c_char.__init__
 static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
   // TODO: implement init from number / int
 
   PyC_c_char *selfType = (PyC_c_char *)self;
@@ -2604,12 +2602,33 @@ static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 // PyC.c_char.__iter__
 static PyObject *c_char_iter(PyObject *self) {
-  // TODO: implement c_char_iter
-
   PyC_c_char *selfType = (PyC_c_char *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_int instance is not an array type instance");
   return NULL;
+}
+
+// PyC.c_char.__next__
+static PyObject *c_char_next(PyObject *self) {
+  PyC_c_char *selfType = (PyC_c_char *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    rvalue = PyUnicode_FromStringAndSize(selfType->pointer + index, 1);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
 }
 
 // PyC.c_char.__del__
@@ -2675,10 +2694,7 @@ static PyObject *c_char_to_str(PyObject *self) {
 
 // PyC.c_char.__len__
 static Py_ssize_t c_char_len(PyObject *self) {
-  // TODO: implement c_char_len
-
   PyC_c_char *selfType = (PyC_c_char *)self;
-
   return selfType->arraySize;
 }
 
