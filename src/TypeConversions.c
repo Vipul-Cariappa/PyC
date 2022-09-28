@@ -15,7 +15,9 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   case FFI_TYPE_UINT8: {
     data = malloc(1);
     *should_free = true;
-    int8_t i = (int8_t)PyLong_AsLong(arg);
+    PyObject *tmp = PyNumber_Long(arg);
+    int8_t i = (int8_t)PyLong_AsLong(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, 1);
     break;
   }
@@ -23,7 +25,9 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   case FFI_TYPE_UINT16: {
     data = malloc(2);
     *should_free = true;
-    int16_t i = (int16_t)PyLong_AsLong(arg);
+    PyObject *tmp = PyNumber_Long(arg);
+    int16_t i = (int16_t)PyLong_AsLong(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, 2);
     break;
   }
@@ -32,7 +36,9 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   case FFI_TYPE_UINT32: {
     data = malloc(4);
     *should_free = true;
-    int32_t i = (int32_t)PyLong_AsLong(arg);
+    PyObject *tmp = PyNumber_Long(arg);
+    int32_t i = (int32_t)PyLong_AsLong(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, 4);
     break;
   }
@@ -40,21 +46,27 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   case FFI_TYPE_UINT64: {
     data = malloc(8);
     *should_free = true;
-    int64_t i = (int64_t)PyLong_AsLong(arg);
+    PyObject *tmp = PyNumber_Long(arg);
+    int64_t i = (int64_t)PyLong_AsLong(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, 8);
     break;
   }
   case FFI_TYPE_FLOAT: {
     data = malloc(sizeof(float));
     *should_free = true;
-    float i = (float)PyFloat_AsDouble(arg);
+    PyObject *tmp = PyNumber_Float(arg);
+    float i = (float)PyFloat_AsDouble(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, sizeof(float));
     break;
   }
   case FFI_TYPE_DOUBLE: {
     data = malloc(sizeof(double));
     *should_free = true;
-    double i = (double)PyFloat_AsDouble(arg);
+    PyObject *tmp = PyNumber_Float(arg);
+    double i = (double)PyFloat_AsDouble(tmp);
+    Py_DECREF(tmp);
     memcpy(data, &i, sizeof(double));
     break;
   }
@@ -110,7 +122,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   }
   default:
     PyErr_SetString(py_BindingError,
-                    "Could not convert Cpp type to Python type");
+                    "Could not convert Python type to Cpp type");
   }
   return data;
 }

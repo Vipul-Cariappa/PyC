@@ -2812,6 +2812,54 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->child_ptrs = PyDict_New();
 
+  // TODO: set attributes from args
+  size_t args_len = PyTuple_Size(args);
+  if (args_len == 0) {
+    return 0;
+  }
+
+  if (args_len != s->attrCount) {
+    Py_DECREF(selfType->child_ptrs);
+    Py_DECREF(selfType->parentModule);
+    free(selfType->pointer);
+    PyErr_SetString(py_BindingError,
+                    "Args count does not match struct's attribute count. "
+                    "Cannot initilise the struct.");
+    return -1;
+  }
+
+  for (size_t i = 0; i < selfType->structure->attrCount; i++) {
+    ffi_type *type = p_ffi_type_array_getat(selfType->structure->attrTypes, i);
+    PyObject *attr = PyTuple_GetItem(args, i);
+
+    bool should_free = false;
+    void *data = pyArg_to_cppArg(attr, *type, &should_free);
+    if (!data) {
+      return -1;
+    }
+
+    if (type->type == FFI_TYPE_POINTER) {
+      memcpy((char *)(selfType->pointer) +
+                 (long_long_array_getat(selfType->structure->offsets, i) / 8),
+             data, type->size);
+
+      PyDict_SetItemString(selfType->child_ptrs,
+                           str_array_getat(s->attrNames, i), attr);
+    } else if (PyObject_IsInstance(attr, (PyObject *)&py_c_struct_type)) {
+      memcpy((char *)(selfType->pointer) +
+                 (long_long_array_getat(selfType->structure->offsets, i) / 8),
+             data, ((PyC_c_struct *)attr)->structure->structSize);
+    } else {
+      memcpy((char *)(selfType->pointer) +
+                 (long_long_array_getat(selfType->structure->offsets, i) / 8),
+             data, type->size);
+    }
+
+    if (should_free) {
+      free(data);
+    }
+  }
+
   return 0;
 }
 
@@ -2879,6 +2927,9 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 
       bool should_free = false;
       void *data = pyArg_to_cppArg(pValue, *type, &should_free);
+      if (!data) {
+        return -1;
+      }
 
       if (type->type == FFI_TYPE_POINTER) {
         memcpy((char *)(selfType->pointer) +
