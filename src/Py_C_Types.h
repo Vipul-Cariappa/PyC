@@ -256,8 +256,7 @@ typedef struct PyC_c_struct {
   // PyObject *pyDictRepr;   // TODO: python dict representation of struct:
   // key: attr name value: c_type
   PyObject *parentModule; //
-  // PyObject *child_ptrs; // TODO: update with c_types object PyList if
-  // underlying type is pointer
+  PyObject *child_ptrs;
 } PyC_c_struct;
 
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -293,8 +292,6 @@ typedef struct PyC_c_union {
   // PyObject *pyDictRepr; // TODO: python dict representation of union:
   // key: attr name value: c_type
   PyObject *parentModule;
-  // PyObject *child_ptr; // TODO: update with c_types object PyList if
-  // underlying type is pointer
 } PyC_c_union;
 
 static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs);

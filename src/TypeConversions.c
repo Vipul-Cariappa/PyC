@@ -59,6 +59,7 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
     break;
   }
   case FFI_TYPE_POINTER:
+    // TODO: verify for correct pointer
     if ((PyObject_IsInstance(arg, (PyObject *)&py_c_int_type)) ||
         (PyObject_IsInstance(arg, (PyObject *)&py_c_uint_type))) {
       data = &((PyC_c_int *)arg)->pointer;

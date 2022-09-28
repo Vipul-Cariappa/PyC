@@ -2808,6 +2808,8 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->pointer = malloc(s->structSize);
 
+  selfType->child_ptrs = PyDict_New();
+
   return 0;
 }
 
@@ -2825,6 +2827,23 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
     if (!(strcmp(attr, str_array_getat(selfType->structure->attrNames, i)))) {
       char *data = (char *)selfType->pointer;
 
+      ffi_type *type =
+          p_ffi_type_array_getat(selfType->structure->attrTypes, i);
+
+      if (type->type == FFI_TYPE_POINTER) {
+
+        PyObject *result = PyDict_GetItemString(selfType->child_ptrs, attr);
+        if (result) {
+          Py_INCREF(result);
+          return result;
+        } else {
+          return PyErr_Format(
+              py_BindingError,
+              "Attribute %s is not set. Cannot access attribute %s", attr,
+              attr);
+        }
+      }
+
       return cppArg_to_pyArg(
           data + (long_long_array_getat(selfType->structure->offsets, i) / 8),
           *p_ffi_type_array_getat(selfType->structure->attrTypes, i),
@@ -2836,7 +2855,8 @@ static PyObject *c_struct_getattr(PyObject *self, char *attr) {
     }
   }
 
-  Py_RETURN_NONE;
+  PyErr_SetString(PyExc_AttributeError, "No attribute found with given name");
+  return NULL;
 }
 
 // PyC.c_struct.__setattr__
@@ -2862,6 +2882,8 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
         memcpy((char *)(selfType->pointer) +
                    (long_long_array_getat(selfType->structure->offsets, i) / 8),
                data, type->size);
+
+        PyDict_SetItemString(selfType->child_ptrs, attr, pValue);
       } else if (PyObject_IsInstance(pValue, (PyObject *)&py_c_struct_type)) {
         memcpy((char *)(selfType->pointer) +
                    (long_long_array_getat(selfType->structure->offsets, i) / 8),
@@ -3094,6 +3116,7 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   selfType->parentModule =
       ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
   Py_INCREF(selfType->parentModule);
+
   selfType->pointer = malloc(s->unionSize);
 
   return 0;
@@ -3123,7 +3146,8 @@ static PyObject *c_union_getattr(PyObject *self, char *attr) {
     }
   }
 
-  Py_RETURN_NONE;
+  PyErr_SetString(PyExc_AttributeError, "No attribute found with given name");
+  return NULL;
 }
 
 // PyC.c_union.__setattr__
