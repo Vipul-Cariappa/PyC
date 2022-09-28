@@ -665,6 +665,12 @@ void **pyArgs_to_cppArgs(PyObject *args, p_ffi_type_array_t *args_type,
           x = tmp;
           break;
 
+        } else if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_bool_type)) {
+          void **tmp = malloc(sizeof(void *));
+          *tmp = ((PyC_c_bool *)pyArg)->pointer;
+          x = tmp;
+          break;
+
         } else {
           Py_XDECREF(arg_num);
           Py_XDECREF(arg_float);
@@ -823,6 +829,7 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           }
         case FFI_TYPE_POINTER:
           if (PyObject_IsInstance(pyArg, (PyObject *)&py_c_char_type) ||
+              PyObject_IsInstance(pyArg, (PyObject *)&py_c_bool_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_short_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_int_type) ||
               PyObject_IsInstance(pyArg, (PyObject *)&py_c_long_type) ||

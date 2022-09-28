@@ -101,6 +101,7 @@ typedef struct PyC_c_bool {
 
 static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_bool_iter(PyObject *self);
+static PyObject *c_bool_next(PyObject *self);
 static PyObject *c_bool_getattr(PyObject *self, char *attr);
 static void c_bool_finalizer(PyObject *self);
 static PyObject *c_bool_append(PyObject *self, PyObject *args);
@@ -250,7 +251,7 @@ typedef struct PyC_c_struct {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
-  // PyObject *pyDictRepr;   // python dict representation of struct:
+  // PyObject *pyDictRepr;   // TODO: python dict representation of struct:
   // key: attr name value: c_type
   PyObject *parentModule; //
   // PyObject *child_ptrs; // TODO: update with c_types object PyList if
@@ -287,7 +288,7 @@ typedef struct PyC_c_union {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
-  // PyObject *pyDictRepr; // python dict representation of union:
+  // PyObject *pyDictRepr; // TODO: python dict representation of union:
   // key: attr name value: c_type
   PyObject *parentModule;
   // PyObject *child_ptr; // TODO: update with c_types object PyList if

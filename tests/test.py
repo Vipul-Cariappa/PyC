@@ -141,6 +141,13 @@ class TestBasic(unittest.TestCase):
         string.free_on_no_reference = True
         self.assertEqual(str(string), "##")
 
+        boolean_list = PyC.c_bool([0, 0, 1, 0, 0])
+        cModule.init_bool_list_with_true(boolean_list, len(boolean_list))
+
+        for i in boolean_list:
+            self.assertEqual(i, True)
+    
+
     def test_pointer_return_funcs(self):
         long_ptr = cModule.returns_pointer()
         long_ptr.free_on_no_reference = True

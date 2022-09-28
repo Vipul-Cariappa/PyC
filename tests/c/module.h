@@ -60,6 +60,7 @@ union unionOfPtr {
 
 int add(int x, int y);
 bool invert(bool x);
+void init_bool_list_with_true(bool *li, int len);
 int copy_int(int *destination, int *source);
 long *returns_pointer();
 int write_int(int *destination, int value);

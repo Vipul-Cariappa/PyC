@@ -13,6 +13,12 @@ bool invert(bool x) {
   return true;
 }
 
+void init_bool_list_with_true(bool *li, int len) {
+  for (int i = 0; i < len; i++) {
+    li[i] = 1;
+  }
+}
+
 int product_int(int x, int y) { return x * y; }
 
 int copy_int(int *destination, int *source) {

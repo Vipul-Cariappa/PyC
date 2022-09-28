@@ -304,7 +304,7 @@ static PyObject *c_int_next(PyObject *self) {
 static void c_int_finalizer(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  if ((selfType->freeOnDel) && (selfType->isPointer))
+  if (selfType->freeOnDel)
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -461,7 +461,7 @@ static PyObject *c_int_getitem(PyObject *self, PyObject *attr) {
     return PyLong_FromLongLong((unsigned int)(selfType->pointer)[index]);
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
@@ -490,10 +490,11 @@ static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value) {
     return 0;
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_int.free_on_no_reference getter
 static PyObject *c_int_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
@@ -504,6 +505,7 @@ static PyObject *c_int_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_int.free_on_no_reference setter
 static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
                                   void *closure) {
   PyC_c_int *selfType = (PyC_c_int *)self;
@@ -840,7 +842,7 @@ static PyObject *c_double_getitem(PyObject *self, PyObject *attr) {
     return PyFloat_FromDouble((selfType->pointer)[index]);
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
@@ -869,10 +871,11 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value) {
     return 0;
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_double.free_on_no_reference getter
 static PyObject *c_double_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_double *selfType = (PyC_c_double *)self;
 
@@ -883,13 +886,14 @@ static PyObject *c_double_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_double.free_on_no_reference setter
 static int c_double_freeOnDel_setter(PyObject *self, PyObject *value,
                                      void *closure) {
   PyC_c_double *selfType = (PyC_c_double *)self;
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_double.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -1216,7 +1220,7 @@ static PyObject *c_float_getitem(PyObject *self, PyObject *attr) {
     return PyFloat_FromDouble((selfType->pointer)[index]);
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
@@ -1245,7 +1249,7 @@ static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value) {
     return 0;
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
@@ -1298,6 +1302,13 @@ PyMethodDef c_bool_methods[] = {
     {"value", (PyCFunction)&c_bool_value, METH_NOARGS, "c_bool.value()"},
     {NULL, NULL, 0, NULL}};
 
+PyMemberDef c_bool_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_bool, isPointer), READONLY,
+     "PyC.c_bool.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_bool, isArray), READONLY,
+     "PyC.c_bool.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
 PyGetSetDef c_bool_getsetdef[] = {
     {"free_on_no_reference", &c_bool_freeOnDel_getter, &c_bool_freeOnDel_setter,
      C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
@@ -1313,7 +1324,9 @@ PyTypeObject py_c_bool_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_doc = "PyCpp.c_bool",
     .tp_iter = &c_bool_iter,
+    .tp_iternext = &c_bool_next,
     .tp_methods = c_bool_methods,
+    .tp_members = c_bool_members,
     .tp_getset = c_bool_getsetdef,
     .tp_init = &c_bool_init,
     .tp_new = PyType_GenericNew,
@@ -1324,10 +1337,6 @@ PyTypeObject py_c_bool_type = {
 
 // PyC.c_bool.__init__
 static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  // TODO: implement init from iter
-  // TODO: implement init from c_pointer
-  // TODO: implement keyword args: is_pointer, is_array
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
   if (kwargs) {
@@ -1348,67 +1357,187 @@ static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         selfType->_i = 0;
         Py_DECREF(key);
         return 0;
-      } else {
-        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
-                                         "is restricted for internal use only");
-        Py_DECREF(key);
-        return -1;
       }
+
+      PyErr_SetString(py_BindingError, "calling c_bool with pointer keyword "
+                                       "is restricted for internal use only");
+      Py_DECREF(key);
+      return -1;
     }
     Py_DECREF(key);
   }
 
-  int value;
-  if (!PyArg_ParseTuple(args, "p", &value)) {
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
     return -1;
   }
 
-  selfType->value = (bool)value;
+  if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->freeOnDel = true;
+    selfType->pointer = calloc(len + 1, sizeof(bool));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len + 1;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PySequence_GetItem(arg_1, i);
+      int value = PyObject_IsTrue(element);
+
+      if (value == 1) {
+        selfType->pointer[i] = 1;
+      } else if (value == 0) {
+        selfType->pointer[i] = 0;
+      } else {
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of the sequence to be boolean");
+        return -1;
+      }
+    }
+
+    selfType->pointer[len] = 0;
+
+    return 0;
+  }
+
+  int value = PyObject_IsTrue(arg_1);
+
+  if (value == 1) {
+    selfType->value = 1;
+  } else if (value == 0) {
+    selfType->value = 0;
+  } else {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected all elements of the sequence to be boolean");
+    return -1;
+  }
+
+  selfType->freeOnDel = false;
   selfType->pointer = &(selfType->value);
   selfType->isPointer = false;
   selfType->isArray = false;
   selfType->arraySize = 0;
   selfType->arrayCapacity = 0;
+  selfType->_i = 0;
 
   return 0;
 }
 
 // PyC.c_bool.__iter__
 static PyObject *c_bool_iter(PyObject *self) {
-  // TODO: implement c_bool_iter
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_bool instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_bool.__next__
+static PyObject *c_bool_next(PyObject *self) {
+  PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    (selfType->_i)++;
+
+    if (selfType->pointer[index]) {
+      Py_RETURN_TRUE;
+    } else {
+      Py_RETURN_FALSE;
+    }
+  }
+
   return NULL;
 }
 
 // PyC.c_bool.__del__
 static void c_bool_finalizer(PyObject *self) {
-  // TODO: implement c_bool_finalizer
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
+
+  if (selfType->freeOnDel)
+    free(selfType->pointer);
+
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyC.c_bool.append
 static PyObject *c_bool_append(PyObject *self, PyObject *args) {
-  // TODO: implement c_bool_append
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  int value;
+  if (!PyArg_ParseTuple(args, "p", &value)) {
+    return NULL;
+  }
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  } else {
+    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(int);
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity = new_capacity / sizeof(int);
+
+    selfType->pointer[selfType->arraySize] = value;
+    (selfType->arraySize)++;
+
+    selfType->pointer[selfType->arraySize] = 0;
+  }
+
+  if (value) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
 }
 
 // PyC.c_bool.pop
 static PyObject *c_bool_pop(PyObject *self) {
-  // TODO: implement c_bool_pop
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_bool is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  bool value = selfType->pointer[selfType->arraySize - 1];
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  if (value) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
 }
 
 // PyC.c_bool.value
@@ -1447,34 +1576,72 @@ static int c_bool_to_bool(PyObject *self) {
 
 // PyC.c_bool.__len__
 static Py_ssize_t c_bool_len(PyObject *self) {
-  // TODO: implement c_bool_len
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return -1;
+  return selfType->arraySize;
 }
 
 // PyC.c_bool.__getitem__
 static PyObject *c_bool_getitem(PyObject *self, PyObject *attr) {
-  // TODO: implement c_bool_getitem
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_bool is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected boolean type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    if (selfType->pointer[index]) {
+      Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
 // PyC.c_bool.__setitem__
 static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value) {
-  // TODO: implement c_bool_setitem
-
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_bool is not an array type instance");
+    return -1;
+  }
+
+  int _value = PyObject_IsTrue(value);
+  if (_value == -1) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected boolean type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    if (_value == 1) {
+      selfType->pointer[index] = 1;
+    }
+    selfType->pointer[index] = 0;
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_bool.free_on_no_reference getter
 static PyObject *c_bool_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
@@ -1485,13 +1652,14 @@ static PyObject *c_bool_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_bool.free_on_no_reference setter
 static int c_bool_freeOnDel_setter(PyObject *self, PyObject *value,
                                    void *closure) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_bool.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -1865,7 +2033,7 @@ static PyObject *c_short_getitem(PyObject *self, PyObject *attr) {
     return PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
@@ -1894,10 +2062,11 @@ static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value) {
     return 0;
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_short.free_on_no_reference getter
 static PyObject *c_short_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
@@ -1908,13 +2077,14 @@ static PyObject *c_short_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_short.free_on_no_reference setter
 static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
                                     void *closure) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_short.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -2281,7 +2451,7 @@ static PyObject *c_long_getitem(PyObject *self, PyObject *attr) {
     return PyLong_FromLong((selfType->pointer)[index]);
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
@@ -2310,10 +2480,11 @@ static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value) {
     return 0;
   }
 
-  PyErr_SetString(py_CppError, "Index out of range");
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_long.free_on_no_reference getter
 static PyObject *c_long_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
@@ -2324,13 +2495,14 @@ static PyObject *c_long_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_long.free_on_no_reference setter
 static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
                                    void *closure) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_long.free_on_no_reference attrubute");
     return -1;
   }
 
