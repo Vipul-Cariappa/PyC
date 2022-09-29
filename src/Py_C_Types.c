@@ -2783,7 +2783,7 @@ PyTypeObject py_c_struct_type = {
     .tp_getattr = &c_struct_getattr,
     .tp_setattr = &c_struct_setattr,
     .tp_as_mapping = &c_struct_as_mapping,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .tp_doc = "PyCpp.c_struct",
     .tp_iter = &c_struct_iter,
     .tp_iternext = &c_struct_next,
@@ -2999,15 +2999,12 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_struct_finalizer(PyObject *self) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  // FIXME: struct cyclic reference counting
-  // PyObject_GC_UnTrack(self);
-  // c_struct_Clear(self);
+  PyObject_GC_UnTrack(self);
+  c_struct_Clear(self);
 
   if (selfType->pointer && selfType->freeOnDel) {
     free(selfType->pointer);
   }
-  Py_DECREF(selfType->parentModule);
-  Py_DECREF(selfType->child_ptrs);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
