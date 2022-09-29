@@ -282,6 +282,7 @@ static PyObject *c_int_iter(PyObject *self) {
 
 // PyC.c_int.__next__
 static PyObject *c_int_next(PyObject *self) {
+  // FIXME: all itearators
   PyC_c_int *selfType = (PyC_c_int *)self;
   PyObject *rvalue = NULL;
 
@@ -451,7 +452,7 @@ static PyObject *c_int_getitem(PyObject *self, PyObject *attr) {
     return NULL;
   }
 
-  size_t index = PyLong_AsLongLong(attr);
+  long long index = PyLong_AsLongLong(attr);
 
   if (selfType->arraySize > index) {
     if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
@@ -2781,6 +2782,7 @@ PyTypeObject py_c_struct_type = {
     .tp_itemsize = 0,
     .tp_getattr = &c_struct_getattr,
     .tp_setattr = &c_struct_setattr,
+    .tp_as_mapping = &c_struct_as_mapping,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "PyCpp.c_struct",
     .tp_iter = &c_struct_iter,
@@ -2808,16 +2810,50 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       ((struct Custom_s_PyTypeObject *)self->ob_type)->parentModule;
   Py_INCREF(selfType->parentModule);
 
+  selfType->isArray = false;
+  selfType->arraySize = 0;
+  selfType->arrayCapacity = 0;
   selfType->pointer = malloc(s->structSize);
 
   selfType->child_ptrs = PyDict_New();
 
-  // TODO: set attributes from args
   size_t args_len = PyTuple_Size(args);
   if (args_len == 0) {
     return 0;
   }
 
+  if ((args_len == 1) && PySequence_Check(PyTuple_GetItem(args, 0))) {
+    PyObject *arr = PyTuple_GetItem(args, 0);
+    size_t arr_len = PySequence_Size(arr);
+
+    free(selfType->pointer);
+    selfType->pointer = calloc(arr_len, s->structSize);
+    selfType->isArray = true;
+    selfType->arraySize = args_len + 1;
+    selfType->arrayCapacity = args_len + 1;
+
+    for (size_t i = 0; i < arr_len; i++) {
+      PyObject *element = PySequence_GetItem(arr, i);
+
+      if (Py_TYPE(element) != Py_TYPE(element)) {
+        Py_DECREF(selfType->child_ptrs);
+        Py_DECREF(selfType->parentModule);
+        free(selfType->pointer);
+        PyErr_SetString(py_BindingError,
+                        "Expected all elements of the sequence to be of the "
+                        "same struct type");
+        return -1;
+      }
+
+      PyC_c_struct *elementType = (PyC_c_struct *)element;
+      memcpy(selfType->pointer + (selfType->structure->structSize * i),
+             elementType->pointer, s->structSize);
+    }
+
+    return 0;
+  }
+
+  // initilising struct with attributes
   if (args_len != s->attrCount) {
     Py_DECREF(selfType->child_ptrs);
     Py_DECREF(selfType->parentModule);
@@ -2963,6 +2999,10 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_struct_finalizer(PyObject *self) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
+  // FIXME: struct cyclic reference counting
+  // PyObject_GC_UnTrack(self);
+  // c_struct_Clear(self);
+
   if (selfType->pointer && selfType->freeOnDel) {
     free(selfType->pointer);
   }
@@ -3045,62 +3085,191 @@ PyObject *create_py_c_struct(Structure *structure, PyObject *module) {
   return NULL;
 }
 
+// PyC.c_struct.__iter__
 static PyObject *c_struct_iter(PyObject *self) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_struct instance is not an array type instance");
   return NULL;
 }
 
+// PyC.c_struct.__next__
 static PyObject *c_struct_next(PyObject *self) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
+  PyObject *rvalue = NULL;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    // TODO: cache the result
+    rvalue = cppArg_to_pyArg(selfType->pointer +
+                                 (selfType->structure->structSize * index),
+                             selfType->structure->type, 0, selfType->structure,
+                             NULL, selfType->parentModule);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
 }
 
+// PyC.c_struct.append
 static PyObject *c_struct_append(PyObject *self, PyObject *args) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_struct is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *value;
+  if (!PyArg_ParseTuple(args, "O", &value)) {
+    return NULL;
+  }
+
+  if (Py_TYPE(value) != Py_TYPE(self)) {
+    PyErr_SetString(py_BindingError,
+                    "Expected arg to be of the same struct type");
+    return NULL;
+  }
+
+  PyC_c_struct *valueType = (PyC_c_struct *)value;
+
+  if (selfType->arrayCapacity > selfType->arraySize) {
+    memcpy(selfType->pointer +
+               (selfType->structure->structSize * selfType->arraySize),
+           valueType->pointer, selfType->structure->structSize);
+    (selfType->arraySize)++;
+  } else {
+    int new_capacity =
+        (selfType->arrayCapacity * 2) * selfType->structure->structSize;
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity *= 2;
+
+    memcpy(selfType->pointer +
+               (selfType->structure->structSize * selfType->arraySize),
+           valueType->pointer, selfType->structure->structSize);
+    (selfType->arraySize)++;
+  }
+
+  Py_INCREF(value);
+  return value;
 }
 
+// PyC.c_struct.pop
 static PyObject *c_struct_pop(PyObject *self) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_struct is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue =
+      cppArg_to_pyArg(selfType->pointer + (selfType->structure->structSize *
+                                           (selfType->arraySize - 1)),
+                      selfType->structure->type, 0, selfType->structure, NULL,
+                      selfType->parentModule);
+
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer,
+                (selfType->arraySize) * selfType->structure->structSize);
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
 }
 
+// PyC.c_struct.__len__
 static Py_ssize_t c_struct_len(PyObject *self) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return -1;
+  return selfType->arraySize;
 }
 
+// PyC.c_struct.__getitem__
 static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_struct is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  long index = PyLong_AsLong(attr);
+
+  if (selfType->arraySize > index) {
+    return cppArg_to_pyArg(selfType->pointer +
+                               (selfType->structure->structSize * index),
+                           selfType->structure->type, 0, selfType->structure,
+                           NULL, selfType->parentModule);
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
+// PyC.c_struct.__setitem__
 static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
-  // TODO: implement
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_struct is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  if (Py_TYPE(value) != Py_TYPE(self)) {
+    PyErr_SetString(py_BindingError,
+                    "Expected arg to be of the same struct type");
+    return -1;
+  }
+
+  long index = PyLong_AsLong(attr);
+
+  if (selfType->arraySize > index) {
+    PyC_c_struct *valueType = (PyC_c_struct *)value;
+
+    memcpy(selfType->pointer + (selfType->structure->structSize * index),
+           valueType->pointer, selfType->structure->structSize);
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
+// PyC.c_struct.free_on_no_reference getter
 static PyObject *c_struct_freeOnDel_getter(PyObject *self, void *closure) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
@@ -3111,13 +3280,14 @@ static PyObject *c_struct_freeOnDel_getter(PyObject *self, void *closure) {
   Py_RETURN_FALSE;
 }
 
+// PyC.c_struct.free_on_no_reference setter
 static int c_struct_freeOnDel_setter(PyObject *self, PyObject *value,
                                      void *closure) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_struct.free_on_no_reference attrubute");
     return -1;
   }
 
