@@ -2815,6 +2815,7 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
   selfType->arrayCapacity = 0;
   selfType->pointer = malloc(s->structSize);
 
+  selfType->arrayPtrs = NULL;
   selfType->child_ptrs = PyDict_New();
 
   size_t args_len = PyTuple_Size(args);
@@ -2828,6 +2829,7 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     free(selfType->pointer);
     selfType->pointer = calloc(arr_len, s->structSize);
+    selfType->arrayPtrs = PyList_New(arr_len);
     selfType->isArray = true;
     selfType->arraySize = args_len + 1;
     selfType->arrayCapacity = args_len + 1;
@@ -2837,6 +2839,7 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       if (Py_TYPE(element) != Py_TYPE(element)) {
         Py_DECREF(selfType->child_ptrs);
+        Py_DECREF(selfType->arrayPtrs);
         Py_DECREF(selfType->parentModule);
         free(selfType->pointer);
         PyErr_SetString(py_BindingError,
@@ -2848,6 +2851,14 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyC_c_struct *elementType = (PyC_c_struct *)element;
       memcpy(selfType->pointer + (s->structSize * i), elementType->pointer,
              s->structSize);
+
+      void *data = selfType->pointer + (s->structSize * i);
+
+      PyObject *cache = cppArg_to_pyArg(
+          &data, ffi_type_pointer, CXType_Record, selfType->structure, NULL,
+          selfType->parentModule); // TODO: raise error when fails
+
+      PyList_SetItem(selfType->arrayPtrs, i, cache);
     }
 
     return 0;
@@ -3014,6 +3025,11 @@ static int c_struct_Traverse(PyObject *self, visitproc visit, void *arg) {
 
   Py_VISIT(selfType->parentModule);
   Py_VISIT(selfType->child_ptrs);
+
+  if (selfType->isArray) {
+    Py_VISIT(selfType->arrayPtrs);
+  }
+
   return 0;
 }
 
@@ -3022,6 +3038,11 @@ static int c_struct_Clear(PyObject *self) {
 
   Py_CLEAR(selfType->parentModule);
   Py_CLEAR(selfType->child_ptrs);
+
+  if (selfType->isArray) {
+    Py_CLEAR(selfType->arrayPtrs);
+  }
+
   return 0;
 }
 
@@ -3100,15 +3121,13 @@ static PyObject *c_struct_iter(PyObject *self) {
 // PyC.c_struct.__next__
 static PyObject *c_struct_next(PyObject *self) {
   PyC_c_struct *selfType = (PyC_c_struct *)self;
-  PyObject *rvalue = NULL;
 
+  PyObject *rvalue = NULL;
   size_t index = selfType->_i;
-  void *data = selfType->pointer + (selfType->structure->structSize * index);
 
   if (selfType->arraySize > index) {
-    // TODO: cache the result
-    rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
-                             selfType->structure, NULL, selfType->parentModule);
+    rvalue = PyList_GetItem(selfType->arrayPtrs, index);
+    Py_INCREF(rvalue);
   }
 
   (selfType->_i)++;
@@ -3143,7 +3162,6 @@ static PyObject *c_struct_append(PyObject *self, PyObject *args) {
     memcpy(selfType->pointer +
                (selfType->structure->structSize * selfType->arraySize),
            valueType->pointer, selfType->structure->structSize);
-    (selfType->arraySize)++;
   } else {
     int new_capacity =
         (selfType->arrayCapacity * 2) * selfType->structure->structSize;
@@ -3153,8 +3171,28 @@ static PyObject *c_struct_append(PyObject *self, PyObject *args) {
     memcpy(selfType->pointer +
                (selfType->structure->structSize * selfType->arraySize),
            valueType->pointer, selfType->structure->structSize);
-    (selfType->arraySize)++;
+
+    for (size_t i = 0; i < selfType->arraySize; i++) {
+      PyC_c_struct *elementType =
+          (PyC_c_struct *)PyList_GetItem(selfType->arrayPtrs, i);
+
+      assert(Py_TYPE(elementType) == Py_TYPE(self));
+
+      elementType->pointer =
+          selfType->pointer + (selfType->structure->structSize * i);
+    }
   }
+
+  void *data = selfType->pointer +
+               (selfType->structure->structSize * selfType->arraySize);
+
+  PyObject *cache = cppArg_to_pyArg(
+      &data, ffi_type_pointer, CXType_Record, selfType->structure, NULL,
+      selfType->parentModule); // TODO: raise error when fails
+
+  PyList_Append(selfType->arrayPtrs, cache);
+
+  (selfType->arraySize)++;
 
   Py_INCREF(value);
   return value;
@@ -3175,12 +3213,16 @@ static PyObject *c_struct_pop(PyObject *self) {
     return NULL;
   }
 
+  PyObject *tmp = PyObject_CallMethod(selfType->arrayPtrs, "pop", "n",
+                                      Py_SIZE(selfType->arrayPtrs) - 1);
+  Py_DECREF(tmp);
+
   void *data = selfType->pointer +
                (selfType->structure->structSize * (selfType->arraySize - 1));
 
   PyObject *rvalue =
-      cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
-                      selfType->structure, NULL, selfType->parentModule);
+      cppArg_to_pyArg(&data, selfType->structure->type, 0, selfType->structure,
+                      NULL, selfType->parentModule);
 
   (selfType->arraySize)--;
 
@@ -3189,6 +3231,14 @@ static PyObject *c_struct_pop(PyObject *self) {
         realloc(selfType->pointer,
                 (selfType->arraySize) * selfType->structure->structSize);
     selfType->arrayCapacity = selfType->arraySize;
+
+    for (size_t i = 0; i < selfType->arraySize; i++) {
+      PyC_c_struct *elementType =
+          (PyC_c_struct *)PyList_GetItem(selfType->arrayPtrs, i);
+
+      elementType->pointer =
+          selfType->pointer + (selfType->structure->structSize * i);
+    }
   }
 
   return rvalue;
@@ -3218,11 +3268,10 @@ static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
 
   long index = PyLong_AsLong(attr);
 
-  void *data = selfType->pointer + (selfType->structure->structSize * index);
-
   if (selfType->arraySize > index) {
-    return cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
-                           selfType->structure, NULL, selfType->parentModule);
+    PyObject *rvalue = PyList_GetItem(selfType->arrayPtrs, index);
+    Py_INCREF(rvalue);
+    return rvalue;
   }
 
   PyErr_SetString(PyExc_IndexError, "Index out of range");
@@ -3258,6 +3307,14 @@ static int c_struct_setitem(PyObject *self, PyObject *attr, PyObject *value) {
 
     memcpy(selfType->pointer + (selfType->structure->structSize * index),
            valueType->pointer, selfType->structure->structSize);
+
+    void *data = selfType->pointer + (selfType->structure->structSize * index);
+
+    PyObject *cache = cppArg_to_pyArg(
+        &data, ffi_type_pointer, CXType_Record, selfType->structure, NULL,
+        selfType->parentModule); // TODO: raise error when fails
+
+    PyList_SetItem(selfType->arrayPtrs, index, cache);
 
     return 0;
   }
@@ -3331,7 +3388,7 @@ PyTypeObject py_c_union_type = {
     .tp_getattr = &c_union_getattr,
     .tp_setattr = &c_union_setattr,
     .tp_as_mapping = &c_union_as_mapping,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .tp_doc = "PyCpp.c_union",
     .tp_iter = &c_union_iter,
     .tp_iternext = &c_union_next,
@@ -3341,6 +3398,8 @@ PyTypeObject py_c_union_type = {
     .tp_init = &c_union_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_union_finalizer,
+    .tp_traverse = &c_union_Traverse,
+    .tp_clear = &c_union_Clear,
 };
 
 // c_union methods
@@ -3358,6 +3417,8 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->pointer = malloc(s->unionSize);
 
+  selfType->arrayPtrs = NULL;
+
   size_t args_len = PyTuple_Size(args);
   if (args_len == 0) {
     return 0;
@@ -3369,6 +3430,7 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     free(selfType->pointer);
     selfType->pointer = calloc(arr_len, s->unionSize);
+    selfType->arrayPtrs = PyList_New(arr_len);
     selfType->isArray = true;
     selfType->arraySize = args_len + 1;
     selfType->arrayCapacity = args_len + 1;
@@ -3378,6 +3440,7 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       if (Py_TYPE(element) != Py_TYPE(element)) {
         Py_DECREF(selfType->parentModule);
+        Py_DECREF(selfType->arrayPtrs);
         free(selfType->pointer);
         PyErr_SetString(py_BindingError,
                         "Expected all elements of the sequence to be of the "
@@ -3388,6 +3451,14 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       PyC_c_struct *elementType = (PyC_c_struct *)element;
       memcpy(selfType->pointer + (s->unionSize * i), elementType->pointer,
              s->unionSize);
+
+      void *data = selfType->pointer + (s->unionSize * i);
+
+      PyObject *cache = cppArg_to_pyArg(
+          &data, ffi_type_pointer, CXType_Record, NULL, s,
+          selfType->parentModule); // TODO: raise error when fails
+
+      PyList_SetItem(selfType->arrayPtrs, i, cache);
     }
 
     return 0;
@@ -3473,11 +3544,38 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
 static void c_union_finalizer(PyObject *self) {
   PyC_c_union *selfType = (PyC_c_union *)self;
 
+  PyObject_GC_UnTrack(self);
+  c_union_Clear(self);
+
   if (selfType->pointer && selfType->freeOnDel) {
     free(selfType->pointer);
   }
-  Py_DECREF(selfType->parentModule);
+
   Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static int c_union_Traverse(PyObject *self, visitproc visit, void *arg) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  Py_VISIT(selfType->parentModule);
+
+  if (selfType->isArray) {
+    Py_VISIT(selfType->arrayPtrs);
+  }
+
+  return 0;
+}
+
+static int c_union_Clear(PyObject *self) {
+  PyC_c_union *selfType = (PyC_c_union *)self;
+
+  Py_CLEAR(selfType->parentModule);
+
+  if (selfType->isArray) {
+    Py_CLEAR(selfType->arrayPtrs);
+  }
+
+  return 0;
 }
 
 // helper function
@@ -3556,17 +3654,12 @@ static PyObject *c_union_next(PyObject *self) {
   PyC_c_union *selfType = (PyC_c_union *)self;
 
   PyObject *rvalue = NULL;
-
   size_t index = selfType->_i;
 
-  void *data = selfType->pointer + (selfType->u->unionSize * index);
-
   if (selfType->arraySize > index) {
-    // TODO: cache the result
-    rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record, NULL,
-                             selfType->u, selfType->parentModule);
+    rvalue = PyList_GetItem(selfType->arrayPtrs, index);
+    Py_INCREF(rvalue);
   }
-
   (selfType->_i)++;
 
   return rvalue;
@@ -3598,7 +3691,6 @@ static PyObject *c_union_append(PyObject *self, PyObject *args) {
   if (selfType->arrayCapacity > selfType->arraySize) {
     memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
            valueType->pointer, selfType->u->unionSize);
-    (selfType->arraySize)++;
   } else {
     int new_capacity = (selfType->arrayCapacity * 2) * selfType->u->unionSize;
     selfType->pointer = realloc(selfType->pointer, new_capacity);
@@ -3606,8 +3698,27 @@ static PyObject *c_union_append(PyObject *self, PyObject *args) {
 
     memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
            valueType->pointer, selfType->u->unionSize);
-    (selfType->arraySize)++;
+
+    for (size_t i = 0; i < selfType->arraySize; i++) {
+      PyC_c_union *elementType =
+          (PyC_c_union *)PyList_GetItem(selfType->arrayPtrs, i);
+
+      assert(Py_TYPE(elementType) == Py_TYPE(self));
+
+      elementType->pointer = selfType->pointer + (selfType->u->unionSize * i);
+    }
   }
+
+  void *data =
+      selfType->pointer + (selfType->u->unionSize * selfType->arraySize);
+
+  PyObject *cache =
+      cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record, NULL, selfType->u,
+                      selfType->parentModule); // TODO: raise error when fails
+
+  PyList_Append(selfType->arrayPtrs, cache);
+
+  (selfType->arraySize)++;
 
   Py_INCREF(value);
   return value;
@@ -3628,11 +3739,15 @@ static PyObject *c_union_pop(PyObject *self) {
     return NULL;
   }
 
+  PyObject *tmp = PyObject_CallMethod(selfType->arrayPtrs, "pop", "n",
+                                      Py_SIZE(selfType->arrayPtrs) - 1);
+  Py_DECREF(tmp);
+
   void *data =
       selfType->pointer + (selfType->u->unionSize * (selfType->arraySize - 1));
 
-  PyObject *rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
-                                     NULL, selfType->u, selfType->parentModule);
+  PyObject *rvalue = cppArg_to_pyArg(&data, selfType->u->type, 0, NULL,
+                                     selfType->u, selfType->parentModule);
 
   (selfType->arraySize)--;
 
@@ -3640,6 +3755,13 @@ static PyObject *c_union_pop(PyObject *self) {
     selfType->pointer = realloc(selfType->pointer,
                                 (selfType->arraySize) * selfType->u->unionSize);
     selfType->arrayCapacity = selfType->arraySize;
+
+    for (size_t i = 0; i < selfType->arraySize; i++) {
+      PyC_c_union *elementType =
+          (PyC_c_union *)PyList_GetItem(selfType->arrayPtrs, i);
+
+      elementType->pointer = selfType->pointer + (selfType->u->unionSize * i);
+    }
   }
 
   return rvalue;
@@ -3669,11 +3791,10 @@ static PyObject *c_union_getitem(PyObject *self, PyObject *attr) {
 
   long index = PyLong_AsLong(attr);
 
-  void *data = selfType->pointer + (selfType->u->unionSize * index);
-
   if (selfType->arraySize > index) {
-    return cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record, NULL,
-                           selfType->u, selfType->parentModule);
+    PyObject *rvalue = PyList_GetItem(selfType->arrayPtrs, index);
+    Py_INCREF(rvalue);
+    return rvalue;
   }
 
   PyErr_SetString(PyExc_IndexError, "Index out of range");
@@ -3709,6 +3830,14 @@ static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value) {
 
     memcpy(selfType->pointer + (selfType->u->unionSize * index),
            valueType->pointer, selfType->u->unionSize);
+
+    void *data = selfType->pointer + (selfType->u->unionSize * index);
+
+    PyObject *cache = cppArg_to_pyArg(
+        &data, ffi_type_pointer, CXType_Record, NULL, selfType->u,
+        selfType->parentModule); // TODO: raise error when fails
+
+    PyList_SetItem(selfType->arrayPtrs, index, cache);
 
     return 0;
   }

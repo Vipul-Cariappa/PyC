@@ -255,8 +255,9 @@ typedef struct PyC_c_struct {
   size_t _i; // for iteration purpose
   // PyObject *pyDictRepr;   // TODO: python dict representation of struct:
   // key: attr name value: c_type
-  PyObject *parentModule; //
+  PyObject *parentModule;
   PyObject *child_ptrs;
+  PyObject *arrayPtrs; // PyList of member array's PyC_c_unions
 } PyC_c_struct;
 
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -294,12 +295,15 @@ typedef struct PyC_c_union {
   // PyObject *pyDictRepr; // TODO: python dict representation of union:
   // key: attr name value: c_type
   PyObject *parentModule;
+  PyObject *arrayPtrs; // PyList of member array's PyC_c_unions
 } PyC_c_union;
 
 static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_union_getattr(PyObject *self, char *attr);
 static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue);
 static void c_union_finalizer(PyObject *self);
+static int c_union_Traverse(PyObject *self, visitproc visit, void *arg);
+static int c_union_Clear(PyObject *self);
 static PyObject *c_union_call(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *c_union_iter(PyObject *self);
 static PyObject *c_union_next(PyObject *self);
