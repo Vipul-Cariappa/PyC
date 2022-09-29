@@ -281,4 +281,60 @@ class TestBasic(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    # struct array
+    ra = cModule.RECT([cModule.RECT(1, 2), cModule.RECT(2, 3)])
+    ra.append(cModule.RECT(3, 4))
+    ra.append(cModule.RECT(3, 4))
+    r = ra.pop()
+    print("POP: ", r, r.x, r.y)
+    for i in ra:
+        print(i, i.x, i.y)
+
+    print(ra.is_array)
+
+    print(f"{ra[1] = }, {ra[1].x = }, {ra[1].y = }")
+    print(f"{ra[0] = }, {ra[0].x = }, {ra[0].y = }")
+    print(f"{ra[2] = }, {ra[2].x = }, {ra[2].y = }")
+    try:
+        print(f"{ra[3] = }")
+    except IndexError:
+        pass
+
+    ra[2] = cModule.RECT(20, 40)
+    for i in ra:
+        print(i, i.x, i.y)
+
+    # union array
+    na = cModule.Number([cModule.Number(), cModule.Number()])
+    na.append(cModule.Number())
+    na.append(cModule.Number())
+
+    na[0].f = 100
+    na[1].f = 200
+    na[2].f = 340
+    na[3].f = 440
+
+    r = na.pop()
+    r.l = 12
+    print("POP: ", r, r.i, r.f)
+    for i in na:
+        print(i, i.i, i.f)
+
+    print(na.is_array)
+
+    print(f"{na[1] = }, {na[1].i = }, {na[1].f = }")
+    print(f"{na[0] = }, {na[0].i = }, {na[0].f = }")
+    print(f"{na[2] = }, {na[2].i = }, {na[2].f = }")
+    try:
+        print(f"{na[3] = }")
+    except IndexError:
+        pass
+
+    na[2] = cModule.Number()
+    na[2].i = 120
+    for i in na:
+        print(i, i.i, i.f)
+
+    
     unittest.main()
+    ...

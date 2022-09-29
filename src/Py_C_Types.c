@@ -2846,8 +2846,8 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       }
 
       PyC_c_struct *elementType = (PyC_c_struct *)element;
-      memcpy(selfType->pointer + (selfType->structure->structSize * i),
-             elementType->pointer, s->structSize);
+      memcpy(selfType->pointer + (s->structSize * i), elementType->pointer,
+             s->structSize);
     }
 
     return 0;
@@ -3106,13 +3106,12 @@ static PyObject *c_struct_next(PyObject *self) {
   PyObject *rvalue = NULL;
 
   size_t index = selfType->_i;
+  void *data = selfType->pointer + (selfType->structure->structSize * index);
 
   if (selfType->arraySize > index) {
     // TODO: cache the result
-    rvalue = cppArg_to_pyArg(selfType->pointer +
-                                 (selfType->structure->structSize * index),
-                             selfType->structure->type, 0, selfType->structure,
-                             NULL, selfType->parentModule);
+    rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
+                             selfType->structure, NULL, selfType->parentModule);
   }
 
   (selfType->_i)++;
@@ -3179,11 +3178,12 @@ static PyObject *c_struct_pop(PyObject *self) {
     return NULL;
   }
 
+  void *data = selfType->pointer +
+               (selfType->structure->structSize * (selfType->arraySize - 1));
+
   PyObject *rvalue =
-      cppArg_to_pyArg(selfType->pointer + (selfType->structure->structSize *
-                                           (selfType->arraySize - 1)),
-                      selfType->structure->type, 0, selfType->structure, NULL,
-                      selfType->parentModule);
+      cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
+                      selfType->structure, NULL, selfType->parentModule);
 
   (selfType->arraySize)--;
 
@@ -3221,11 +3221,11 @@ static PyObject *c_struct_getitem(PyObject *self, PyObject *attr) {
 
   long index = PyLong_AsLong(attr);
 
+  void *data = selfType->pointer + (selfType->structure->structSize * index);
+
   if (selfType->arraySize > index) {
-    return cppArg_to_pyArg(selfType->pointer +
-                               (selfType->structure->structSize * index),
-                           selfType->structure->type, 0, selfType->structure,
-                           NULL, selfType->parentModule);
+    return cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
+                           selfType->structure, NULL, selfType->parentModule);
   }
 
   PyErr_SetString(PyExc_IndexError, "Index out of range");
@@ -3333,6 +3333,7 @@ PyTypeObject py_c_union_type = {
     .tp_itemsize = 0,
     .tp_getattr = &c_union_getattr,
     .tp_setattr = &c_union_setattr,
+    .tp_as_mapping = &c_union_as_mapping,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = "PyCpp.c_union",
     .tp_iter = &c_union_iter,
@@ -3360,7 +3361,48 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   selfType->pointer = malloc(s->unionSize);
 
-  return 0;
+  size_t args_len = PyTuple_Size(args);
+  if (args_len == 0) {
+    return 0;
+  }
+
+  if ((args_len == 1) && PySequence_Check(PyTuple_GetItem(args, 0))) {
+    PyObject *arr = PyTuple_GetItem(args, 0);
+    size_t arr_len = PySequence_Size(arr);
+
+    free(selfType->pointer);
+    selfType->pointer = calloc(arr_len, s->unionSize);
+    selfType->isArray = true;
+    selfType->arraySize = args_len + 1;
+    selfType->arrayCapacity = args_len + 1;
+
+    for (size_t i = 0; i < arr_len; i++) {
+      PyObject *element = PySequence_GetItem(arr, i);
+
+      if (Py_TYPE(element) != Py_TYPE(element)) {
+        Py_DECREF(selfType->parentModule);
+        free(selfType->pointer);
+        PyErr_SetString(py_BindingError,
+                        "Expected all elements of the sequence to be of the "
+                        "same union type");
+        return -1;
+      }
+
+      PyC_c_struct *elementType = (PyC_c_struct *)element;
+      memcpy(selfType->pointer + (s->unionSize * i), elementType->pointer,
+             s->unionSize);
+    }
+
+    return 0;
+  }
+
+  free(selfType->pointer);
+  Py_DECREF(selfType->parentModule);
+  PyErr_SetString(
+      PyExc_TypeError,
+      "Expected no arguments or sequence of c_union, but got something else");
+
+  return -1;
 }
 
 // PyC.c_union.__getattr__
@@ -3497,59 +3539,184 @@ PyObject *create_py_c_union(Union *u, PyObject *module) {
   return NULL;
 }
 
+// PyC.c_union.__iter__
 static PyObject *c_union_iter(PyObject *self) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_union instance is not an array type instance");
   return NULL;
 }
 
+// PyC.c_union.__next__
 static PyObject *c_union_next(PyObject *self) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  void *data = selfType->pointer + (selfType->u->unionSize * index);
+
+  if (selfType->arraySize > index) {
+    // TODO: cache the result
+    rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record, NULL,
+                             selfType->u, selfType->parentModule);
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
 }
 
+// PyC.c_union.append
 static PyObject *c_union_append(PyObject *self, PyObject *args) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_union is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *value;
+  if (!PyArg_ParseTuple(args, "O", &value)) {
+    return NULL;
+  }
+
+  if (Py_TYPE(value) != Py_TYPE(self)) {
+    PyErr_SetString(py_BindingError,
+                    "Expected arg to be of the same union type");
+    return NULL;
+  }
+
+  PyC_c_union *valueType = (PyC_c_union *)value;
+
+  if (selfType->arrayCapacity > selfType->arraySize) {
+    memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
+           valueType->pointer, selfType->u->unionSize);
+    (selfType->arraySize)++;
+  } else {
+    int new_capacity = (selfType->arrayCapacity * 2) * selfType->u->unionSize;
+    selfType->pointer = realloc(selfType->pointer, new_capacity);
+    selfType->arrayCapacity *= 2;
+
+    memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
+           valueType->pointer, selfType->u->unionSize);
+    (selfType->arraySize)++;
+  }
+
+  Py_INCREF(value);
+  return value;
 }
 
+// PyC.c_union.pop
 static PyObject *c_union_pop(PyObject *self) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return NULL;
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_union is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  void *data =
+      selfType->pointer + (selfType->u->unionSize * (selfType->arraySize - 1));
+
+  PyObject *rvalue = cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record,
+                                     NULL, selfType->u, selfType->parentModule);
+
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer = realloc(selfType->pointer,
+                                (selfType->arraySize) * selfType->u->unionSize);
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
 }
 
+// PyC.c_union.__len__
 static Py_ssize_t c_union_len(PyObject *self) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
-
-  PyErr_SetNone(PyExc_NotImplementedError);
-  return -1;
+  return selfType->arraySize;
 }
 
+// PyC.c_union.__getitem__
 static PyObject *c_union_getitem(PyObject *self, PyObject *attr) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_union is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  long index = PyLong_AsLong(attr);
+
+  void *data = selfType->pointer + (selfType->u->unionSize * index);
+
+  if (selfType->arraySize > index) {
+    return cppArg_to_pyArg(&data, ffi_type_pointer, CXType_Record, NULL,
+                           selfType->u, selfType->parentModule);
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return NULL;
 }
 
+// PyC.c_union.__setitem__
 static int c_union_setitem(PyObject *self, PyObject *attr, PyObject *value) {
-  // TODO: implement
   PyC_c_union *selfType = (PyC_c_union *)self;
 
-  PyErr_SetNone(PyExc_NotImplementedError);
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_union is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  if (Py_TYPE(value) != Py_TYPE(self)) {
+    PyErr_SetString(py_BindingError,
+                    "Expected arg to be of the same struct type");
+    return -1;
+  }
+
+  long index = PyLong_AsLong(attr);
+
+  if (selfType->arraySize > index) {
+    PyC_c_struct *valueType = (PyC_c_struct *)value;
+
+    memcpy(selfType->pointer + (selfType->u->unionSize * index),
+           valueType->pointer, selfType->u->unionSize);
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
   return -1;
 }
 
