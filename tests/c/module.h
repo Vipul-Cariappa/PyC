@@ -69,7 +69,7 @@ unsigned long mul_ulong(unsigned long x, unsigned long y);
 unsigned short sub_ushort(unsigned short x, unsigned short y);
 unsigned long invert_bit(unsigned long x, unsigned long pos);
 // FIXME: unsigned char not supported
-// unsigned char div_uchar(unsigned char x, unsigned char y);
+unsigned char div_uchar(unsigned char x, unsigned char y);
 
 bool invert(bool x);
 

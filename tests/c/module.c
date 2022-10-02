@@ -87,10 +87,8 @@ long *powers_of_two_list(int size) {
     for (int i = 0; i < size; i++) {
       value *= 2;
     }
-    printf("%li ", value);
     list[size] = value;
   }
-  printf("\n");
 
   return list;
 }

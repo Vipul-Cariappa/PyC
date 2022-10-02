@@ -224,11 +224,11 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     selfType->value = 0;
     selfType->freeOnDel = true;
-    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->pointer = calloc(len, sizeof(int));
     selfType->isPointer = true;
     selfType->isArray = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -255,8 +255,6 @@ static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       Py_DECREF(tmp);
     }
-
-    selfType->pointer[len] = 0;
 
     return 0;
   }
@@ -290,10 +288,10 @@ static PyObject *c_int_next(PyObject *self) {
 
   if (selfType->arraySize > index) {
     if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
-      rvalue = PyLong_FromLongLong(*(selfType->pointer));
+      rvalue = PyLong_FromLongLong(selfType->pointer[index]);
+    } else {
+      rvalue = PyLong_FromLongLong((unsigned int)(selfType->pointer[index]));
     }
-
-    rvalue = PyLong_FromLongLong((unsigned int)*(selfType->pointer));
   }
 
   (selfType->_i)++;
@@ -305,7 +303,7 @@ static PyObject *c_int_next(PyObject *self) {
 static void c_int_finalizer(PyObject *self) {
   PyC_c_int *selfType = (PyC_c_int *)self;
 
-  if (selfType->freeOnDel)
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -329,24 +327,22 @@ static PyObject *c_int_append(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  int value = PyLong_AsLongLong(item);
+  PyObject *tmp = PyNumber_Long(item);
+  int value = PyLong_AsLongLong(tmp);
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(int);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(int);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer, new_capacity * sizeof(int));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
 
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
   Py_INCREF(item);
   return item;
 }
@@ -362,19 +358,18 @@ static PyObject *c_int_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
   PyObject *rvalue;
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_int_type)) {
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
     rvalue = PyLong_FromLongLong(
         (unsigned int)(selfType->pointer[(selfType->arraySize) - 1]));
   } else {
     rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
   }
 
-  selfType->pointer[(selfType->arraySize) - 1] = 0;
   (selfType->arraySize)--;
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
@@ -626,6 +621,7 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = &(selfType->value);
     selfType->isPointer = false;
     selfType->isArray = false;
+    selfType->freeOnDel = false;
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
@@ -638,11 +634,12 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
-    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->pointer = calloc(len, sizeof(double));
     selfType->isPointer = true;
     selfType->isArray = true;
+    selfType->freeOnDel = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -669,8 +666,6 @@ static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       Py_DECREF(tmp);
     }
 
-    selfType->pointer[len] = 0;
-
     return 0;
   }
 
@@ -695,7 +690,7 @@ static PyObject *c_double_iter(PyObject *self) {
 
 // PyC.c_double.__next__
 static PyObject *c_double_next(PyObject *self) {
-  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyC_c_double *selfType = (PyC_c_double *)self;
   PyObject *rvalue = NULL;
 
   size_t index = selfType->_i;
@@ -713,7 +708,7 @@ static PyObject *c_double_next(PyObject *self) {
 static void c_double_finalizer(PyObject *self) {
   PyC_c_double *selfType = (PyC_c_double *)self;
 
-  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -736,24 +731,23 @@ static PyObject *c_double_append(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  double value = PyFloat_AsDouble(item);
+  PyObject *tmp = PyNumber_Float(item);
+  double value = PyFloat_AsDouble(tmp);
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(double);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(double);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer =
+        realloc(selfType->pointer, new_capacity * sizeof(double));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
 
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
   Py_INCREF(item);
   return item;
 }
@@ -769,18 +763,18 @@ static PyObject *c_double_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
   PyObject *rvalue =
       PyFloat_FromDouble(selfType->pointer[(selfType->arraySize) - 1]);
-  selfType->pointer[(selfType->arraySize) - 1] = 0;
+
   (selfType->arraySize)--;
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
     selfType->pointer =
-        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(double));
     selfType->arrayCapacity = selfType->arraySize;
   }
 
@@ -1005,6 +999,7 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = &(selfType->value);
     selfType->isPointer = false;
     selfType->isArray = false;
+    selfType->freeOnDel = false;
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
@@ -1017,11 +1012,12 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
-    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->pointer = calloc(len, sizeof(float));
     selfType->isPointer = true;
     selfType->isArray = true;
+    selfType->freeOnDel = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -1048,8 +1044,6 @@ static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       Py_DECREF(tmp);
     }
 
-    selfType->pointer[len] = 0;
-
     return 0;
   }
 
@@ -1074,7 +1068,7 @@ static PyObject *c_float_iter(PyObject *self) {
 
 // PyC.c_float.__next__
 static PyObject *c_float_next(PyObject *self) {
-  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyC_c_float *selfType = (PyC_c_float *)self;
   PyObject *rvalue = NULL;
 
   size_t index = selfType->_i;
@@ -1092,7 +1086,7 @@ static PyObject *c_float_next(PyObject *self) {
 static void c_float_finalizer(PyObject *self) {
   PyC_c_float *selfType = (PyC_c_float *)self;
 
-  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -1115,24 +1109,23 @@ static PyObject *c_float_append(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  float value = PyFloat_AsDouble(item);
+  PyObject *tmp = PyNumber_Float(item);
+  float value = PyFloat_AsDouble(tmp);
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(float);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(float);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer =
+        realloc(selfType->pointer, new_capacity * sizeof(float));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
 
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
   Py_INCREF(item);
   return item;
 }
@@ -1148,18 +1141,18 @@ static PyObject *c_float_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
   PyObject *rvalue =
       PyFloat_FromDouble(selfType->pointer[(selfType->arraySize) - 1]);
-  selfType->pointer[(selfType->arraySize) - 1] = 0;
+
   (selfType->arraySize)--;
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
     selfType->pointer =
-        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(float));
     selfType->arrayCapacity = selfType->arraySize;
   }
 
@@ -1378,11 +1371,12 @@ static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     selfType->value = 0;
     selfType->freeOnDel = true;
-    selfType->pointer = calloc(len + 1, sizeof(bool));
+    selfType->pointer = calloc(len, sizeof(bool));
     selfType->isPointer = true;
     selfType->isArray = true;
+    selfType->freeOnDel = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -1406,8 +1400,6 @@ static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         return -1;
       }
     }
-
-    selfType->pointer[len] = 0;
 
     return 0;
   }
@@ -1473,7 +1465,7 @@ static PyObject *c_bool_next(PyObject *self) {
 static void c_bool_finalizer(PyObject *self) {
   PyC_c_bool *selfType = (PyC_c_bool *)self;
 
-  if (selfType->freeOnDel)
+  if (selfType->freeOnDel && selfType->isPointer)
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -1490,19 +1482,16 @@ static PyObject *c_bool_append(PyObject *self, PyObject *args) {
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(int);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(int);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer, new_capacity * sizeof(bool));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
+
+  (selfType->arraySize)++;
 
   if (value) {
     Py_RETURN_TRUE;
@@ -1521,7 +1510,7 @@ static PyObject *c_bool_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
@@ -1530,7 +1519,7 @@ static PyObject *c_bool_pop(PyObject *self) {
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
     selfType->pointer =
-        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(bool));
     selfType->arrayCapacity = selfType->arraySize;
   }
 
@@ -1788,6 +1777,7 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = &(selfType->value);
     selfType->isPointer = false;
     selfType->isArray = false;
+    selfType->freeOnDel = false;
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
@@ -1800,11 +1790,12 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
-    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->pointer = calloc(len, sizeof(short));
     selfType->isPointer = true;
     selfType->isArray = true;
+    selfType->freeOnDel = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -1831,8 +1822,6 @@ static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs) {
       Py_DECREF(tmp);
     }
 
-    selfType->pointer[len] = 0;
-
     return 0;
   }
 
@@ -1858,7 +1847,7 @@ static PyObject *c_short_iter(PyObject *self) {
 
 // PyC.c_short.__next__
 static PyObject *c_short_next(PyObject *self) {
-  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyC_c_short *selfType = (PyC_c_short *)self;
   PyObject *rvalue = NULL;
 
   size_t index = selfType->_i;
@@ -1881,7 +1870,7 @@ static PyObject *c_short_next(PyObject *self) {
 static void c_short_finalizer(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
-  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -1904,24 +1893,23 @@ static PyObject *c_short_append(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  short value = PyLong_AsLong(item);
+  PyObject *tmp = PyNumber_Long(item);
+  short value = PyLong_AsLong(tmp);
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(short);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(short);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer =
+        realloc(selfType->pointer, new_capacity * sizeof(short));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
 
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
   Py_INCREF(item);
   return item;
 }
@@ -1937,25 +1925,24 @@ static PyObject *c_short_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
   PyObject *rvalue;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    rvalue = PyLong_FromLong(
+    rvalue = PyLong_FromLongLong(
         (unsigned short)(selfType->pointer[(selfType->arraySize) - 1]));
   } else {
-    rvalue = PyLong_FromLong(selfType->pointer[(selfType->arraySize) - 1]);
+    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
   }
 
-  selfType->pointer[(selfType->arraySize) - 1] = 0;
   (selfType->arraySize)--;
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
     selfType->pointer =
-        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(short));
     selfType->arrayCapacity = selfType->arraySize;
   }
 
@@ -2183,6 +2170,7 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         selfType->pointer = NULL;
         selfType->isPointer = true;
         selfType->isArray = false;
+        selfType->freeOnDel = false;
         selfType->arraySize = 0;
         selfType->arrayCapacity = 0;
         selfType->_i = 0;
@@ -2207,6 +2195,7 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = &(selfType->value);
     selfType->isPointer = false;
     selfType->isArray = false;
+    selfType->freeOnDel = false;
     selfType->arraySize = 0;
     selfType->arrayCapacity = 0;
     selfType->_i = 0;
@@ -2219,11 +2208,12 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     size_t len = PySequence_Size(arg_1);
 
     selfType->value = 0;
-    selfType->pointer = calloc(len + 1, sizeof(int));
+    selfType->pointer = calloc(len, sizeof(long));
     selfType->isPointer = true;
     selfType->isArray = true;
+    selfType->freeOnDel = true;
     selfType->arraySize = len;
-    selfType->arrayCapacity = len + 1;
+    selfType->arrayCapacity = len;
     selfType->_i = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -2248,8 +2238,6 @@ static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
       Py_DECREF(tmp);
     }
-
-    selfType->pointer[len] = 0;
 
     return 0;
   }
@@ -2276,7 +2264,7 @@ static PyObject *c_long_iter(PyObject *self) {
 
 // PyC.c_long.__next__
 static PyObject *c_long_next(PyObject *self) {
-  PyC_c_int *selfType = (PyC_c_int *)self;
+  PyC_c_long *selfType = (PyC_c_long *)self;
   PyObject *rvalue = NULL;
 
   size_t index = selfType->_i;
@@ -2284,9 +2272,10 @@ static PyObject *c_long_next(PyObject *self) {
   if (selfType->arraySize > index) {
 
     if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-      rvalue = PyLong_FromLong((unsigned long)((selfType->pointer)[index]));
+      rvalue = PyLong_FromUnsignedLongLong(
+          (unsigned long)((selfType->pointer)[index]));
     } else {
-      rvalue = PyLong_FromLong((selfType->pointer)[index]);
+      rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
     }
   }
 
@@ -2299,7 +2288,7 @@ static PyObject *c_long_next(PyObject *self) {
 static void c_long_finalizer(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
-  if ((selfType->freeOnDel) && (selfType->freeOnDel))
+  if ((selfType->freeOnDel) && (selfType->isPointer))
     free(selfType->pointer);
 
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -2322,24 +2311,22 @@ static PyObject *c_long_append(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  long value = PyLong_AsLong(item);
+  PyObject *tmp = PyNumber_Long(item);
+  long value = PyLong_AsLong(tmp);
 
   if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * sizeof(long);
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity = new_capacity / sizeof(long);
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer, new_capacity * sizeof(long));
+    selfType->arrayCapacity = new_capacity;
 
     selfType->pointer[selfType->arraySize] = value;
-    (selfType->arraySize)++;
-
-    selfType->pointer[selfType->arraySize] = 0;
   }
 
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
   Py_INCREF(item);
   return item;
 }
@@ -2355,25 +2342,24 @@ static PyObject *c_long_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
   PyObject *rvalue;
 
   if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    rvalue = PyLong_FromLong(
+    rvalue = PyLong_FromLongLong(
         (unsigned long)(selfType->pointer[(selfType->arraySize) - 1]));
   } else {
-    rvalue = PyLong_FromLong(selfType->pointer[(selfType->arraySize) - 1]);
+    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
   }
 
-  selfType->pointer[(selfType->arraySize) - 1] = 0;
   (selfType->arraySize)--;
 
   if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
     selfType->pointer =
-        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(long));
     selfType->arrayCapacity = selfType->arraySize;
   }
 
@@ -2446,9 +2432,9 @@ static PyObject *c_long_getitem(PyObject *self, PyObject *attr) {
 
   if (selfType->arraySize > index) {
     if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-      return PyLong_FromLong((unsigned long)((selfType->pointer)[index]));
+      return PyLong_FromLongLong((unsigned long)((selfType->pointer)[index]));
     }
-    return PyLong_FromLong((selfType->pointer)[index]);
+    return PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
   PyErr_SetString(PyExc_IndexError, "Index out of range");
@@ -2530,6 +2516,13 @@ PyMethodDef c_char_methods[] = {
     {"value", (PyCFunction)&c_char_value, METH_NOARGS, "c_char.value()"},
     {NULL, NULL, 0, NULL}};
 
+PyMemberDef c_char_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_char, isPointer), READONLY,
+     "PyC.c_char.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_char, isArray), READONLY,
+     "PyC.c_char.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
 PyGetSetDef c_char_getsetdef[] = {
     {"free_on_no_reference", &c_char_freeOnDel_getter, &c_char_freeOnDel_setter,
      C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
@@ -2547,6 +2540,7 @@ PyTypeObject py_c_char_type = {
     .tp_iter = &c_char_iter,
     .tp_iternext = &c_char_next,
     .tp_methods = c_char_methods,
+    .tp_members = c_char_members,
     .tp_getset = c_char_getsetdef,
     .tp_init = &c_char_init,
     .tp_new = PyType_GenericNew,
@@ -2658,7 +2652,6 @@ static PyObject *c_char_pop(PyObject *self) {
   // TODO: implement c_char_pop
 
   PyC_c_char *selfType = (PyC_c_char *)self;
-
   PyErr_SetNone(PyExc_NotImplementedError);
   return NULL;
 }
@@ -3164,9 +3157,10 @@ static PyObject *c_struct_append(PyObject *self, PyObject *args) {
            valueType->pointer, selfType->structure->structSize);
   } else {
     int new_capacity =
-        (selfType->arrayCapacity * 2) * selfType->structure->structSize;
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity *= 2;
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer,
+                                new_capacity * selfType->structure->structSize);
+    selfType->arrayCapacity = new_capacity;
 
     memcpy(selfType->pointer +
                (selfType->structure->structSize * selfType->arraySize),
@@ -3209,7 +3203,7 @@ static PyObject *c_struct_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
@@ -3692,9 +3686,11 @@ static PyObject *c_union_append(PyObject *self, PyObject *args) {
     memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
            valueType->pointer, selfType->u->unionSize);
   } else {
-    int new_capacity = (selfType->arrayCapacity * 2) * selfType->u->unionSize;
-    selfType->pointer = realloc(selfType->pointer, new_capacity);
-    selfType->arrayCapacity *= 2;
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer =
+        realloc(selfType->pointer, new_capacity * selfType->u->unionSize);
+    selfType->arrayCapacity = new_capacity;
 
     memcpy(selfType->pointer + (selfType->u->unionSize * selfType->arraySize),
            valueType->pointer, selfType->u->unionSize);
@@ -3735,7 +3731,7 @@ static PyObject *c_union_pop(PyObject *self) {
   }
 
   if (!(selfType->arraySize)) {
-    PyErr_SetString(py_CppError, "no elements in the array to pop");
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
     return NULL;
   }
 
