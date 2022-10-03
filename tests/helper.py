@@ -18,5 +18,5 @@ if __name__ == "__main__":
     cModule = loader("tests/libcmodule.so", "tests/c/module.h")
     cppModule = loader("tests/libcppmodule.so", "tests/c/module.hpp", cpp=True)
 
-    print_CppModule(cModule)
     print_CppModule(cppModule)
+    print_CppModule(cModule)

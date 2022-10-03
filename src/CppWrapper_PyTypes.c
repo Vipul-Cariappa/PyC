@@ -322,8 +322,6 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     return NULL;
   }
 
-  Py_DECREF(py_attr_name);
-
   TypeDef *tdVar = Symbols_getTypeDef(selfType->symbols, attr);
 
   if (tdVar) {
@@ -346,11 +344,25 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
         return NULL;
       }
     }
+
+  } else if (errno != 0) {
+    return NULL;
   }
 
-  else if (errno != 0)
+  Enum *enumVar = Symbols_getEnum(selfType->symbols, attr);
+  if (enumVar) {
+    PyObject *result = PyLong_FromLong(enumVar->value);
+    if (PyDict_SetItem(selfType->cache_dict, py_attr_name, result)) {
+      Py_DECREF(py_attr_name);
+      return NULL;
+    }
+    Py_DECREF(py_attr_name);
+    return result;
+  } else if (errno != 0) {
     return NULL;
+  }
 
+  Py_DECREF(py_attr_name);
   return PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
 
   // PyErr_SetString(py_CppError,
