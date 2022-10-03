@@ -1,8 +1,9 @@
 #include <stdbool.h>
 
-extern const int MAX = 5000000;
-extern const char *PROGRAM = "C/C++";
-extern const float f = 3.14f;
+extern const int MAX;
+extern const char *PROGRAM;
+extern const float f;
+extern int global_flag;
 
 typedef unsigned char _u_int8_t_;
 typedef struct _RECT RECT;
@@ -58,25 +59,38 @@ union unionOfPtr {
   int *x;
 };
 
-int add(int x, int y);
-bool invert(bool x);
-int copy_int(int *destination, int *source);
-long *returns_pointer();
-int write_int(int *destination, int value);
-double copy_double(double *destination, double *source);
-char *concat(char *x, char *y);
-double pi(int n);
-long increment_1(long x);
-short add_short(short x, short y);
-unsigned long long invert_bit(unsigned long long x, unsigned long long pos);
-int product_int(int x, int y);
-long long add_long_long(long long x, long long y);
+int add_int(int x, int y);
+long mul_long(long x, long y);
+short sub_short(short x, short y);
+char div_char(char x, char y);
 
-struct _RECT get_rect(int x, int y);
-RECT *rect_add(RECT *a, RECT *b);
+unsigned int add_uint(unsigned int x, unsigned int y);
+unsigned long mul_ulong(unsigned long x, unsigned long y);
+unsigned short sub_ushort(unsigned short x, unsigned short y);
+unsigned long invert_bit(unsigned long x, unsigned long pos);
+// FIXME: unsigned char not supported
+unsigned char div_uchar(unsigned char x, unsigned char y);
+
+bool invert(bool x);
+
+double pi(int n);
+float e(int n);
+
+void set_global_flag(int f);
+int get_global_flag();
+
+int copy_int(int *destination, int *source);
+double copy_double(double *destination, double *source);
+char *string_concat(char *x, char *y);
+
+void init_bool_list_with_true(bool *li, int len);
+long *powers_of_two_list(int size);
+
+struct _RECT create_rect(int x, int y);
+RECT *rect_add_from_ptr(RECT *a, RECT *b);
 int get_area(RECT a);
 int get_perimeter(RECT a);
-_u_int8_t_ same_rects(struct _RECT *a, struct _RECT *b);
+bool same_rects(struct _RECT *a, struct _RECT *b);
 
 long get_number(union Number n);
 long get_number_ptr(union Number *n);

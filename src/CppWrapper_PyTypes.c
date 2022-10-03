@@ -351,13 +351,11 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
   else if (errno != 0)
     return NULL;
 
-  PyObject *value = PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
-  if (value)
-    return value;
+  return PyObject_GenericGetAttr(self, PyUnicode_FromString(attr));
 
-  PyErr_SetString(py_CppError,
-                  "Could not find any declaration with given name");
-  return NULL;
+  // PyErr_SetString(py_CppError,
+  //                 "Could not find any declaration with given name");
+  // return NULL;
 }
 
 static int Cpp_ModuleSet(PyObject *self, char *attr, PyObject *pValue) {
