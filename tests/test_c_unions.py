@@ -1,5 +1,5 @@
-from helper import loader
 import unittest
+from helper import loader
 from PyC import (
     c_int,
     c_long,

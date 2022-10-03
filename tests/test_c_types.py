@@ -1,7 +1,5 @@
 from random import randint, random, choice
-from textwrap import indent
 import unittest
-from xml.dom.minidom import Element
 from PyC import (
     c_int,
     c_long,
