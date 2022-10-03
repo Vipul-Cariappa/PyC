@@ -30,6 +30,7 @@ DS_LIST_DEF(Global, Global, Symbols_clearGlobal);
 DS_LIST_DEF(Structure, Structure, Symbols_clearStructure);
 DS_LIST_DEF(Union, Union, Symbols_clearUnion);
 DS_LIST_DEF(TypeDef, TypeDef, Symbols_clearTypedef);
+DS_LIST_DEF(Enum, Enum, Symbols_clearEnum);
 DS_LIST_DEF(Class, Class, nullFunc);
 
 enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
@@ -114,11 +115,22 @@ void print_Global(Global global) {
   printf("    %s: %s\n", global.name, ffi_type_To_char_p(global.type));
 }
 
+void print_TypeDef(TypeDef td) {
+  printf("    %s: %s\n", td.name, CXTypeKind_TO_char_p(td.type));
+}
+
+void print_Enum(Enum e) {
+  printf("    %s: %lli\n", e.name, e.value);
+  return;
+}
+
 void print_Class(Class cls) {
   // TODO: implement print_Class
 }
 
 void print_Symbols(Symbols *symbols) {
+  // TODO: update to use foreach macro
+
   printf("Name: %s\n", symbols->name);
 
   size_t len;
@@ -163,11 +175,32 @@ void print_Symbols(Symbols *symbols) {
     print_Global(s);
   }
 
+  // printing TypeDefs info
+  printf("\n  TypeDefs: \n");
+
+  len = TypeDef_list_size(symbols->typedefs);
+  assert(len == symbols->typedefsCount);
+  for (size_t i = 0; i < len; i++) {
+    TypeDef s = TypeDef_list_getat(symbols->typedefs, i);
+    print_TypeDef(s);
+  }
+
+  // printing Enum info
+  printf("\n  Enums: \n");
+
+  len = Enum_list_size(symbols->enums);
+  assert(len == symbols->enumsCount);
+  for (size_t i = 0; i < len; i++) {
+    Enum s = Enum_list_getat(symbols->enums, i);
+    print_Enum(s);
+  }
+
   // printing classes info
   // TODO: implement printing classes info
 }
 
 Function *Symbols_getFunction(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
   for (size_t i = 0; i < sym->funcCount; i++) {
     Function *func = Function_list_get_ptr_at(sym->funcs, i);
 
@@ -180,6 +213,7 @@ Function *Symbols_getFunction(Symbols *sym, const char *name) {
 }
 
 Structure *Symbols_getStructure(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
   for (size_t i = 0; i < sym->structsCount; i++) {
     Structure *func = Structure_list_get_ptr_at(sym->structs, i);
 
@@ -192,6 +226,7 @@ Structure *Symbols_getStructure(Symbols *sym, const char *name) {
 }
 
 Union *Symbols_getUnion(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
   for (size_t i = 0; i < sym->unionsCount; i++) {
     Union *func = Union_list_get_ptr_at(sym->unions, i);
 
@@ -204,6 +239,7 @@ Union *Symbols_getUnion(Symbols *sym, const char *name) {
 }
 
 Global *Symbols_getGlobal(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
   for (size_t i = 0; i < sym->globalsCount; i++) {
     Global *func = Global_list_get_ptr_at(sym->globals, i);
 
@@ -221,8 +257,22 @@ Class *Symbols_getClass(Symbols *sym, const char *name) {
 }
 
 TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
   for (size_t i = 0; i < sym->typedefsCount; i++) {
     TypeDef *func = TypeDef_list_get_ptr_at(sym->typedefs, i);
+
+    if (!strcmp(func->name, name)) {
+      return func;
+    }
+  }
+  errno = 0;
+  return NULL;
+}
+
+Enum *Symbols_getEnum(Symbols *sym, const char *name) {
+  // TODO: use foreach macro here
+  for (size_t i = 0; i < sym->enumsCount; i++) {
+    Enum *func = Enum_list_get_ptr_at(sym->enums, i);
 
     if (!strcmp(func->name, name)) {
       return func;
@@ -495,6 +545,24 @@ bool Symbols_clearTypedef(TypeDef s) {
   return true;
 }
 
+bool Symbols_appendEnum(Symbols *sym, const char *name, long value) {
+  if (!Enum_list_append(sym->enums, (Enum){name, value})) {
+    if (errno == ENOMEM)
+      PyErr_NoMemory();
+    else
+      PyErr_SetString(py_BindingError, "Unknown error occured");
+    return false;
+  }
+
+  sym->enumsCount++;
+  return true;
+}
+
+bool Symbols_clearEnum(Enum s) {
+  free((void *)s.name);
+  return true;
+}
+
 bool Symbols_appendClass(Symbols *sym, Class c) {
   // TODO: implement Symbols_appendClass
   return true;
@@ -522,6 +590,9 @@ Symbols *create_Symbol(const char *name) {
   sym->typedefs = TypeDef_list_new();
   sym->typedefsCount = 0;
 
+  sym->enums = Enum_list_new();
+  sym->enumsCount = 0;
+
   return sym;
 }
 
@@ -537,6 +608,8 @@ void free_Symbols(Symbols *sym) {
   Class_list_clear(sym->classes);
 
   TypeDef_list_clear(sym->typedefs);
+
+  Enum_list_clear(sym->enums);
 
   free(sym);
 }
@@ -604,6 +677,19 @@ CXType get_underlyingTypeInfo(CXType cxType, Symbols *sym, Structure **_s,
   }
 
   return actual_type;
+}
+
+enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent,
+                                     CXClientData client_data) {
+
+  long long value = clang_getEnumConstantDeclValue(cursor);
+  const char *name = clangString_to_CString(clang_getCursorSpelling(cursor));
+
+  if (!Symbols_appendEnum(client_data, name, value)) {
+    return CXChildVisit_Break;
+  }
+
+  return CXChildVisit_Continue;
 }
 
 enum CXChildVisitResult union_visitor(CXCursor cursor, CXCursor parent,
@@ -923,7 +1009,15 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     if (!Symbols_appendGlobal(symbols, global)) {
       return CXChildVisit_Break;
     }
-  } else {
+  }
+
+  // enums
+  else if (clang_getCursorKind(cursor) == CXCursor_EnumDecl) {
+    clang_visitChildren(cursor, enum_visitor, symbols);
+  }
+
+  // else
+  else {
     // raising error because unknow type found
     const char *name = clangString_to_CString(clang_getCursorSpelling(cursor));
     const char *type_name = clangString_to_CString(

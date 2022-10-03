@@ -957,7 +957,13 @@ const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
   case CXType_Record:
     return "struct*"; // TODO: specify struct
   case CXType_Char_S:
+  case CXType_Char_U:
     return "char*";
+  case CXType_UChar:
+  case CXType_SChar:
+    return "char";
+  case CXType_Elaborated:
+    return "Elaborated Type";
   default:
     // printf("%i", type);
     return "Could not figure out";
@@ -1005,6 +1011,7 @@ ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
   switch (type.kind) {
   case CXType_Void:
     return &ffi_type_void;
+  case CXType_Enum:
   case CXType_Int:
     return &ffi_type_sint;
   case CXType_UInt:
