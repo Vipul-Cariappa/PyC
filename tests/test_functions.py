@@ -153,6 +153,7 @@ class TestFunctions_C(unittest.TestCase):
             self.assertTrue(i)
 
         list_power_2 = cModule.powers_of_two_list(20)  # TODO: change a pointer to array
+        list_power_2.free_on_no_reference = True
 
     def test_functions_with_structs(self):
         # TODO: update to use randomly generated number

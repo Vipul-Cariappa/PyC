@@ -18,6 +18,8 @@ struct Custom_u_PyTypeObject {
 };
 
 // TODO: better error msg fro c_utypes (unsigned types)
+// TODO: raise error when setting free_on_no_reference for non pointers
+// TODO: change free_on_no_reference attribute to method for c_struct & c_union
 
 // ----- c_void -----
 
@@ -2824,17 +2826,13 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = calloc(arr_len, s->structSize);
     selfType->arrayPtrs = PyList_New(arr_len);
     selfType->isArray = true;
-    selfType->arraySize = args_len + 1;
-    selfType->arrayCapacity = args_len + 1;
+    selfType->arraySize = arr_len;
+    selfType->arrayCapacity = arr_len;
 
     for (size_t i = 0; i < arr_len; i++) {
       PyObject *element = PySequence_GetItem(arr, i);
 
       if (Py_TYPE(element) != Py_TYPE(element)) {
-        Py_DECREF(selfType->child_ptrs);
-        Py_DECREF(selfType->arrayPtrs);
-        Py_DECREF(selfType->parentModule);
-        free(selfType->pointer);
         PyErr_SetString(py_BindingError,
                         "Expected all elements of the sequence to be of the "
                         "same struct type");
@@ -2859,9 +2857,6 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
 
   // initilising struct with attributes
   if (args_len != s->attrCount) {
-    Py_DECREF(selfType->child_ptrs);
-    Py_DECREF(selfType->parentModule);
-    free(selfType->pointer);
     PyErr_SetString(py_BindingError,
                     "Args count does not match struct's attribute count. "
                     "Cannot initilise the struct.");
@@ -3209,22 +3204,14 @@ static PyObject *c_struct_pop(PyObject *self) {
 
   PyObject *tmp = PyObject_CallMethod(selfType->arrayPtrs, "pop", "n",
                                       Py_SIZE(selfType->arrayPtrs) - 1);
-  Py_DECREF(tmp);
-
-  void *data = selfType->pointer +
-               (selfType->structure->structSize * (selfType->arraySize - 1));
-
-  PyObject *rvalue =
-      cppArg_to_pyArg(&data, selfType->structure->type, 0, selfType->structure,
-                      NULL, selfType->parentModule);
 
   (selfType->arraySize)--;
 
-  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+  if ((selfType->arraySize * 2 + 1) < selfType->arrayCapacity) {
     selfType->pointer =
         realloc(selfType->pointer,
-                (selfType->arraySize) * selfType->structure->structSize);
-    selfType->arrayCapacity = selfType->arraySize;
+                (selfType->arraySize + 1) * selfType->structure->structSize);
+    selfType->arrayCapacity = selfType->arraySize * 2 + 1;
 
     for (size_t i = 0; i < selfType->arraySize; i++) {
       PyC_c_struct *elementType =
@@ -3233,9 +3220,12 @@ static PyObject *c_struct_pop(PyObject *self) {
       elementType->pointer =
           selfType->pointer + (selfType->structure->structSize * i);
     }
+    PyC_c_struct *tmpType = (PyC_c_struct *)tmp;
+    tmpType->pointer = selfType->pointer +
+                       (selfType->structure->structSize * selfType->arraySize);
   }
 
-  return rvalue;
+  return tmp;
 }
 
 // PyC.c_struct.__len__
@@ -3426,16 +3416,13 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->pointer = calloc(arr_len, s->unionSize);
     selfType->arrayPtrs = PyList_New(arr_len);
     selfType->isArray = true;
-    selfType->arraySize = args_len + 1;
-    selfType->arrayCapacity = args_len + 1;
+    selfType->arraySize = arr_len;
+    selfType->arrayCapacity = arr_len;
 
     for (size_t i = 0; i < arr_len; i++) {
       PyObject *element = PySequence_GetItem(arr, i);
 
       if (Py_TYPE(element) != Py_TYPE(element)) {
-        Py_DECREF(selfType->parentModule);
-        Py_DECREF(selfType->arrayPtrs);
-        free(selfType->pointer);
         PyErr_SetString(py_BindingError,
                         "Expected all elements of the sequence to be of the "
                         "same union type");
@@ -3458,8 +3445,6 @@ static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     return 0;
   }
 
-  free(selfType->pointer);
-  Py_DECREF(selfType->parentModule);
   PyErr_SetString(
       PyExc_TypeError,
       "Expected no arguments or sequence of c_union, but got something else");
@@ -3737,20 +3722,13 @@ static PyObject *c_union_pop(PyObject *self) {
 
   PyObject *tmp = PyObject_CallMethod(selfType->arrayPtrs, "pop", "n",
                                       Py_SIZE(selfType->arrayPtrs) - 1);
-  Py_DECREF(tmp);
-
-  void *data =
-      selfType->pointer + (selfType->u->unionSize * (selfType->arraySize - 1));
-
-  PyObject *rvalue = cppArg_to_pyArg(&data, selfType->u->type, 0, NULL,
-                                     selfType->u, selfType->parentModule);
 
   (selfType->arraySize)--;
 
-  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
-    selfType->pointer = realloc(selfType->pointer,
-                                (selfType->arraySize) * selfType->u->unionSize);
-    selfType->arrayCapacity = selfType->arraySize;
+  if ((selfType->arraySize * 2 + 1) < selfType->arrayCapacity) {
+    selfType->pointer = realloc(selfType->pointer, (selfType->arraySize + 1) *
+                                                       selfType->u->unionSize);
+    selfType->arrayCapacity = selfType->arraySize * 2 + 1;
 
     for (size_t i = 0; i < selfType->arraySize; i++) {
       PyC_c_union *elementType =
@@ -3758,9 +3736,12 @@ static PyObject *c_union_pop(PyObject *self) {
 
       elementType->pointer = selfType->pointer + (selfType->u->unionSize * i);
     }
+    PyC_c_union *tmpType = (PyC_c_union *)tmp;
+    tmpType->pointer =
+        selfType->pointer + (selfType->u->unionSize * selfType->arraySize);
   }
 
-  return rvalue;
+  return tmp;
 }
 
 // PyC.c_union.__len__

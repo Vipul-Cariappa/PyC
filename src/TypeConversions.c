@@ -13,9 +13,13 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   switch (type.type) {
   case FFI_TYPE_SINT8:
   case FFI_TYPE_UINT8: {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(1);
     *should_free = true;
-    PyObject *tmp = PyNumber_Long(arg);
     int8_t i = (int8_t)PyLong_AsLong(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, 1);
@@ -23,9 +27,13 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   }
   case FFI_TYPE_SINT16:
   case FFI_TYPE_UINT16: {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(2);
     *should_free = true;
-    PyObject *tmp = PyNumber_Long(arg);
     int16_t i = (int16_t)PyLong_AsLong(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, 2);
@@ -34,9 +42,13 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   case FFI_TYPE_INT:
   case FFI_TYPE_SINT32:
   case FFI_TYPE_UINT32: {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(4);
     *should_free = true;
-    PyObject *tmp = PyNumber_Long(arg);
     int32_t i = (int32_t)PyLong_AsLong(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, 4);
@@ -44,27 +56,39 @@ void *pyArg_to_cppArg(PyObject *arg, ffi_type type, bool *should_free) {
   }
   case FFI_TYPE_SINT64:
   case FFI_TYPE_UINT64: {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(8);
     *should_free = true;
-    PyObject *tmp = PyNumber_Long(arg);
     int64_t i = (int64_t)PyLong_AsLong(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, 8);
     break;
   }
   case FFI_TYPE_FLOAT: {
+    PyObject *tmp = PyNumber_Float(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(sizeof(float));
     *should_free = true;
-    PyObject *tmp = PyNumber_Float(arg);
     float i = (float)PyFloat_AsDouble(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, sizeof(float));
     break;
   }
   case FFI_TYPE_DOUBLE: {
+    PyObject *tmp = PyNumber_Float(arg);
+    if (!tmp) {
+      PyErr_SetString(py_BindingError, "Got someother type then expected");
+      break;
+    }
     data = malloc(sizeof(double));
     *should_free = true;
-    PyObject *tmp = PyNumber_Float(arg);
     double i = (double)PyFloat_AsDouble(tmp);
     Py_DECREF(tmp);
     memcpy(data, &i, sizeof(double));
@@ -178,6 +202,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_int *c_int = (PyC_c_int *)result;
+      c_int->isPointer = true;
+      c_int->freeOnDel = false;
       c_int->pointer = *(int **)arg;
       c_int->value = *(c_int->pointer);
 
@@ -207,6 +233,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_int *c_int = (PyC_c_int *)result;
+      c_int->isPointer = true;
+      c_int->freeOnDel = false;
       c_int->pointer = *(int **)arg;
       c_int->value = *(c_int->pointer);
 
@@ -236,6 +264,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_long *c_long = (PyC_c_long *)result;
+      c_long->isPointer = true;
+      c_long->freeOnDel = false;
       c_long->pointer = *(long **)arg;
       c_long->value = *(c_long->pointer);
 
@@ -265,6 +295,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_long *c_long = (PyC_c_long *)result;
+      c_long->isPointer = true;
+      c_long->freeOnDel = false;
       c_long->pointer = *(long **)arg;
       c_long->value = *(c_long->pointer);
 
@@ -294,6 +326,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_short *c_short = (PyC_c_short *)result;
+      c_short->isPointer = true;
+      c_short->freeOnDel = false;
       c_short->pointer = *(short **)arg;
       c_short->value = *(c_short->pointer);
 
@@ -323,6 +357,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_short *c_short = (PyC_c_short *)result;
+      c_short->isPointer = true;
+      c_short->freeOnDel = false;
       c_short->pointer = *(short **)arg;
       c_short->value = *(c_short->pointer);
 
@@ -352,6 +388,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_float *c_float = (PyC_c_float *)result;
+      c_float->isPointer = true;
+      c_float->freeOnDel = false;
       c_float->pointer = *(float **)arg;
       c_float->value = *(c_float->pointer);
 
@@ -381,6 +419,8 @@ PyObject *cppArg_to_pyArg(void *arg, ffi_type type,
       }
 
       PyC_c_double *c_double = (PyC_c_double *)result;
+      c_double->isPointer = true;
+      c_double->freeOnDel = false;
       c_double->pointer = *(double **)arg;
       c_double->value = *(c_double->pointer);
 
