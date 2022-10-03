@@ -29,19 +29,20 @@ class TestGlobals_C(unittest.TestCase):
         self.assertEqual(cModule.global_flag, 10)
         self.assertEqual(cModule.get_global_flag(), 10)
 
+    @unittest.skip("Not Implemented")
     def test_pointers(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_arrays(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_structs(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_unions(self):
-        ...
-
-    def test_typedefs(self):
         ...
 
 
@@ -51,17 +52,18 @@ class TestGlobals_CPP(unittest.TestCase):
         self.assertAlmostEqual(cppModule.f, 3.14, 4)
         self.assertEqual(str(cppModule.PROGRAM), "C/C++")
 
+    @unittest.skip("Not Implemented")
     def test_pointers(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_arrays(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_structs(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_unions(self):
-        ...
-
-    def test_typedefs(self):
         ...

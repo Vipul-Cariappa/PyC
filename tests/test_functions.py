@@ -293,14 +293,18 @@ class TestFunctions_CPP(unittest.TestCase):
         string.free_on_no_reference = True
         self.assertEqual(str(string), "Vipul Cariappa")
 
+    @unittest.skip("Not Implemented")
     def test_functions_with_pointers(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_functions_with_arrays(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_functions_with_structs(self):
         ...
 
+    @unittest.skip("Not Implemented")
     def test_functions_with_unions(self):
         ...

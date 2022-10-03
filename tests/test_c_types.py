@@ -826,7 +826,7 @@ class Test_c_type(unittest.TestCase):
             self.assertEqual(element, bool(index))
 
     @unittest.skip("Not Implemented")
-    def test_array_iterations_and_attributes_bool(self):
+    def test_array_iterations_and_attributes_char(self):
         ...
 
     def test_array_access_and_methods_int(self):
@@ -1299,3 +1299,67 @@ class Test_c_type(unittest.TestCase):
         self.assertRaises(IndexError, double_array.pop)
 
         double_array.append(0)
+
+    def test_array_access_and_methods_bool(self):
+        # --- c_bool ---
+        bool_array0 = c_bool([])
+
+        for i in bool_array0:
+            # should not run this
+            raise Exception
+
+        bool_array0.append(0)
+        bool_array0.append(c_bool(1))
+        bool_array0.append(c_int(2))
+        bool_array0.append(c_long(3))
+        bool_array0.append(c_short(4))
+        bool_array0.append(c_uint(5))
+        bool_array0.append(c_ulong(6))
+        bool_array0.append(c_ushort(7))
+        bool_array0.append(c_float(8))
+        bool_array0.append(c_double(9))
+
+        for i in range(len(bool_array0)):
+            self.assertEqual(bool_array0[i], bool(i))
+
+        for i in range(len(bool_array0)):
+            self.assertEqual(bool_array0.pop(), bool(9 - i))
+
+        self.assertRaises(IndexError, bool_array0.pop)
+
+        bool_array0.append(0)
+
+        bool_array = c_bool(self.random_bool_array)
+
+        bool_array.append(0)
+        bool_array.append(c_bool(1))
+        bool_array.append(c_int(2))
+        bool_array.append(c_long(3))
+        bool_array.append(c_short(4))
+        bool_array.append(c_uint(5))
+        bool_array.append(c_ulong(6))
+        bool_array.append(c_ushort(7))
+        bool_array.append(c_float(8))
+        bool_array.append(c_double(9))
+
+        for i in range(len(bool_array)):
+            if i < len(self.random_bool_array):
+                self.assertEqual(bool_array[i], self.random_bool_array[i])
+            else:
+                self.assertEqual(bool_array[i], bool(i - len(self.random_bool_array)))
+
+        for i in range(len(bool_array) - 1, -1, -1):
+            if i < len(self.random_bool_array):
+                self.assertEqual(bool_array.pop(), self.random_bool_array[i])
+            else:
+                self.assertEqual(
+                    bool_array.pop(), bool(i - len(self.random_bool_array))
+                )
+
+        self.assertRaises(IndexError, bool_array.pop)
+
+        bool_array.append(0)
+
+    @unittest.skip("Not Implemented")
+    def test_array_access_and_methods_char(self):
+        ...
