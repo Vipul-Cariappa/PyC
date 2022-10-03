@@ -8,6 +8,8 @@ extern int global_flag;
 typedef unsigned char _u_int8_t_;
 typedef struct _RECT RECT;
 
+enum BOOL { TRUE = 1, FALSE = 0 };
+
 struct _RECT {
   int x;
   int y;
@@ -72,6 +74,7 @@ unsigned long invert_bit(unsigned long x, unsigned long pos);
 unsigned char div_uchar(unsigned char x, unsigned char y);
 
 bool invert(bool x);
+enum BOOL invert_enum(enum BOOL b);
 
 double pi(int n);
 float e(int n);

@@ -11,6 +11,7 @@ typedef struct _Class Class;
 typedef struct _FunctionType FunctionType;
 typedef struct _Function Function;
 typedef struct _TypeDef TypeDef;
+typedef struct _Enum Enum;
 typedef struct _Symbols Symbols;
 
 DS_ARRAY_DEC(str, char *);
@@ -28,6 +29,7 @@ DS_LIST_DEC(Global, Global);
 DS_LIST_DEC(Structure, Structure);
 DS_LIST_DEC(Union, Union);
 DS_LIST_DEC(TypeDef, TypeDef);
+DS_LIST_DEC(Enum, Enum);
 DS_LIST_DEC(Class, Class);
 
 struct _Global {
@@ -94,6 +96,11 @@ struct _Function {
   size_t funcCount;
 };
 
+struct _Enum {
+  const char *name;
+  long long value;
+};
+
 struct _TypeDef {
   const char *name;
   const char *type_name;
@@ -121,12 +128,17 @@ struct _Symbols {
 
   TypeDef_list_t *typedefs; // mapping of typedef names to struct TypedDef
   size_t typedefsCount;
+
+  Enum_list_t *enums; // mapping of enum names to struct Enum
+  size_t enumsCount;
 };
 
 void print_Function(Function func);
 void print_Structure(Structure structure);
 void print_Union(Union _union);
 void print_Global(Global global);
+void print_TypeDef(TypeDef td);
+void print_Enum(Enum e);
 void print_Class(Class cls);
 void print_Symbols(Symbols *symbols);
 
@@ -136,6 +148,7 @@ Union *Symbols_getUnion(Symbols *sym, const char *name);
 Global *Symbols_getGlobal(Symbols *sym, const char *name);
 Class *Symbols_getClass(Symbols *sym, const char *name);
 TypeDef *Symbols_getTypeDef(Symbols *sym, const char *name);
+Enum *Symbols_getEnum(Symbols *sym, const char *name);
 
 bool Symbols_appendFunction(Symbols *sym, const char *name,
                             const char *mangledName, FunctionType funcType);
@@ -145,11 +158,13 @@ bool Symbols_appendGlobal(Symbols *sym, Global g);
 bool Symbols_appendClass(Symbols *sym, Class c);
 bool Symbols_appendTypedef(Symbols *sym, const char *typedef_name,
                            const char *type_name, CXType type);
+bool Symbols_appendEnum(Symbols *sym, const char *name, long value);
 
 Symbols *create_Symbol(const char *name);
 void free_Symbols(Symbols *sym);
 bool Symbols_parse(Symbols *sym, const char *header);
 
+bool Symbols_clearEnum(Enum s);
 bool Symbols_clearTypedef(TypeDef s);
 bool Symbols_clearGlobal(Global s);
 bool Symbols_clearUnion(Union s);

@@ -114,6 +114,11 @@ class TestFunctions_C(unittest.TestCase):
         self.assertTrue(cModule.invert(0))
         self.assertFalse(cModule.invert(c_bool(True)))
         self.assertTrue(cModule.invert(c_bool(0)))
+        
+        self.assertEqual(cModule.invert_enum(1), 0)
+        self.assertEqual(cModule.invert_enum(0), 1)
+        self.assertEqual(cModule.invert_enum(cModule.TRUE), 0)
+        self.assertEqual(cModule.invert_enum(cModule.FALSE), 1)
 
         self.assertEqual(
             cModule.invert_bit(abs(self.random_long_1), abs(self.random_char_1 % 31)),

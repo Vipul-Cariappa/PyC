@@ -34,6 +34,13 @@ bool invert(bool x) {
   return true;
 }
 
+enum BOOL invert_enum(enum BOOL b) {
+  if (b) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
 unsigned long invert_bit(unsigned long x, unsigned long pos) {
   unsigned long long num = 1;
   num <<= pos;
