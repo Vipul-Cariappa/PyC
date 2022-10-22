@@ -5,7 +5,6 @@
 
 // c_type: c_void
 extern PyTypeObject py_c_void_type;
-// extern PyTypeObject py_c_pointer_type;
 
 typedef struct PyC_c_void {
   PyObject_HEAD void *pointer;

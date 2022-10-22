@@ -22,31 +22,6 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   if (m == NULL)
     return NULL;
 
-  // creating CppModuleType
-  if (PyType_Ready(&py_CppModuleType) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_CppModuleType);
-  if (PyModule_AddObject(m, "CppModule", (PyObject *)&py_CppModuleType) < 0) {
-    Py_DECREF(&py_CppModuleType);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating CppFunctionType
-  if (PyType_Ready(&py_CppFunctionType) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_CppFunctionType);
-  if (PyModule_AddObject(m, "CppFunction", (PyObject *)&py_CppFunctionType) <
-      0) {
-    Py_DECREF(&py_CppFunctionType);
-    Py_DECREF(m);
-    return NULL;
-  }
-
   // creating Exception CppError
   py_CppError = PyErr_NewException("PyCpp.CppError", NULL, NULL);
   Py_XINCREF(py_CppError);
@@ -67,161 +42,33 @@ PyMODINIT_FUNC PyInit_PyC(void) {
     return NULL;
   }
 
-  // creating c_type: c_int
-  if (PyType_Ready(&py_c_int_type) < 0) {
-    return NULL;
+#define ADD_OBJECT_TO_MODULE(module, object, name)                             \
+  if (PyType_Ready(object) < 0) {                                              \
+    return NULL;                                                               \
+  }                                                                            \
+                                                                               \
+  Py_INCREF(object);                                                           \
+  if (PyModule_AddObject(module, name, (PyObject *)object) < 0) {              \
+    Py_DECREF(object);                                                         \
+    Py_DECREF(m);                                                              \
   }
 
-  Py_INCREF(&py_c_int_type);
-  if (PyModule_AddObject(m, "c_int", (PyObject *)&py_c_int_type) < 0) {
-    Py_DECREF(&py_c_int_type);
-    Py_DECREF(m);
-    return NULL;
-  }
+  ADD_OBJECT_TO_MODULE(m, &py_CppModuleType, "CppModule")
+  ADD_OBJECT_TO_MODULE(m, &py_CppFunctionType, "CppFunction")
 
-  // creating c_type: c_uint
-  if (PyType_Ready(&py_c_uint_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_uint_type);
-  if (PyModule_AddObject(m, "c_uint", (PyObject *)&py_c_uint_type) < 0) {
-    Py_DECREF(&py_c_uint_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_double
-  if (PyType_Ready(&py_c_double_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_double_type);
-  if (PyModule_AddObject(m, "c_double", (PyObject *)&py_c_double_type) < 0) {
-    Py_DECREF(&py_c_double_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_float
-  if (PyType_Ready(&py_c_float_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_float_type);
-  if (PyModule_AddObject(m, "c_float", (PyObject *)&py_c_float_type) < 0) {
-    Py_DECREF(&py_c_float_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_short
-  if (PyType_Ready(&py_c_short_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_short_type);
-  if (PyModule_AddObject(m, "c_short", (PyObject *)&py_c_short_type) < 0) {
-    Py_DECREF(&py_c_short_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_ushort
-  if (PyType_Ready(&py_c_ushort_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_ushort_type);
-  if (PyModule_AddObject(m, "c_ushort", (PyObject *)&py_c_ushort_type) < 0) {
-    Py_DECREF(&py_c_ushort_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_long
-  if (PyType_Ready(&py_c_long_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_long_type);
-  if (PyModule_AddObject(m, "c_long", (PyObject *)&py_c_long_type) < 0) {
-    Py_DECREF(&py_c_long_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_ulong
-  if (PyType_Ready(&py_c_ulong_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_ulong_type);
-  if (PyModule_AddObject(m, "c_ulong", (PyObject *)&py_c_ulong_type) < 0) {
-    Py_DECREF(&py_c_ulong_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_bool
-  if (PyType_Ready(&py_c_bool_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_bool_type);
-  if (PyModule_AddObject(m, "c_bool", (PyObject *)&py_c_bool_type) < 0) {
-    Py_DECREF(&py_c_bool_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_char
-  if (PyType_Ready(&py_c_char_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_char_type);
-  if (PyModule_AddObject(m, "c_char", (PyObject *)&py_c_char_type) < 0) {
-    Py_DECREF(&py_c_char_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating c_type: c_void
-  if (PyType_Ready(&py_c_void_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_void_type);
-  if (PyModule_AddObject(m, "c_void", (PyObject *)&py_c_void_type) < 0) {
-    Py_DECREF(&py_c_void_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating py_c_struct_type
-  if (PyType_Ready(&py_c_struct_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_struct_type);
-  if (PyModule_AddObject(m, "c_struct", (PyObject *)&py_c_struct_type) < 0) {
-    Py_DECREF(&py_c_struct_type);
-    Py_DECREF(m);
-    return NULL;
-  }
-
-  // creating py_c_union_type
-  if (PyType_Ready(&py_c_union_type) < 0) {
-    return NULL;
-  }
-
-  Py_INCREF(&py_c_union_type);
-  if (PyModule_AddObject(m, "c_union", (PyObject *)&py_c_union_type) < 0) {
-    Py_DECREF(&py_c_union_type);
-    Py_DECREF(m);
-    return NULL;
-  }
+  ADD_OBJECT_TO_MODULE(m, &py_c_int_type, "c_int")
+  ADD_OBJECT_TO_MODULE(m, &py_c_uint_type, "c_uint")
+  ADD_OBJECT_TO_MODULE(m, &py_c_long_type, "c_long")
+  ADD_OBJECT_TO_MODULE(m, &py_c_ulong_type, "c_ulong")
+  ADD_OBJECT_TO_MODULE(m, &py_c_short_type, "c_short")
+  ADD_OBJECT_TO_MODULE(m, &py_c_ushort_type, "c_ushort")
+  ADD_OBJECT_TO_MODULE(m, &py_c_bool_type, "c_bool")
+  ADD_OBJECT_TO_MODULE(m, &py_c_char_type, "c_char")
+  ADD_OBJECT_TO_MODULE(m, &py_c_void_type, "c_void")
+  ADD_OBJECT_TO_MODULE(m, &py_c_float_type, "c_float")
+  ADD_OBJECT_TO_MODULE(m, &py_c_double_type, "c_double")
+  ADD_OBJECT_TO_MODULE(m, &py_c_struct_type, "c_struct")
+  ADD_OBJECT_TO_MODULE(m, &py_c_union_type, "c_union")
 
   PyC = m;
   return m;

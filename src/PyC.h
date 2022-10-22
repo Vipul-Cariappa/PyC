@@ -17,9 +17,7 @@ extern PyTypeObject py_CppModuleType;
 extern PyTypeObject py_CppFunctionType;
 extern PyModuleDef PyC_Module;
 
-const char *ffi_type_To_char_p(ffi_type type);
-const char *CXTypeKind_TO_char_p(enum CXTypeKind type);
-ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name);
+char *CXX_Type_TO_char_p(enum CXX_Type type, const void *extraInfo);
 void **pyArgs_to_cppArgs(PyObject *args, p_ffi_type_array_t *args_type,
                          bool *free_at, void **extras_to_free);
 int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);

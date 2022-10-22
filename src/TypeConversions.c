@@ -930,140 +930,76 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
   return -1;
 }
 
-const char *CXTypeKind_TO_char_p(enum CXTypeKind type) {
+const char *CXX_Type_TO_char_p(enum CXX_Type type, const void *extraInfo) {
   switch (type) {
-  case CXType_Void:
+  case CXX_Void:
+    return "void";
+  case CXX_VoidPointer:
     return "void*";
-  case CXType_UInt:
-    return "u_int*";
-  case CXType_Float:
-    return "float*";
-  case CXType_Double:
-    return "double*";
-  case CXType_LongDouble:
-    return "long double*";
-  case CXType_UShort:
-    return "u_short*";
-  case CXType_Int:
-    return "int*";
-  case CXType_Long:
-  case CXType_LongLong:
-    return "int64_t*";
-  case CXType_Short:
-    return "int16_t*";
-  case CXType_ULong:
-  case CXType_ULongLong:
-    return "u_int64_t*";
-  case CXType_Record:
-    return "struct*"; // TODO: specify struct
-  case CXType_Char_S:
-  case CXType_Char_U:
-    return "char*";
-  case CXType_UChar:
-  case CXType_SChar:
+  case CXX_Char:
     return "char";
-  case CXType_Elaborated:
-    return "Elaborated Type";
+  case CXX_CharPointer:
+    return "char*";
+  case CXX_UChar:
+    return "unsigned char";
+  case CXX_UCharPointer:
+    return "unsigned char*";
+  case CXX_Short:
+    return "short";
+  case CXX_ShortPointer:
+    return "short*";
+  case CXX_UShort:
+    return "unsigned short";
+  case CXX_UShortPointer:
+    return "unsigned short*";
+  case CXX_Int:
+    return "int";
+  case CXX_IntPointer:
+    return "int*";
+  case CXX_UInt:
+    return "unsigned int";
+  case CXX_UIntPointer:
+    return "unsigned int*";
+  case CXX_Long:
+    return "long";
+  case CXX_LongPointer:
+    return "long*";
+  case CXX_ULong:
+    return "unsigned long";
+  case CXX_ULongPointer:
+    return "unsigned long*";
+  case CXX_LongLong:
+    return "long long";
+  case CXX_LongLongPointer:
+    return "long long*";
+  case CXX_ULongLong:
+    return "unsigned long long";
+  case CXX_ULongLongPointer:
+    return "unsigned long long*";
+  case CXX_Float:
+    return "float";
+  case CXX_FloatPointer:
+    return "float*";
+  case CXX_Double:
+    return "double";
+  case CXX_DoublePointer:
+    return "double*";
+  case CXX_Struct: // TODO: specify which struct
+    return "struct";
+    // Structure *s = extraInfo;
+    // size_t len = strlen(s->name);
+    // char *result = malloc(len + 2);
+    // strcpy(result, s->name);
+    // strcat(result, "*");
+    // return result;
+  case CXX_StructPointer:
+    return "struct*";
+  case CXX_Union:
+    return "union";
+  case CXX_UnionPointer:
+    return "union*";
   default:
     // printf("%i", type);
     return "Could not figure out";
-  }
-}
-
-const char *ffi_type_To_char_p(ffi_type type) {
-  switch (type.type) {
-  case FFI_TYPE_VOID:
-    return "void";
-  case FFI_TYPE_INT:
-    return "int";
-  case FFI_TYPE_FLOAT:
-    return "float";
-  case FFI_TYPE_DOUBLE:
-    return "double";
-  case FFI_TYPE_UINT8:
-    return "u_int8_t";
-  case FFI_TYPE_UINT16:
-    return "u_int16_t";
-  case FFI_TYPE_UINT32:
-    return "u_int32_t";
-  case FFI_TYPE_UINT64:
-    return "u_int64_t";
-  case FFI_TYPE_SINT8:
-    return "int8_t";
-  case FFI_TYPE_SINT16:
-    return "int16_t";
-  case FFI_TYPE_SINT32:
-    return "int32_t";
-  case FFI_TYPE_SINT64:
-    return "int64_t";
-  case FFI_TYPE_STRUCT:
-    return "struct"; // TODO: specify struct name
-  case FFI_TYPE_COMPLEX:
-    return "complex";
-  case FFI_TYPE_POINTER:
-    return "void*";
-  default:
-    return "Could not figure out";
-  }
-}
-
-ffi_type *get_ffi_type(CXType type, Symbols *sym, const char *name) {
-  switch (type.kind) {
-  case CXType_Void:
-    return &ffi_type_void;
-  case CXType_Enum:
-  case CXType_Int:
-    return &ffi_type_sint;
-  case CXType_UInt:
-    return &ffi_type_uint;
-  case CXType_Short:
-    return &ffi_type_sshort;
-  case CXType_UShort:
-    return &ffi_type_ushort;
-  case CXType_Float:
-    return &ffi_type_float;
-  case CXType_Double:
-    return &ffi_type_double;
-  case CXType_LongDouble:
-    return &ffi_type_longdouble;
-  case CXType_Long:
-    return &ffi_type_sint64;
-  case CXType_ULong:
-    return &ffi_type_uint64;
-  case CXType_LongLong:
-    return &ffi_type_sint64;
-  case CXType_ULongLong:
-    return &ffi_type_uint64;
-  case CXType_UChar:
-  case CXType_SChar:
-  case CXType_Bool:
-    return &ffi_type_uchar;
-  case CXType_Char_S:
-    return &ffi_type_schar;
-  case CXType_Pointer:
-    return &ffi_type_pointer;
-  case CXType_Elaborated:
-    // check if type is pointer type
-    if (clang_Type_getNamedType(type).kind == CXType_Pointer) {
-      return &ffi_type_pointer;
-    }
-
-  case CXType_Record:
-  case CXType_Typedef:
-    // check if type is struct or union
-    if (strncmp(name, "struct ", 7) == 0) {
-      Structure *s = Symbols_getStructure(sym, name + 7);
-      return &(s->type);
-    }
-    if (strncmp(name, "union ", 6) == 0) {
-      Union *u = Symbols_getUnion(sym, name + 6);
-      return &(u->type);
-    }
-
-  default:
-    PyErr_SetString(
-        py_BindingError,
-        "Could not identify necessary types from the translation unit");
-    return NULL;
   }
 }
