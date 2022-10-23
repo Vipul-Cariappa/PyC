@@ -15,29 +15,31 @@ enum CXX_Type {
   CXX_CharPointer = CXX_Char | POINTER,
   CXX_UChar = CXX_Char | UNSIGNED,
   CXX_UCharPointer = CXX_Char | POINTER | UNSIGNED,
+  CXX_Bool = 3,
+  CXX_BoolPointer = CXX_Bool | POINTER,
   CXX_Short = 4,
   CXX_ShortPointer = CXX_Short | POINTER,
   CXX_UShort = CXX_Short | UNSIGNED,
   CXX_UShortPointer = CXX_Short | POINTER | UNSIGNED,
-  CXX_Int = 6,
+  CXX_Int = 5,
   CXX_IntPointer = CXX_Int | POINTER,
   CXX_UInt = CXX_Int | UNSIGNED,
   CXX_UIntPointer = CXX_Int | POINTER | UNSIGNED,
-  CXX_Long = 8,
+  CXX_Long = 6,
   CXX_LongPointer = CXX_Long | POINTER,
   CXX_ULong = CXX_Long | UNSIGNED,
   CXX_ULongPointer = CXX_Long | POINTER | UNSIGNED,
-  CXX_LongLong = 10,
+  CXX_LongLong = 7,
   CXX_LongLongPointer = CXX_LongLong | POINTER,
   CXX_ULongLong = CXX_LongLong | UNSIGNED,
   CXX_ULongLongPointer = CXX_LongLong | POINTER | UNSIGNED,
-  CXX_Float = 12,
+  CXX_Float = 8,
   CXX_FloatPointer = CXX_Float | POINTER,
-  CXX_Double = 13,
+  CXX_Double = 9,
   CXX_DoublePointer = CXX_Double | POINTER,
-  CXX_Struct = 14,
+  CXX_Struct = 10,
   CXX_StructPointer = CXX_Struct | POINTER,
-  CXX_Union = 15,
+  CXX_Union = 11,
   CXX_UnionPointer = CXX_Union | POINTER,
 };
 
@@ -162,6 +164,9 @@ struct _Symbols {
   size_t enumsCount;
 };
 
+ffi_type Build_Structure_ffi_type(const p_ffi_type_array_t *ffi_type_list);
+ffi_type Build_Union_ffi_type(const p_ffi_type_array_t *ffi_type_list);
+
 void print_Global(const Global *global);
 void print_Structure(const Structure *structure);
 void print_Union(const Union *_union);
@@ -183,7 +188,7 @@ bool Symbols_appendUnion(Symbols *sym, Union u);
 bool Symbols_appendFunction(Symbols *sym, char *name, FunctionType funcType);
 bool Symbols_appendEnum(Symbols *sym, char *name, long value);
 bool Symbols_appendTypedef(Symbols *sym, char *typedefName, char *typeName,
-                           enum CXX_Type type, void* extra_info);
+                           enum CXX_Type type, void *extra_info);
 
 Symbols *create_Symbol(char *name);
 void free_Symbols(Symbols *sym);

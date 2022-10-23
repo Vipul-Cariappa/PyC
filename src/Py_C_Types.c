@@ -21,7 +21,17 @@ struct Custom_u_PyTypeObject {
 // TODO: raise error when setting free_on_no_reference for non pointers
 // TODO: change free_on_no_reference attribute to method for c_struct & c_union
 
-// ----- c_void -----
+// ----- c_type ------
+PyTypeObject py_c_type_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_type",
+    .tp_basicsize = 0,
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc = "PyCpp.c_type",
+    .tp_new = PyType_GenericNew,
+};
+
+// ----- c_void ------
 
 PyMethodDef c_void_methods[] = {{NULL, NULL, 0, NULL}};
 
@@ -45,6 +55,7 @@ PyTypeObject py_c_void_type = {
     .tp_init = &c_void_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_void_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_void: functions and methods -----
@@ -83,7 +94,7 @@ static int c_void_freeOnDel_setter(PyObject *self, PyObject *value,
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_void.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -144,24 +155,7 @@ PyTypeObject py_c_int_type = {
     .tp_init = &c_int_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_int_finalizer,
-};
-
-PyTypeObject py_c_uint_type = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_uint",
-    .tp_basicsize = sizeof(PyC_c_int),
-    .tp_itemsize = 0,
-    .tp_as_number = &c_int_as_int,
-    .tp_as_mapping = &c_int_as_mapping,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.c_uint",
-    .tp_iter = &c_int_iter,
-    .tp_iternext = &c_int_next,
-    .tp_methods = c_int_methods,
-    .tp_members = c_int_members,
-    .tp_getset = c_int_getsetdef,
-    .tp_init = &c_int_init,
-    .tp_new = PyType_GenericNew,
-    .tp_dealloc = &c_int_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_int: functions and methods -----
@@ -364,13 +358,8 @@ static PyObject *c_int_pop(PyObject *self) {
     return NULL;
   }
 
-  PyObject *rvalue;
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
-    rvalue = PyLong_FromLongLong(
-        (unsigned int)(selfType->pointer[(selfType->arraySize) - 1]));
-  } else {
-    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
-  }
+  PyObject *rvalue =
+      PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
 
   (selfType->arraySize)--;
 
@@ -523,6 +512,416 @@ static int c_int_freeOnDel_setter(PyObject *self, PyObject *value,
   return 0;
 }
 
+// ----- c_uint -----
+PyNumberMethods c_uint_as_int = {
+    .nb_int = &c_uint_to_int,
+    .nb_float = &c_uint_to_float,
+    .nb_bool = &c_uint_to_bool,
+};
+
+PyMappingMethods c_uint_as_mapping = {
+    .mp_length = &c_uint_len,
+    .mp_subscript = &c_uint_getitem,
+    .mp_ass_subscript = &c_uint_setitem,
+};
+
+PyMethodDef c_uint_methods[] = {
+    {"append", (PyCFunction)&c_uint_append, METH_VARARGS, "c_uint.append()"},
+    {"pop", (PyCFunction)&c_uint_pop, METH_NOARGS, "c_uint.pop()"},
+    {"value", (PyCFunction)&c_uint_value, METH_NOARGS, "c_uint.value()"},
+    {NULL, NULL, 0, NULL}};
+
+PyGetSetDef c_uint_getsetdef[] = {
+    {"free_on_no_reference", &c_uint_freeOnDel_getter, &c_uint_freeOnDel_setter,
+     C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
+
+PyMemberDef c_uint_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_uint, isPointer), READONLY,
+     "PyC.c_uint.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_uint, isArray), READONLY,
+     "PyC.c_uint.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyTypeObject py_c_uint_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_uint",
+    .tp_basicsize = sizeof(PyC_c_uint),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_uint_as_int,
+    .tp_as_mapping = &c_uint_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_uint",
+    .tp_iter = &c_uint_iter,
+    .tp_iternext = &c_uint_next,
+    .tp_methods = c_uint_methods,
+    .tp_members = c_uint_members,
+    .tp_getset = c_uint_getsetdef,
+    .tp_init = &c_uint_init,
+    .tp_new = PyType_GenericNew,
+    .tp_dealloc = &c_uint_finalizer,
+    .tp_base = &py_c_type_type,
+};
+
+// ----- c_uint: functions and methods -----
+
+// PyC.c_uint.__init__
+static int c_uint_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->freeOnDel = false;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_uint with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
+      }
+    }
+    Py_DECREF(key);
+  }
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
+
+  if (PyNumber_Check(arg_1)) {
+    PyObject *tmp = PyNumber_Long(arg_1);
+    int value = PyLong_AsLongLong(tmp);
+
+    selfType->value = value;
+    selfType->freeOnDel = false;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    Py_DECREF(tmp);
+
+    return 0;
+
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->freeOnDel = true;
+    selfType->pointer = calloc(len, sizeof(int));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PySequence_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(
+            PyExc_TypeError,
+            "Expected all elements of the sequence to be int or float");
+        return -1;
+      }
+
+      PyObject *tmp = PyNumber_Long(element);
+
+      int value = PyLong_AsLong(tmp);
+      selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
+    }
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+  return -1;
+}
+
+// PyC.c_uint.__iter__
+static PyObject *c_uint_iter(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_uint instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_uint.__next__
+static PyObject *c_uint_next(PyObject *self) {
+  // FIXME: all itearators
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+      rvalue = PyLong_FromLongLong(selfType->pointer[index]);
+    } else {
+      rvalue = PyLong_FromLongLong((unsigned int)(selfType->pointer[index]));
+    }
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_uint.__del__
+static void c_uint_finalizer(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if ((selfType->freeOnDel) && (selfType->isPointer))
+    free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+// PyC.c_uint.append
+static PyObject *c_uint_append(PyObject *self, PyObject *args) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_uint is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  PyObject *tmp = PyNumber_Long(item);
+  int value = PyLong_AsLongLong(tmp);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+  } else {
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer, new_capacity * sizeof(int));
+    selfType->arrayCapacity = new_capacity;
+
+    selfType->pointer[selfType->arraySize] = value;
+  }
+
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_uint.pop
+static PyObject *c_uint_pop(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_uint is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue;
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+    rvalue = PyLong_FromLongLong(
+        (unsigned int)(selfType->pointer[(selfType->arraySize) - 1]));
+  } else {
+    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
+  }
+
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(int));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_uint.value
+static PyObject *c_uint_value(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+    return PyLong_FromLongLong(*(selfType->pointer));
+  }
+
+  return PyLong_FromLongLong((unsigned int)*(selfType->pointer));
+}
+
+// PyC.c_uint.__int__
+static PyObject *c_uint_to_int(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+    return PyLong_FromLongLong(*(selfType->pointer));
+  }
+
+  return PyLong_FromLongLong((unsigned int)*(selfType->pointer));
+}
+
+// PyC.c_uint.__float__
+static PyObject *c_uint_to_float(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+    return PyFloat_FromDouble(*(selfType->pointer));
+  }
+
+  return PyFloat_FromDouble((unsigned int)*(selfType->pointer));
+}
+
+// PyC.c_uint.__bool__
+static int c_uint_to_bool(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
+}
+
+// PyC.c_uint.__len__
+static Py_ssize_t c_uint_len(PyObject *self) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_uint.__getitem__
+static PyObject *c_uint_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_uint is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return NULL;
+  }
+
+  long long index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_uint_type)) {
+      return PyLong_FromLongLong((selfType->pointer)[index]);
+    }
+
+    return PyLong_FromLongLong((unsigned int)(selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_uint.__setitem__
+static int c_uint_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_uint is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    int int_value = PyLong_AsLongLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return -1;
+}
+
+// PyC.c_uint.free_on_no_reference getter
+static PyObject *c_uint_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+// PyC.c_uint.free_on_no_reference setter
+static int c_uint_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure) {
+  PyC_c_uint *selfType = (PyC_c_uint *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_uint.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_double -----
 PyNumberMethods c_double_as_double = {
     .nb_int = &c_double_to_int,
@@ -572,6 +971,7 @@ PyTypeObject py_c_double_type = {
     .tp_init = &c_double_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_double_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_double: functions and methods -----
@@ -951,6 +1351,7 @@ PyTypeObject py_c_float_type = {
     .tp_init = &c_float_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_float_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_float: functions and methods -----
@@ -1265,7 +1666,7 @@ static int c_float_freeOnDel_setter(PyObject *self, PyObject *value,
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_float.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -1326,6 +1727,7 @@ PyTypeObject py_c_bool_type = {
     .tp_init = &c_bool_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_bool_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_bool: functions and methods -----
@@ -1711,24 +2113,7 @@ PyTypeObject py_c_short_type = {
     .tp_init = &c_short_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_short_finalizer,
-};
-
-PyTypeObject py_c_ushort_type = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_ushort",
-    .tp_basicsize = sizeof(PyC_c_short),
-    .tp_itemsize = 0,
-    .tp_as_number = &c_short_as_short,
-    .tp_as_mapping = &c_short_as_mapping,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.c_ushort",
-    .tp_iter = &c_short_iter,
-    .tp_iternext = &c_short_next,
-    .tp_methods = c_short_methods,
-    .tp_members = c_short_members,
-    .tp_getset = c_short_getsetdef,
-    .tp_init = &c_short_init,
-    .tp_new = PyType_GenericNew,
-    .tp_dealloc = &c_short_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_short: functions and methods -----
@@ -1855,12 +2240,7 @@ static PyObject *c_short_next(PyObject *self) {
   size_t index = selfType->_i;
 
   if (selfType->arraySize > index) {
-    if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-      rvalue =
-          PyLong_FromLongLong((unsigned short)((selfType->pointer)[index]));
-    } else {
-      rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
-    }
+    rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
   (selfType->_i)++;
@@ -1931,14 +2311,8 @@ static PyObject *c_short_pop(PyObject *self) {
     return NULL;
   }
 
-  PyObject *rvalue;
-
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    rvalue = PyLong_FromLongLong(
-        (unsigned short)(selfType->pointer[(selfType->arraySize) - 1]));
-  } else {
-    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
-  }
+  PyObject *rvalue =
+      PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
 
   (selfType->arraySize)--;
 
@@ -1955,9 +2329,6 @@ static PyObject *c_short_pop(PyObject *self) {
 static PyObject *c_short_value(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
-  }
   return PyLong_FromLongLong(*(selfType->pointer));
 }
 
@@ -1965,9 +2336,6 @@ static PyObject *c_short_value(PyObject *self) {
 static PyObject *c_short_to_float(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    return PyFloat_FromDouble((unsigned short)(*(selfType->pointer)));
-  }
   return PyFloat_FromDouble(*(selfType->pointer));
 }
 
@@ -1975,9 +2343,6 @@ static PyObject *c_short_to_float(PyObject *self) {
 static PyObject *c_short_to_int(PyObject *self) {
   PyC_c_short *selfType = (PyC_c_short *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
-  }
   return PyLong_FromLongLong(*(selfType->pointer));
 }
 
@@ -2016,9 +2381,6 @@ static PyObject *c_short_getitem(PyObject *self, PyObject *attr) {
   size_t index = PyLong_AsLongLong(attr);
 
   if (selfType->arraySize > index) {
-    if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
-      return PyLong_FromLongLong((unsigned short)((selfType->pointer)[index]));
-    }
     return PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
@@ -2086,6 +2448,413 @@ static int c_short_freeOnDel_setter(PyObject *self, PyObject *value,
   return 0;
 }
 
+// ----- c_ushort -----
+PyNumberMethods c_ushort_as_short = {
+    .nb_int = &c_ushort_to_int,
+    .nb_float = &c_ushort_to_float,
+    .nb_bool = &c_ushort_to_bool,
+};
+
+PyMappingMethods c_ushort_as_mapping = {
+    .mp_length = &c_ushort_len,
+    .mp_subscript = &c_ushort_getitem,
+    .mp_ass_subscript = &c_ushort_setitem,
+};
+
+PyMethodDef c_ushort_methods[] = {
+    {"append", (PyCFunction)&c_ushort_append, METH_VARARGS,
+     "c_ushort.append()"},
+    {"pop", (PyCFunction)&c_ushort_pop, METH_NOARGS, "c_ushort.pop()"},
+    {"value", (PyCFunction)&c_ushort_value, METH_NOARGS, "c_ushort.value()"},
+    {NULL, NULL, 0, NULL}};
+
+PyMemberDef c_ushort_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_ushort, isPointer), READONLY,
+     "PyC.c_ushort.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_ushort, isArray), READONLY,
+     "PyC.c_ushort.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_ushort_getsetdef[] = {
+    {"free_on_no_reference", &c_ushort_freeOnDel_getter,
+     &c_ushort_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
+
+PyTypeObject py_c_ushort_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_ushort",
+    .tp_basicsize = sizeof(PyC_c_ushort),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_ushort_as_short,
+    .tp_as_mapping = &c_ushort_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_ushort",
+    .tp_iter = &c_ushort_iter,
+    .tp_iternext = &c_ushort_next,
+    .tp_methods = c_ushort_methods,
+    .tp_members = c_ushort_members,
+    .tp_getset = c_ushort_getsetdef,
+    .tp_init = &c_ushort_init,
+    .tp_new = PyType_GenericNew,
+    .tp_dealloc = &c_ushort_finalizer,
+    .tp_base = &py_c_type_type,
+};
+
+// ----- c_ushort: functions and methods -----
+
+// PyC.c_ushort.__init__
+static int c_ushort_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (kwargs) {
+    // calling c_type with keyword pointer=None
+    // only for internal use
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->freeOnDel = false;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+        Py_DECREF(key);
+        return 0;
+      } else {
+        PyErr_SetString(py_BindingError, "calling c_type with pointer keyword "
+                                         "is restricted for internal use only");
+        Py_DECREF(key);
+        return -1;
+      }
+    }
+    Py_DECREF(key);
+  }
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
+
+  if (PyNumber_Check(arg_1)) {
+    PyObject *tmp = PyNumber_Long(arg_1);
+    short value = PyLong_AsLong(tmp);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->freeOnDel = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    Py_DECREF(tmp);
+
+    return 0;
+
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len, sizeof(short));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->freeOnDel = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PySequence_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be int or float");
+        return -1;
+      }
+
+      PyObject *tmp = PyNumber_Long(element);
+
+      short value = PyLong_AsLong(tmp);
+      selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
+    }
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+
+  return -1;
+}
+
+// PyC.c_ushort.__iter__
+static PyObject *c_ushort_iter(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_ushort instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_ushort.__next__
+static PyObject *c_ushort_next(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+      rvalue =
+          PyLong_FromLongLong((unsigned short)((selfType->pointer)[index]));
+    } else {
+      rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
+    }
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_ushort.__del__
+static void c_ushort_finalizer(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if ((selfType->freeOnDel) && (selfType->isPointer))
+    free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+// PyC.c_ushort.append
+static PyObject *c_ushort_append(PyObject *self, PyObject *args) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ushort is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError, "Expected short type got some other type");
+    return NULL;
+  }
+
+  PyObject *tmp = PyNumber_Long(item);
+  short value = PyLong_AsLong(tmp);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+  } else {
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer =
+        realloc(selfType->pointer, new_capacity * sizeof(short));
+    selfType->arrayCapacity = new_capacity;
+
+    selfType->pointer[selfType->arraySize] = value;
+  }
+
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_ushort.pop
+static PyObject *c_ushort_pop(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ushort is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+    rvalue = PyLong_FromLongLong(
+        (unsigned short)(selfType->pointer[(selfType->arraySize) - 1]));
+  } else {
+    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
+  }
+
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(short));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_ushort.value
+static PyObject *c_ushort_value(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
+  }
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_ushort.__float__
+static PyObject *c_ushort_to_float(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+    return PyFloat_FromDouble((unsigned short)(*(selfType->pointer)));
+  }
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_ushort.__int__
+static PyObject *c_ushort_to_int(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+    return PyLong_FromLongLong((unsigned short)(*(selfType->pointer)));
+  }
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_ushort.__bool__
+static int c_ushort_to_bool(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
+}
+
+// PyC.c_ushort.__len__
+static Py_ssize_t c_ushort_len(PyObject *self) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_ushort.__getitem__
+static PyObject *c_ushort_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ushort is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError, "Expected int type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_ushort_type)) {
+      return PyLong_FromLongLong((unsigned short)((selfType->pointer)[index]));
+    }
+    return PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_ushort.__setitem__
+static int c_ushort_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ushort is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    short int_value = PyLong_AsLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return -1;
+}
+
+// PyC.c_ushort.free_on_no_reference getter
+static PyObject *c_ushort_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+// PyC.c_ushort.free_on_no_reference setter
+static int c_ushort_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure) {
+  PyC_c_ushort *selfType = (PyC_c_ushort *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_ushort.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_long -----
 PyNumberMethods c_long_as_long = {
     .nb_int = &c_long_to_int,
@@ -2134,24 +2903,7 @@ PyTypeObject py_c_long_type = {
     .tp_init = &c_long_init,
     .tp_new = PyType_GenericNew,
     .tp_dealloc = &c_long_finalizer,
-};
-
-PyTypeObject py_c_ulong_type = {
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_ulong",
-    .tp_basicsize = sizeof(PyC_c_long),
-    .tp_itemsize = 0,
-    .tp_as_number = &c_long_as_long,
-    .tp_as_mapping = &c_long_as_mapping,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "PyCpp.c_ulong",
-    .tp_iter = &c_long_iter,
-    .tp_iternext = &c_long_next,
-    .tp_methods = c_long_methods,
-    .tp_members = c_long_members,
-    .tp_getset = c_long_getsetdef,
-    .tp_init = &c_long_init,
-    .tp_new = PyType_GenericNew,
-    .tp_dealloc = &c_long_finalizer,
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_long: functions and methods -----
@@ -2273,12 +3025,7 @@ static PyObject *c_long_next(PyObject *self) {
 
   if (selfType->arraySize > index) {
 
-    if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-      rvalue = PyLong_FromUnsignedLongLong(
-          (unsigned long)((selfType->pointer)[index]));
-    } else {
-      rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
-    }
+    rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
   (selfType->_i)++;
@@ -2348,14 +3095,8 @@ static PyObject *c_long_pop(PyObject *self) {
     return NULL;
   }
 
-  PyObject *rvalue;
-
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    rvalue = PyLong_FromLongLong(
-        (unsigned long)(selfType->pointer[(selfType->arraySize) - 1]));
-  } else {
-    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
-  }
+  PyObject *rvalue =
+      PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
 
   (selfType->arraySize)--;
 
@@ -2372,9 +3113,6 @@ static PyObject *c_long_pop(PyObject *self) {
 static PyObject *c_long_value(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
-  }
   return PyLong_FromLongLong(*(selfType->pointer));
 }
 
@@ -2382,9 +3120,6 @@ static PyObject *c_long_value(PyObject *self) {
 static PyObject *c_long_to_int(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
-  }
   return PyLong_FromLongLong(*(selfType->pointer));
 }
 
@@ -2392,9 +3127,6 @@ static PyObject *c_long_to_int(PyObject *self) {
 static PyObject *c_long_to_float(PyObject *self) {
   PyC_c_long *selfType = (PyC_c_long *)self;
 
-  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-    return PyFloat_FromDouble((unsigned long)(*(selfType->pointer)));
-  }
   return PyFloat_FromDouble(*(selfType->pointer));
 }
 
@@ -2433,9 +3165,6 @@ static PyObject *c_long_getitem(PyObject *self, PyObject *attr) {
   size_t index = PyLong_AsLongLong(attr);
 
   if (selfType->arraySize > index) {
-    if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
-      return PyLong_FromLongLong((unsigned long)((selfType->pointer)[index]));
-    }
     return PyLong_FromLongLong((selfType->pointer)[index]);
   }
 
@@ -2503,6 +3232,406 @@ static int c_long_freeOnDel_setter(PyObject *self, PyObject *value,
   return 0;
 }
 
+// ----- c_ulong -----
+PyNumberMethods c_ulong_as_long = {
+    .nb_int = &c_ulong_to_int,
+    .nb_float = &c_ulong_to_float,
+    .nb_bool = &c_ulong_to_bool,
+};
+
+PyMappingMethods c_ulong_as_mapping = {
+    .mp_length = &c_ulong_len,
+    .mp_subscript = &c_ulong_getitem,
+    .mp_ass_subscript = &c_ulong_setitem,
+};
+
+PyMethodDef c_ulong_methods[] = {
+    {"append", (PyCFunction)&c_ulong_append, METH_VARARGS, "c_ulong.append()"},
+    {"pop", (PyCFunction)&c_ulong_pop, METH_NOARGS, "c_ulong.pop()"},
+    {"value", (PyCFunction)&c_ulong_value, METH_NOARGS, "c_ulong.value()"},
+    {NULL, NULL, 0, NULL}};
+
+PyMemberDef c_ulong_members[] = {
+    {"is_pointer", T_BOOL, offsetof(PyC_c_ulong, isPointer), READONLY,
+     "PyC.c_ulong.is_pointer"},
+    {"is_array", T_BOOL, offsetof(PyC_c_ulong, isArray), READONLY,
+     "PyC.c_ulong.is_array"},
+    {NULL, 0, 0, 0, NULL}};
+
+PyGetSetDef c_ulong_getsetdef[] = {
+    {"free_on_no_reference", &c_ulong_freeOnDel_getter,
+     &c_ulong_freeOnDel_setter, C_TYPE_FREE_ON_NO_REFERENCE_DOC, NULL},
+    {NULL, NULL, NULL, NULL},
+};
+
+PyTypeObject py_c_ulong_type = {
+    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "PyCpp.c_ulong",
+    .tp_basicsize = sizeof(PyC_c_ulong),
+    .tp_itemsize = 0,
+    .tp_as_number = &c_ulong_as_long,
+    .tp_as_mapping = &c_ulong_as_mapping,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_doc = "PyCpp.c_ulong",
+    .tp_iter = &c_ulong_iter,
+    .tp_iternext = &c_ulong_next,
+    .tp_methods = c_ulong_methods,
+    .tp_members = c_ulong_members,
+    .tp_getset = c_ulong_getsetdef,
+    .tp_init = &c_ulong_init,
+    .tp_new = PyType_GenericNew,
+    .tp_dealloc = &c_ulong_finalizer,
+    .tp_base = &py_c_type_type,
+};
+
+// ----- c_ulong: functions and methods -----
+
+// PyC.c_ulong.__init__
+static int c_ulong_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  PyObject *key = PyUnicode_FromFormat("pointer");
+
+  if (kwargs) {
+    PyObject *key = PyUnicode_FromFormat("pointer");
+    if (PyDict_Contains(kwargs, key) == 1) {
+      PyObject *pointer_value = PyDict_GetItem(kwargs, key);
+
+      if (pointer_value == Py_None) {
+        selfType->value = 0;
+        selfType->pointer = NULL;
+        selfType->isPointer = true;
+        selfType->isArray = false;
+        selfType->freeOnDel = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        selfType->_i = 0;
+      }
+
+      return 0;
+    }
+    Py_DECREF(key);
+  }
+
+  PyObject *arg_1 = PyTuple_GetItem(args, 0);
+  if (!arg_1) {
+    PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+    return -1;
+  }
+
+  if (PyNumber_Check(arg_1)) {
+    PyObject *tmp = PyNumber_Long(arg_1);
+    long value = PyLong_AsLong(tmp);
+
+    selfType->value = value;
+    selfType->pointer = &(selfType->value);
+    selfType->isPointer = false;
+    selfType->isArray = false;
+    selfType->freeOnDel = false;
+    selfType->arraySize = 0;
+    selfType->arrayCapacity = 0;
+    selfType->_i = 0;
+
+    Py_DECREF(tmp);
+
+    return 0;
+
+  } else if (PySequence_Check(arg_1)) {
+    size_t len = PySequence_Size(arg_1);
+
+    selfType->value = 0;
+    selfType->pointer = calloc(len, sizeof(long));
+    selfType->isPointer = true;
+    selfType->isArray = true;
+    selfType->freeOnDel = true;
+    selfType->arraySize = len;
+    selfType->arrayCapacity = len;
+    selfType->_i = 0;
+
+    for (size_t i = 0; i < len; i++) {
+      PyObject *element = PySequence_GetItem(arg_1, i);
+
+      if (!(PyNumber_Check(element))) {
+        free(selfType->pointer);
+        selfType->pointer = NULL;
+        selfType->isPointer = false;
+        selfType->freeOnDel = false;
+        selfType->isArray = false;
+        selfType->arraySize = 0;
+        selfType->arrayCapacity = 0;
+        PyErr_SetString(PyExc_TypeError,
+                        "Expected all elements of sequence to be int or float");
+        return -1;
+      }
+      PyObject *tmp = PyNumber_Long(element);
+
+      long value = PyLong_AsLong(tmp);
+      selfType->pointer[i] = value;
+
+      Py_DECREF(tmp);
+    }
+
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "Expected int or sequence of ints");
+
+  return -1;
+}
+
+// PyC.c_ulong.__iter__
+static PyObject *c_ulong_iter(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (selfType->isArray) {
+    selfType->_i = 0;
+    Py_INCREF(self);
+    return self;
+  }
+
+  PyErr_SetString(py_CppError,
+                  "given c_ulong instance is not an array type instance");
+  return NULL;
+}
+
+// PyC.c_ulong.__next__
+static PyObject *c_ulong_next(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+  PyObject *rvalue = NULL;
+
+  size_t index = selfType->_i;
+
+  if (selfType->arraySize > index) {
+
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+      rvalue = PyLong_FromUnsignedLongLong(
+          (unsigned long)((selfType->pointer)[index]));
+    } else {
+      rvalue = PyLong_FromLongLong((selfType->pointer)[index]);
+    }
+  }
+
+  (selfType->_i)++;
+
+  return rvalue;
+}
+
+// PyC.c_ulong.__del__
+static void c_ulong_finalizer(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if ((selfType->freeOnDel) && (selfType->isPointer))
+    free(selfType->pointer);
+
+  Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+// PyC.c_ulong.append
+static PyObject *c_ulong_append(PyObject *self, PyObject *args) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ulong is not an array type instance");
+    return NULL;
+  }
+
+  PyObject *item = PyTuple_GetItem(args, 0);
+
+  if (!(PyNumber_Check(item))) {
+    PyErr_SetString(PyExc_TypeError, "Expected long type got some other type");
+    return NULL;
+  }
+
+  PyObject *tmp = PyNumber_Long(item);
+  long value = PyLong_AsLong(tmp);
+
+  if (selfType->arrayCapacity > (selfType->arraySize + 1)) {
+    selfType->pointer[selfType->arraySize] = value;
+  } else {
+    int new_capacity =
+        selfType->arrayCapacity ? (selfType->arrayCapacity * 2) : 2;
+    selfType->pointer = realloc(selfType->pointer, new_capacity * sizeof(long));
+    selfType->arrayCapacity = new_capacity;
+
+    selfType->pointer[selfType->arraySize] = value;
+  }
+
+  (selfType->arraySize)++;
+  Py_INCREF(tmp);
+  Py_INCREF(item);
+  return item;
+}
+
+// PyC.c_ulong.pop
+static PyObject *c_ulong_pop(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ulong is not an array type instance");
+    return NULL;
+  }
+
+  if (!(selfType->arraySize)) {
+    PyErr_SetString(PyExc_IndexError, "no elements in the array to pop");
+    return NULL;
+  }
+
+  PyObject *rvalue;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+    rvalue = PyLong_FromLongLong(
+        (unsigned long)(selfType->pointer[(selfType->arraySize) - 1]));
+  } else {
+    rvalue = PyLong_FromLongLong(selfType->pointer[(selfType->arraySize) - 1]);
+  }
+
+  (selfType->arraySize)--;
+
+  if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+    selfType->pointer =
+        realloc(selfType->pointer, (selfType->arraySize) * sizeof(long));
+    selfType->arrayCapacity = selfType->arraySize;
+  }
+
+  return rvalue;
+}
+
+// PyC.c_ulong.value
+static PyObject *c_ulong_value(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
+  }
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_ulong.__int__
+static PyObject *c_ulong_to_int(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+    return PyLong_FromLongLong((unsigned long)(*(selfType->pointer)));
+  }
+  return PyLong_FromLongLong(*(selfType->pointer));
+}
+
+// PyC.c_ulong.__float__
+static PyObject *c_ulong_to_float(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+    return PyFloat_FromDouble((unsigned long)(*(selfType->pointer)));
+  }
+  return PyFloat_FromDouble(*(selfType->pointer));
+}
+
+// PyC.c_ulong.__bool__
+static int c_ulong_to_bool(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (*selfType->pointer) {
+    return 1;
+  }
+
+  return 0;
+}
+
+// PyC.c_ulong.__len__
+static Py_ssize_t c_ulong_len(PyObject *self) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+  return selfType->arraySize;
+}
+
+// PyC.c_ulong.__getitem__
+static PyObject *c_ulong_getitem(PyObject *self, PyObject *attr) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ulong is not an array type instance");
+    return NULL;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError, "Expected int type got some other type");
+    return NULL;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    if (PyObject_IsInstance(self, (PyObject *)&py_c_ulong_type)) {
+      return PyLong_FromLongLong((unsigned long)((selfType->pointer)[index]));
+    }
+    return PyLong_FromLongLong((selfType->pointer)[index]);
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return NULL;
+}
+
+// PyC.c_ulong.__setitem__
+static int c_ulong_setitem(PyObject *self, PyObject *attr, PyObject *value) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (!(selfType->isArray)) {
+    PyErr_SetString(py_CppError,
+                    "given instance of c_ulong is not an array type instance");
+    return -1;
+  }
+
+  if (!(PyNumber_Check(attr))) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected interger type got some other type");
+    return -1;
+  }
+
+  size_t index = PyLong_AsLongLong(attr);
+
+  if (selfType->arraySize > index) {
+    long int_value = PyLong_AsLong(value);
+
+    (selfType->pointer)[index] = int_value;
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_IndexError, "Index out of range");
+  return -1;
+}
+
+// PyC.c_ulong.free_on_no_reference getter
+static PyObject *c_ulong_freeOnDel_getter(PyObject *self, void *closure) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (selfType->freeOnDel) {
+    Py_RETURN_TRUE;
+  }
+
+  Py_RETURN_FALSE;
+}
+
+// PyC.c_ulong.free_on_no_reference setter
+static int c_ulong_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure) {
+  PyC_c_ulong *selfType = (PyC_c_ulong *)self;
+
+  if (!value) {
+    PyErr_SetString(PyExc_AttributeError,
+                    "Cannot delete c_ulong.free_on_no_reference attrubute");
+    return -1;
+  }
+
+  int flag = PyObject_IsTrue(value);
+  if (flag == -1) {
+    return -1;
+  }
+
+  selfType->freeOnDel = flag;
+  return 0;
+}
+
 // ----- c_char -----
 // TODO: support c_uchar
 
@@ -2548,6 +3677,7 @@ PyTypeObject py_c_char_type = {
     .tp_new = PyType_GenericNew,
     .tp_dealloc =
         &c_char_finalizer, // TODO: use .tp_getset for PyC_c_char's attributes
+    .tp_base = &py_c_type_type,
 };
 
 // ----- c_char: functions and methods -----
@@ -2608,7 +3738,7 @@ static PyObject *c_char_iter(PyObject *self) {
   }
 
   PyErr_SetString(py_CppError,
-                  "given c_int instance is not an array type instance");
+                  "given c_char instance is not an array type instance");
   return NULL;
 }
 
@@ -2730,7 +3860,7 @@ static int c_char_freeOnDel_setter(PyObject *self, PyObject *value,
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_char.free_on_no_reference attrubute");
     return -1;
   }
 
@@ -2790,6 +3920,7 @@ PyTypeObject py_c_struct_type = {
     .tp_dealloc = &c_struct_finalizer,
     .tp_traverse = &c_struct_Traverse,
     .tp_clear = &c_struct_Clear,
+    .tp_base = &py_c_type_type,
 };
 
 // c_struct methods
@@ -3384,6 +4515,7 @@ PyTypeObject py_c_union_type = {
     .tp_dealloc = &c_union_finalizer,
     .tp_traverse = &c_union_Traverse,
     .tp_clear = &c_union_Clear,
+    .tp_base = &py_c_type_type,
 };
 
 // c_union methods
@@ -3839,7 +4971,7 @@ static int c_union_freeOnDel_setter(PyObject *self, PyObject *value,
 
   if (!value) {
     PyErr_SetString(PyExc_AttributeError,
-                    "Cannot delete c_int.free_on_no_reference attrubute");
+                    "Cannot delete c_union.free_on_no_reference attrubute");
     return -1;
   }
 

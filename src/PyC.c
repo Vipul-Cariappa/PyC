@@ -56,6 +56,7 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   ADD_OBJECT_TO_MODULE(m, &py_CppModuleType, "CppModule")
   ADD_OBJECT_TO_MODULE(m, &py_CppFunctionType, "CppFunction")
 
+  ADD_OBJECT_TO_MODULE(m, &py_c_type_type, "c_type")
   ADD_OBJECT_TO_MODULE(m, &py_c_int_type, "c_int")
   ADD_OBJECT_TO_MODULE(m, &py_c_uint_type, "c_uint")
   ADD_OBJECT_TO_MODULE(m, &py_c_long_type, "c_long")

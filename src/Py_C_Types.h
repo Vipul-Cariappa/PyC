@@ -3,12 +3,17 @@
 #include "Python.h"
 #include <stdbool.h>
 
+// c_type: c_type
+extern PyTypeObject py_c_type_type;
+
 // c_type: c_void
 extern PyTypeObject py_c_void_type;
 
 typedef struct PyC_c_void {
-  PyObject_HEAD void *pointer;
+  PyObject ob_base;
+  void *pointer;
   bool freeOnDel;
+  bool isPointer;
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
@@ -26,7 +31,7 @@ extern PyTypeObject py_c_int_type;
 extern PyTypeObject py_c_uint_type;
 
 typedef struct PyC_c_int {
-  PyObject_HEAD int value;
+  PyObject ob_base;
   int *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -34,6 +39,7 @@ typedef struct PyC_c_int {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  int value;
 } PyC_c_int;
 
 static int c_int_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -53,11 +59,43 @@ static Py_ssize_t c_int_len(PyObject *self);
 static PyObject *c_int_getitem(PyObject *self, PyObject *attr);
 static int c_int_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
+// c_type: c_uint
+extern PyTypeObject py_c_uint_type;
+
+typedef struct PyC_c_uint {
+  PyObject ob_base;
+  unsigned int *pointer;
+  bool freeOnDel;
+  bool isPointer;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i; // for iteration purpose
+  unsigned int value;
+} PyC_c_uint;
+
+static int c_uint_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_uint_iter(PyObject *self);
+static PyObject *c_uint_next(PyObject *self);
+static void c_uint_finalizer(PyObject *self);
+static PyObject *c_uint_append(PyObject *self, PyObject *args);
+static PyObject *c_uint_pop(PyObject *self);
+static PyObject *c_uint_value(PyObject *self);
+static PyObject *c_uint_freeOnDel_getter(PyObject *self, void *closure);
+static int c_uint_freeOnDel_setter(PyObject *self, PyObject *value,
+                                   void *closure);
+static PyObject *c_uint_to_int(PyObject *self);
+static PyObject *c_uint_to_float(PyObject *self);
+static int c_uint_to_bool(PyObject *self);
+static Py_ssize_t c_uint_len(PyObject *self);
+static PyObject *c_uint_getitem(PyObject *self, PyObject *attr);
+static int c_uint_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
 // c_type: c_double
 extern PyTypeObject py_c_double_type;
 
 typedef struct PyC_c_double {
-  PyObject_HEAD double value;
+  PyObject ob_base;
   double *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -65,6 +103,7 @@ typedef struct PyC_c_double {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  double value;
 } PyC_c_double;
 
 static int c_double_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -88,7 +127,7 @@ static int c_double_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_bool_type;
 
 typedef struct PyC_c_bool {
-  PyObject_HEAD bool value;
+  PyObject ob_base;
   bool *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -96,6 +135,7 @@ typedef struct PyC_c_bool {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  bool value;
 } PyC_c_bool;
 
 static int c_bool_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -120,7 +160,7 @@ static int c_bool_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_char_type;
 
 typedef struct PyC_c_char {
-  PyObject_HEAD char value;
+  PyObject ob_base;
   char *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -128,6 +168,7 @@ typedef struct PyC_c_char {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  char value;
 } PyC_c_char;
 
 static int c_char_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -150,7 +191,7 @@ static int c_char_setitem(PyObject *self, PyObject *attr, PyObject *value);
 extern PyTypeObject py_c_float_type;
 
 typedef struct PyC_c_float {
-  PyObject_HEAD float value;
+  PyObject ob_base;
   float *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -158,6 +199,7 @@ typedef struct PyC_c_float {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  float value;
 } PyC_c_float;
 
 static int c_float_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -179,10 +221,9 @@ static int c_float_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
 // c_type: c_short
 extern PyTypeObject py_c_short_type;
-extern PyTypeObject py_c_ushort_type;
 
 typedef struct PyC_c_short {
-  PyObject_HEAD short value;
+  PyObject ob_base;
   short *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -190,6 +231,7 @@ typedef struct PyC_c_short {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  short value;
 } PyC_c_short;
 
 static int c_short_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -209,12 +251,43 @@ static Py_ssize_t c_short_len(PyObject *self);
 static PyObject *c_short_getitem(PyObject *self, PyObject *attr);
 static int c_short_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
+// c_type: c_ushort
+extern PyTypeObject py_c_ushort_type;
+
+typedef struct PyC_c_ushort {
+  PyObject ob_base;
+  unsigned short *pointer;
+  bool freeOnDel;
+  bool isPointer;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i; // for iteration purpose
+  unsigned short value;
+} PyC_c_ushort;
+
+static int c_ushort_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_ushort_iter(PyObject *self);
+static PyObject *c_ushort_next(PyObject *self);
+static void c_ushort_finalizer(PyObject *self);
+static PyObject *c_ushort_append(PyObject *self, PyObject *args);
+static PyObject *c_ushort_pop(PyObject *self);
+static PyObject *c_ushort_value(PyObject *self);
+static PyObject *c_ushort_freeOnDel_getter(PyObject *self, void *closure);
+static int c_ushort_freeOnDel_setter(PyObject *self, PyObject *value,
+                                     void *closure);
+static PyObject *c_ushort_to_int(PyObject *self);
+static PyObject *c_ushort_to_float(PyObject *self);
+static int c_ushort_to_bool(PyObject *self);
+static Py_ssize_t c_ushort_len(PyObject *self);
+static PyObject *c_ushort_getitem(PyObject *self, PyObject *attr);
+static int c_ushort_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
 // c_type: c_long
 extern PyTypeObject py_c_long_type;
-extern PyTypeObject py_c_ulong_type;
 
 typedef struct PyC_c_long {
-  PyObject_HEAD long value;
+  PyObject ob_base;
   long *pointer;
   bool freeOnDel;
   bool isPointer;
@@ -222,6 +295,7 @@ typedef struct PyC_c_long {
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  long value;
 } PyC_c_long;
 
 static int c_long_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -241,22 +315,54 @@ static Py_ssize_t c_long_len(PyObject *self);
 static PyObject *c_long_getitem(PyObject *self, PyObject *attr);
 static int c_long_setitem(PyObject *self, PyObject *attr, PyObject *value);
 
-// c_struct
-extern PyTypeObject py_c_struct_type;
+// c_type: c_ulong
+extern PyTypeObject py_c_ulong_type;
 
-typedef struct PyC_c_struct {
-  PyObject_HEAD Structure *structure;
-  void *pointer;
+typedef struct PyC_c_ulong {
+  PyObject ob_base;
+  unsigned long *pointer;
   bool freeOnDel;
+  bool isPointer;
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  unsigned long value;
+} PyC_c_ulong;
+
+static int c_ulong_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *c_ulong_iter(PyObject *self);
+static PyObject *c_ulong_next(PyObject *self);
+static void c_ulong_finalizer(PyObject *self);
+static PyObject *c_ulong_append(PyObject *self, PyObject *args);
+static PyObject *c_ulong_pop(PyObject *self);
+static PyObject *c_ulong_value(PyObject *self);
+static PyObject *c_ulong_freeOnDel_getter(PyObject *self, void *closure);
+static int c_ulong_freeOnDel_setter(PyObject *self, PyObject *value,
+                                    void *closure);
+static PyObject *c_ulong_to_int(PyObject *self);
+static PyObject *c_ulong_to_float(PyObject *self);
+static int c_ulong_to_bool(PyObject *self);
+static Py_ssize_t c_ulong_len(PyObject *self);
+static PyObject *c_ulong_getitem(PyObject *self, PyObject *attr);
+static int c_ulong_setitem(PyObject *self, PyObject *attr, PyObject *value);
+
+// c_struct
+extern PyTypeObject py_c_struct_type;
+
+typedef struct PyC_c_struct {
+  PyObject ob_base;
+  void *pointer;
+  bool freeOnDel;
+  bool isPointer;
+  bool isArray;
+  size_t arraySize;
+  size_t arrayCapacity;
+  size_t _i; // for iteration purpose
+  Structure *structure;
   // PyObject *pyDictRepr;   // TODO: python dict representation of struct:
   // key: attr name value: c_type
   PyObject *parentModule;
-  PyObject *child_ptrs;
-  PyObject *arrayPtrs; // PyList of member array's PyC_c_unions
 } PyC_c_struct;
 
 static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -284,17 +390,18 @@ PyObject *create_py_c_struct(Structure *structure,
 extern PyTypeObject py_c_union_type;
 
 typedef struct PyC_c_union {
-  PyObject_HEAD Union *u;
+  PyObject ob_base;
   void *pointer;
   bool freeOnDel;
+  bool isPointer;
   bool isArray;
   size_t arraySize;
   size_t arrayCapacity;
   size_t _i; // for iteration purpose
+  Union *u;
   // PyObject *pyDictRepr; // TODO: python dict representation of union:
   // key: attr name value: c_type
   PyObject *parentModule;
-  PyObject *arrayPtrs; // PyList of member array's PyC_c_unions
 } PyC_c_union;
 
 static int c_union_init(PyObject *self, PyObject *args, PyObject *kwargs);

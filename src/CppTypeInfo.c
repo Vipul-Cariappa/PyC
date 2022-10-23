@@ -78,9 +78,9 @@ void print_Union(const Union *_union) {
 }
 
 void print_Function(const Function *func) {
-  printf("    %s\n", func->name);
-
   assert(FunctionType_array_size(func->functionTypes) == func->funcCount);
+
+  printf("    %s\n", func->name);
 
   for (size_t i = 0; i < func->funcCount; i++) {
     FunctionType func_type = FunctionType_array_getat(func->functionTypes, i);
@@ -531,6 +531,7 @@ bool Symbols_parse(Symbols *sym, const char *header) {
 void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
                              enum CXX_Type *cxx_type,
                              ffi_type **objects_ffi_type) {
+  // TODO: set and raise error; if could not figure out type
   CXType underlying_type = cxType;
 
   if (cxType.kind == CXType_Typedef) {
@@ -655,8 +656,7 @@ void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
   return NULL;
 }
 
-enum CXChildVisitResult enum_visitor(CXCursor cursor,
-                                      CXCursor parent,
+enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent,
                                      CXClientData client_data) {
   // TODO: group enum's with parents
 
@@ -671,8 +671,7 @@ enum CXChildVisitResult enum_visitor(CXCursor cursor,
   return CXChildVisit_Continue;
 }
 
-enum CXChildVisitResult record_visitor(CXCursor cursor,
-                                        CXCursor parent,
+enum CXChildVisitResult record_visitor(CXCursor cursor, CXCursor parent,
                                        CXClientData client_data) {
   void **info = client_data;
   struct _RecordType *structure = (struct _RecordType *)info[0];
@@ -806,8 +805,7 @@ Structure Structure_parser(CXCursor structCursor, Symbols *symbols) {
   return structure;
 }
 
-enum CXChildVisitResult visitor(CXCursor cursor,
-                                 CXCursor parent,
+enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                 CXClientData client_data) {
   Symbols *symbols = client_data;
 
