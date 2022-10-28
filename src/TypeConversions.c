@@ -49,13 +49,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
       bool *data = malloc(sizeof(bool));
       PYERR_MEM(data);
       *should_free = true;
-      *data = true;
+      *data        = true;
       return data;
     } else {
       bool *data = malloc(sizeof(bool));
       PYERR_MEM(data);
       *should_free = true;
-      *data = false;
+      *data        = false;
       return data;
     }
   }
@@ -234,7 +234,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
       void *data = malloc(py_struct_type->structure->structSize);
       PYERR_MEM(data);
       *should_free = true;
-      memcpy(data, py_struct_type->pointer,
+      memcpy(data,
+             py_struct_type->pointer,
              py_struct_type->structure->structSize);
       return data;
     } else {
@@ -253,7 +254,7 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Union:
     if (PyObject_IsInstance(arg, (PyObject *)&py_c_union_type)) {
       PyC_c_union *py_union_type = (PyC_c_union *)arg;
-      void *data = malloc(py_union_type->u->unionSize);
+      void *data                 = malloc(py_union_type->u->unionSize);
       PYERR_MEM(data);
       *should_free = true;
       memcpy(data, py_union_type->pointer, py_union_type->u->unionSize);
@@ -278,26 +279,24 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   }
 }
 
-PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
+PyObject *cppArg_to_pyArg(void *arg,
+                          enum CXX_Type type,
+                          void *extra_type_info,
                           PyObject *module) {
   switch (type) {
-
-  case CXX_Void:
-    PyErr_SetString(PyExc_SystemError, "Internal Error");
-    return NULL;
 
   case CXX_VoidPointer: {
     PyObject *py_arg = _PyObject_New(&py_c_void_type);
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_void *)py_arg)->pointer = *(void **)arg;
-    ((PyC_c_void *)py_arg)->freeOnDel = false;
-    ((PyC_c_void *)py_arg)->isPointer = false;
-    ((PyC_c_void *)py_arg)->isArray = false;
+    ((PyC_c_void *)py_arg)->pointer       = *(void **)arg;
+    ((PyC_c_void *)py_arg)->freeOnDel     = false;
+    ((PyC_c_void *)py_arg)->isPointer     = false;
+    ((PyC_c_void *)py_arg)->isArray       = false;
     ((PyC_c_void *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_void *)py_arg)->arraySize = 0;
-    ((PyC_c_void *)py_arg)->_i = 0;
+    ((PyC_c_void *)py_arg)->arraySize     = 0;
+    ((PyC_c_void *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -310,14 +309,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_char *)py_arg)->pointer = *(char **)arg;
-    ((PyC_c_char *)py_arg)->value = *((PyC_c_char *)py_arg)->pointer;
-    ((PyC_c_char *)py_arg)->freeOnDel = false;
-    ((PyC_c_char *)py_arg)->isPointer = false;
-    ((PyC_c_char *)py_arg)->isArray = false;
+    ((PyC_c_char *)py_arg)->pointer       = *(char **)arg;
+    ((PyC_c_char *)py_arg)->value         = *((PyC_c_char *)py_arg)->pointer;
+    ((PyC_c_char *)py_arg)->freeOnDel     = false;
+    ((PyC_c_char *)py_arg)->isPointer     = false;
+    ((PyC_c_char *)py_arg)->isArray       = false;
     ((PyC_c_char *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_char *)py_arg)->arraySize = 0;
-    ((PyC_c_char *)py_arg)->_i = 0;
+    ((PyC_c_char *)py_arg)->arraySize     = 0;
+    ((PyC_c_char *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -334,14 +333,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_bool *)py_arg)->pointer = *(bool **)arg;
-    ((PyC_c_bool *)py_arg)->value = *((PyC_c_bool *)py_arg)->pointer;
-    ((PyC_c_bool *)py_arg)->freeOnDel = false;
-    ((PyC_c_bool *)py_arg)->isPointer = false;
-    ((PyC_c_bool *)py_arg)->isArray = false;
+    ((PyC_c_bool *)py_arg)->pointer       = *(bool **)arg;
+    ((PyC_c_bool *)py_arg)->value         = *((PyC_c_bool *)py_arg)->pointer;
+    ((PyC_c_bool *)py_arg)->freeOnDel     = false;
+    ((PyC_c_bool *)py_arg)->isPointer     = false;
+    ((PyC_c_bool *)py_arg)->isArray       = false;
     ((PyC_c_bool *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_bool *)py_arg)->arraySize = 0;
-    ((PyC_c_bool *)py_arg)->_i = 0;
+    ((PyC_c_bool *)py_arg)->arraySize     = 0;
+    ((PyC_c_bool *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -354,14 +353,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_short *)py_arg)->pointer = *(short **)arg;
-    ((PyC_c_short *)py_arg)->value = *((PyC_c_short *)py_arg)->pointer;
-    ((PyC_c_short *)py_arg)->freeOnDel = false;
-    ((PyC_c_short *)py_arg)->isPointer = false;
-    ((PyC_c_short *)py_arg)->isArray = false;
+    ((PyC_c_short *)py_arg)->pointer       = *(short **)arg;
+    ((PyC_c_short *)py_arg)->value         = *((PyC_c_short *)py_arg)->pointer;
+    ((PyC_c_short *)py_arg)->freeOnDel     = false;
+    ((PyC_c_short *)py_arg)->isPointer     = false;
+    ((PyC_c_short *)py_arg)->isArray       = false;
     ((PyC_c_short *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_short *)py_arg)->arraySize = 0;
-    ((PyC_c_short *)py_arg)->_i = 0;
+    ((PyC_c_short *)py_arg)->arraySize     = 0;
+    ((PyC_c_short *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -374,14 +373,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_ushort *)py_arg)->pointer = *(unsigned short **)arg;
-    ((PyC_c_ushort *)py_arg)->value = *((PyC_c_ushort *)py_arg)->pointer;
+    ((PyC_c_ushort *)py_arg)->pointer   = *(unsigned short **)arg;
+    ((PyC_c_ushort *)py_arg)->value     = *((PyC_c_ushort *)py_arg)->pointer;
     ((PyC_c_ushort *)py_arg)->freeOnDel = false;
     ((PyC_c_ushort *)py_arg)->isPointer = false;
-    ((PyC_c_ushort *)py_arg)->isArray = false;
+    ((PyC_c_ushort *)py_arg)->isArray   = false;
     ((PyC_c_ushort *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_ushort *)py_arg)->arraySize = 0;
-    ((PyC_c_ushort *)py_arg)->_i = 0;
+    ((PyC_c_ushort *)py_arg)->arraySize     = 0;
+    ((PyC_c_ushort *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -394,14 +393,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_int *)py_arg)->pointer = *(int **)arg;
-    ((PyC_c_int *)py_arg)->value = *((PyC_c_int *)py_arg)->pointer;
-    ((PyC_c_int *)py_arg)->freeOnDel = false;
-    ((PyC_c_int *)py_arg)->isPointer = false;
-    ((PyC_c_int *)py_arg)->isArray = false;
+    ((PyC_c_int *)py_arg)->pointer       = *(int **)arg;
+    ((PyC_c_int *)py_arg)->value         = *((PyC_c_int *)py_arg)->pointer;
+    ((PyC_c_int *)py_arg)->freeOnDel     = false;
+    ((PyC_c_int *)py_arg)->isPointer     = false;
+    ((PyC_c_int *)py_arg)->isArray       = false;
     ((PyC_c_int *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_int *)py_arg)->arraySize = 0;
-    ((PyC_c_int *)py_arg)->_i = 0;
+    ((PyC_c_int *)py_arg)->arraySize     = 0;
+    ((PyC_c_int *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -414,14 +413,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_uint *)py_arg)->pointer = *(unsigned int **)arg;
-    ((PyC_c_uint *)py_arg)->value = *((PyC_c_uint *)py_arg)->pointer;
-    ((PyC_c_uint *)py_arg)->freeOnDel = false;
-    ((PyC_c_uint *)py_arg)->isPointer = false;
-    ((PyC_c_uint *)py_arg)->isArray = false;
+    ((PyC_c_uint *)py_arg)->pointer       = *(unsigned int **)arg;
+    ((PyC_c_uint *)py_arg)->value         = *((PyC_c_uint *)py_arg)->pointer;
+    ((PyC_c_uint *)py_arg)->freeOnDel     = false;
+    ((PyC_c_uint *)py_arg)->isPointer     = false;
+    ((PyC_c_uint *)py_arg)->isArray       = false;
     ((PyC_c_uint *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_uint *)py_arg)->arraySize = 0;
-    ((PyC_c_uint *)py_arg)->_i = 0;
+    ((PyC_c_uint *)py_arg)->arraySize     = 0;
+    ((PyC_c_uint *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -434,14 +433,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_long *)py_arg)->pointer = *(long **)arg;
-    ((PyC_c_long *)py_arg)->value = *((PyC_c_long *)py_arg)->pointer;
-    ((PyC_c_long *)py_arg)->freeOnDel = false;
-    ((PyC_c_long *)py_arg)->isPointer = false;
-    ((PyC_c_long *)py_arg)->isArray = false;
+    ((PyC_c_long *)py_arg)->pointer       = *(long **)arg;
+    ((PyC_c_long *)py_arg)->value         = *((PyC_c_long *)py_arg)->pointer;
+    ((PyC_c_long *)py_arg)->freeOnDel     = false;
+    ((PyC_c_long *)py_arg)->isPointer     = false;
+    ((PyC_c_long *)py_arg)->isArray       = false;
     ((PyC_c_long *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_long *)py_arg)->arraySize = 0;
-    ((PyC_c_long *)py_arg)->_i = 0;
+    ((PyC_c_long *)py_arg)->arraySize     = 0;
+    ((PyC_c_long *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -454,14 +453,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_ulong *)py_arg)->pointer = *(unsigned long **)arg;
-    ((PyC_c_ulong *)py_arg)->value = *((PyC_c_ulong *)py_arg)->pointer;
-    ((PyC_c_ulong *)py_arg)->freeOnDel = false;
-    ((PyC_c_ulong *)py_arg)->isPointer = false;
-    ((PyC_c_ulong *)py_arg)->isArray = false;
+    ((PyC_c_ulong *)py_arg)->pointer       = *(unsigned long **)arg;
+    ((PyC_c_ulong *)py_arg)->value         = *((PyC_c_ulong *)py_arg)->pointer;
+    ((PyC_c_ulong *)py_arg)->freeOnDel     = false;
+    ((PyC_c_ulong *)py_arg)->isPointer     = false;
+    ((PyC_c_ulong *)py_arg)->isArray       = false;
     ((PyC_c_ulong *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_ulong *)py_arg)->arraySize = 0;
-    ((PyC_c_ulong *)py_arg)->_i = 0;
+    ((PyC_c_ulong *)py_arg)->arraySize     = 0;
+    ((PyC_c_ulong *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -474,14 +473,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_float *)py_arg)->pointer = *(float **)arg;
-    ((PyC_c_float *)py_arg)->value = *((PyC_c_float *)py_arg)->pointer;
-    ((PyC_c_float *)py_arg)->freeOnDel = false;
-    ((PyC_c_float *)py_arg)->isPointer = false;
-    ((PyC_c_float *)py_arg)->isArray = false;
+    ((PyC_c_float *)py_arg)->pointer       = *(float **)arg;
+    ((PyC_c_float *)py_arg)->value         = *((PyC_c_float *)py_arg)->pointer;
+    ((PyC_c_float *)py_arg)->freeOnDel     = false;
+    ((PyC_c_float *)py_arg)->isPointer     = false;
+    ((PyC_c_float *)py_arg)->isArray       = false;
     ((PyC_c_float *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_float *)py_arg)->arraySize = 0;
-    ((PyC_c_float *)py_arg)->_i = 0;
+    ((PyC_c_float *)py_arg)->arraySize     = 0;
+    ((PyC_c_float *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -494,14 +493,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     if (py_arg == NULL) {
       return NULL;
     }
-    ((PyC_c_double *)py_arg)->pointer = *(double **)arg;
-    ((PyC_c_double *)py_arg)->value = *((PyC_c_double *)py_arg)->pointer;
+    ((PyC_c_double *)py_arg)->pointer   = *(double **)arg;
+    ((PyC_c_double *)py_arg)->value     = *((PyC_c_double *)py_arg)->pointer;
     ((PyC_c_double *)py_arg)->freeOnDel = false;
     ((PyC_c_double *)py_arg)->isPointer = false;
-    ((PyC_c_double *)py_arg)->isArray = false;
+    ((PyC_c_double *)py_arg)->isArray   = false;
     ((PyC_c_double *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_double *)py_arg)->arraySize = 0;
-    ((PyC_c_double *)py_arg)->_i = 0;
+    ((PyC_c_double *)py_arg)->arraySize     = 0;
+    ((PyC_c_double *)py_arg)->_i            = 0;
 
     return py_arg;
   }
@@ -512,14 +511,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
       return NULL;
     }
 
-    ((PyC_c_struct *)py_arg)->pointer = arg;
-    ((PyC_c_struct *)py_arg)->freeOnDel = false;
-    ((PyC_c_struct *)py_arg)->isPointer = false;
-    ((PyC_c_struct *)py_arg)->isArray = false;
+    ((PyC_c_struct *)py_arg)->pointer       = arg;
+    ((PyC_c_struct *)py_arg)->freeOnDel     = false;
+    ((PyC_c_struct *)py_arg)->isPointer     = false;
+    ((PyC_c_struct *)py_arg)->isArray       = false;
     ((PyC_c_struct *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_struct *)py_arg)->arraySize = 0;
-    ((PyC_c_struct *)py_arg)->_i = 0;
-    ((PyC_c_struct *)py_arg)->structure = extra_type_info;
+    ((PyC_c_struct *)py_arg)->arraySize     = 0;
+    ((PyC_c_struct *)py_arg)->_i            = 0;
+    ((PyC_c_struct *)py_arg)->structure     = extra_type_info;
     Py_INCREF(module);
     ((PyC_c_struct *)py_arg)->parentModule = module;
   }
@@ -530,14 +529,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
       return NULL;
     }
 
-    ((PyC_c_struct *)py_arg)->pointer = *(void **)arg;
-    ((PyC_c_struct *)py_arg)->freeOnDel = false;
-    ((PyC_c_struct *)py_arg)->isPointer = false;
-    ((PyC_c_struct *)py_arg)->isArray = false;
+    ((PyC_c_struct *)py_arg)->pointer       = *(void **)arg;
+    ((PyC_c_struct *)py_arg)->freeOnDel     = false;
+    ((PyC_c_struct *)py_arg)->isPointer     = false;
+    ((PyC_c_struct *)py_arg)->isArray       = false;
     ((PyC_c_struct *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_struct *)py_arg)->arraySize = 0;
-    ((PyC_c_struct *)py_arg)->_i = 0;
-    ((PyC_c_struct *)py_arg)->structure = extra_type_info;
+    ((PyC_c_struct *)py_arg)->arraySize     = 0;
+    ((PyC_c_struct *)py_arg)->_i            = 0;
+    ((PyC_c_struct *)py_arg)->structure     = extra_type_info;
     Py_INCREF(module);
     ((PyC_c_struct *)py_arg)->parentModule = module;
   }
@@ -547,14 +546,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
       return NULL;
     }
 
-    ((PyC_c_union *)py_arg)->pointer = arg;
-    ((PyC_c_union *)py_arg)->freeOnDel = false;
-    ((PyC_c_union *)py_arg)->isPointer = false;
-    ((PyC_c_union *)py_arg)->isArray = false;
+    ((PyC_c_union *)py_arg)->pointer       = arg;
+    ((PyC_c_union *)py_arg)->freeOnDel     = false;
+    ((PyC_c_union *)py_arg)->isPointer     = false;
+    ((PyC_c_union *)py_arg)->isArray       = false;
     ((PyC_c_union *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_union *)py_arg)->arraySize = 0;
-    ((PyC_c_union *)py_arg)->_i = 0;
-    ((PyC_c_union *)py_arg)->u = extra_type_info;
+    ((PyC_c_union *)py_arg)->arraySize     = 0;
+    ((PyC_c_union *)py_arg)->_i            = 0;
+    ((PyC_c_union *)py_arg)->u             = extra_type_info;
     Py_INCREF(module);
     ((PyC_c_struct *)py_arg)->parentModule = module;
   }
@@ -564,14 +563,14 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
       return NULL;
     }
 
-    ((PyC_c_union *)py_arg)->pointer = *(void **)arg;
-    ((PyC_c_union *)py_arg)->freeOnDel = false;
-    ((PyC_c_union *)py_arg)->isPointer = false;
-    ((PyC_c_union *)py_arg)->isArray = false;
+    ((PyC_c_union *)py_arg)->pointer       = *(void **)arg;
+    ((PyC_c_union *)py_arg)->freeOnDel     = false;
+    ((PyC_c_union *)py_arg)->isPointer     = false;
+    ((PyC_c_union *)py_arg)->isArray       = false;
     ((PyC_c_union *)py_arg)->arrayCapacity = 0;
-    ((PyC_c_union *)py_arg)->arraySize = 0;
-    ((PyC_c_union *)py_arg)->_i = 0;
-    ((PyC_c_union *)py_arg)->u = extra_type_info;
+    ((PyC_c_union *)py_arg)->arraySize     = 0;
+    ((PyC_c_union *)py_arg)->_i            = 0;
+    ((PyC_c_union *)py_arg)->u             = extra_type_info;
     Py_INCREF(module);
     ((PyC_c_struct *)py_arg)->parentModule = module;
   }
@@ -714,6 +713,11 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
           func_num = -1;
         }
       }
+
+      if (func_num != -1) {
+        return func_num;
+      }
+
     } else {
       func_num = -1;
     }

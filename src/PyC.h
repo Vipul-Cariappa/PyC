@@ -24,13 +24,14 @@ extern PyModuleDef PyC_Module;
 
 char *CXX_Type_TO_char_p(enum CXX_Type type, const void *extraInfo);
 int match_ffi_type_to_defination(Function *funcs, PyObject *ffi_type_list);
-PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
+PyObject *cppArg_to_pyArg(void *arg,
+                          enum CXX_Type type,
+                          void *extra_type_info,
                           PyObject *module);
 void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free);
 
-static PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs);
-static PyObject *print_PyC_CppModule(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
+PyObject *load_cpp(PyObject *self, PyObject *args, PyObject *kwargs);
+PyObject *print_PyC_CppModule(PyObject *self, PyObject *args, PyObject *kwargs);
 
 static int Cpp_ModuleInit(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *Cpp_ModuleGet(PyObject *self, char *attr);
@@ -39,16 +40,16 @@ static void Cpp_ModuleGC(PyObject *self);
 static int Cpp_ModuleTraverse(PyObject *self, visitproc visit, void *arg);
 static int Cpp_ModuleClear(PyObject *self);
 
-static PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args,
-                                  PyObject *kwargs);
+static PyObject *
+Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs);
 static void Cpp_FunctionGC(PyObject *self);
 static int Cpp_FunctionTraverse(PyObject *self, visitproc visit, void *arg);
 static int Cpp_FunctionClear(PyObject *self);
 
 static PyObject *Cpp_StructGet(PyObject *self, char *attr);
 static int Cpp_StructSet(PyObject *self, char *attr, PyObject *pValue);
-static PyObject *Cpp_StructCall(PyObject *self, PyObject *args,
-                                PyObject *kwargs);
+static PyObject *
+Cpp_StructCall(PyObject *self, PyObject *args, PyObject *kwargs);
 static void Cpp_StructGC(PyObject *self);
 
 CXString GET_MANGLED_NAME(CXCursor cursor);

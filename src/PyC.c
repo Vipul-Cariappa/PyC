@@ -9,13 +9,32 @@ p_void_array_t *EXTRA_HEAP_MEMORY;
 PyObject *py_CppError;
 PyObject *py_BindingError;
 
+PyMethodDef PyC_Methods[] = {{"LoadCpp",
+                              (PyCFunction)load_cpp,
+                              METH_VARARGS | METH_KEYWORDS,
+                              LOAD_CPP_DOC_STRING},
+                             {"print_CppModule",
+                              (PyCFunction)print_PyC_CppModule,
+                              METH_VARARGS,
+                              PRINT_CPPMODULE_DOC_STRING},
+                             {NULL, NULL, 0, NULL}};
+
+PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT,
+                          "PyCpp",
+                          "PyCpp",
+                          -1,
+                          PyC_Methods,
+                          NULL,
+                          NULL,
+                          NULL,
+                          &PyClear_PyC};
+
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
 
   EXTRA_HEAP_MEMORY = p_void_array_new();
-  if (!EXTRA_HEAP_MEMORY) {
+  if (!EXTRA_HEAP_MEMORY)
     return PyErr_NoMemory();
-  }
 
   // creating module
   m = PyModule_Create(&PyC_Module);

@@ -15,26 +15,13 @@ module = Extension(
     ],
     include_dirs=[
         "src/",
-        "/usr/include/python3.9",
-        "/usr/local/include",
-        "/usr/lib/llvm-10/include",
-    ],
-    library_dirs=[
-        "/usr/local/lib",
-        "/usr/lib",
-        "usr/lib/x86_64-linux-gnu",
+        "/usr/include/x86_64-linux-gnu",
+        "/usr/lib/llvm-12/include",
     ],
     libraries=[
         "ffi",
-        "clang-10",
+        "clang-12",
     ],
-    extra_compile_args=[
-        "-ftest-coverage",
-        "-fprofile-arcs",
-    ],
-    extra_link_args=[
-        "-lgcov",
-    ]
 )
 
 setup(

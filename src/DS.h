@@ -51,11 +51,13 @@
     }                                                                          \
                                                                                \
     arr->capacity = 4;                                                         \
-    arr->size = 0;                                                             \
+    arr->size     = 0;                                                         \
     return arr;                                                                \
   }                                                                            \
                                                                                \
-  size_t name##_array_size(const name##_array_t *arr) { return arr->size; }    \
+  size_t name##_array_size(const name##_array_t *arr) {                        \
+    return arr->size;                                                          \
+  }                                                                            \
                                                                                \
   bool name##_array_append(name##_array_t *arr, TYPE val) {                    \
     if (arr->size < arr->capacity) {                                           \
@@ -161,12 +163,14 @@
     }                                                                          \
                                                                                \
     li->first = NULL;                                                          \
-    li->last = NULL;                                                           \
-    li->size = 0;                                                              \
+    li->last  = NULL;                                                          \
+    li->size  = 0;                                                             \
     return li;                                                                 \
   }                                                                            \
                                                                                \
-  size_t name##_list_size(const name##_list_t *li) { return li->size; }        \
+  size_t name##_list_size(const name##_list_t *li) {                           \
+    return li->size;                                                           \
+  }                                                                            \
                                                                                \
   bool name##_list_append(name##_list_t *li, TYPE val) {                       \
     name##_list_node *new = malloc(sizeof(name##_list_node));                  \
@@ -176,15 +180,15 @@
     }                                                                          \
                                                                                \
     new->element = val;                                                        \
-    new->next = NULL;                                                          \
+    new->next    = NULL;                                                       \
                                                                                \
     if (li->size > 0) {                                                        \
       name##_list_node *last = li->last;                                       \
       assert(last->next == NULL);                                              \
-      last->next = new;                                                        \
+      last->next    = new;                                                     \
       new->previous = last;                                                    \
     } else {                                                                   \
-      li->first = new;                                                         \
+      li->first     = new;                                                     \
       new->previous = NULL;                                                    \
     }                                                                          \
                                                                                \
@@ -195,8 +199,8 @@
                                                                                \
   TYPE name##_list_pop(name##_list_t *li) {                                    \
     name##_list_node *last = li->last;                                         \
-    last->previous->next = NULL;                                               \
-    li->last = last->previous;                                                 \
+    last->previous->next   = NULL;                                             \
+    li->last               = last->previous;                                   \
     li->size--;                                                                \
                                                                                \
     TYPE element = last->element;                                              \
@@ -264,14 +268,18 @@
   }
 
 #define DS_LIST_FOREACH(li, name)                                              \
-  typeof(li->first) name##_node = li->first;                                   \
+  typeof(li->first) name##_node   = li->first;                                 \
   typeof(li->first->element) name = name##_node->element;                      \
-  for (size_t _i = 0; ++_i <= li->size; name##_node = name##_node->next,       \
-              name = name##_node ? name##_node->element                        \
-                                 : (typeof(li->first->element)){0})
+  for (size_t(name##_i) = 0, _i = 0; ++(name##_i) <= li->size;                 \
+       name##_node = name##_node->next,                                        \
+      name         = name##_node ? name##_node->element                        \
+                                 : (typeof(li->first->element)){0},            \
+      _i++)
 
 #define DS_LIST_PTR_FOREACH(li, name)                                          \
-  typeof(li->first) name##_node = li->first;                                   \
+  typeof(li->first) name##_node    = li->first;                                \
   typeof(li->first->element) *name = &(name##_node->element);                  \
-  for (size_t _i = 0; ++_i <= li->size; name##_node = name##_node->next,       \
-              name = name##_node ? &(name##_node->element) : NULL)
+  for (size_t(name##_i) = 0, _i = 0; ++(name##_i) <= li->size;                 \
+       name##_node = name##_node->next,                                        \
+      name         = name##_node ? &(name##_node->element) : NULL,             \
+      _i++)
