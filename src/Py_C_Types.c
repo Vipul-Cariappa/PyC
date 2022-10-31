@@ -397,10 +397,41 @@ bool CPyFloat_Check(PyObject *obj) {
   return PyErr_Occurred() ? false : true;
 }
 
+bool CPyChar_Check(PyObject *obj) {
+  Py_ssize_t size = 0;
+  if (PyNumber_Check(obj) ||
+      (PyUnicode_Check(obj) && PyUnicode_AsUTF8AndSize(obj, &size) &&
+       size <= 1)) {
+    return 1;
+  }
+  return 0;
+}
+
+char CPyChar_AsChar(PyObject *obj) {
+  Py_ssize_t size = 0;
+  if (PyUnicode_AsUTF8AndSize(obj, &size)) {
+    if (size == 0) {
+      return 0;
+    }
+    return PyUnicode_ReadChar(obj, 0);
+  }
+
+  return PyLong_AsLong(obj);
+}
+
+PyObject *CPyChar_FromChar(char c) {
+  const char str[2] = {c, 0};
+  return PyUnicode_FromFormat("s", str);
+}
+
+PyObject *c_char_str(PyObject *self) {
+  return PyUnicode_FromFormat("const char *format, ...");
+}
+
 NEW_PY_CTYPE_DEL(c_char,
                  char,
                  &py_c_type_type,
-                 PyNumber_Check,
+                 CPyChar_Check,
                  PyLong_AsLong,
                  PyLong_FromLong,
                  PyLong_FromLong);
@@ -483,7 +514,7 @@ NEW_PY_CTYPE_DEL(c_bool,
                  CPyBool_Check,
                  PyObject_IsTrue,
                  PyBool_FromLong,
-                 PyBool_FromLong);
+                 PyLong_FromLong);
 
 // ----- c_void ------
 
@@ -1243,6 +1274,8 @@ static int c_union_setattr(PyObject *self, char *attr, PyObject *pValue) {
 
       bool should_free = false;
       void *data       = pyArg_to_cppArg(pValue, cxx_type, &should_free);
+      if (data == NULL)
+        return -1;
 
       memcpy((selfType->pointer), data, type->size);
 

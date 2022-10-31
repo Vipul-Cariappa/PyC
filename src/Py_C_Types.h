@@ -38,6 +38,7 @@
 extern PyTypeObject py_c_type_type;
 
 NEW_PY_CTYPE_DEC(c_char, char);
+PyObject *c_char_str(PyObject *self);
 NEW_PY_CTYPE_DEC(c_uchar, unsigned char);
 NEW_PY_CTYPE_DEC(c_short, short);
 NEW_PY_CTYPE_DEC(c_ushort, unsigned short);

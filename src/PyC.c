@@ -29,6 +29,10 @@ PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT,
                           NULL,
                           &PyClear_PyC};
 
+void extra_init() {
+  py_c_char_type.tp_str = c_char_str;
+}
+
 PyMODINIT_FUNC PyInit_PyC(void) {
   PyObject *m;
 
@@ -40,6 +44,8 @@ PyMODINIT_FUNC PyInit_PyC(void) {
   m = PyModule_Create(&PyC_Module);
   if (m == NULL)
     return NULL;
+
+  extra_init();
 
   // creating Exception CppError
   py_CppError = PyErr_NewException("PyCpp.CppError", NULL, NULL);

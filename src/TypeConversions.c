@@ -24,11 +24,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Char: {
     char *data = malloc(sizeof(char));
     PYERR_MEM(data);
-    *data = PyLong_AsLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -45,7 +47,7 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     int x = PyObject_IsTrue(arg);
     if (x == -1) {
       return NULL;
-    } else if (x > 1) {
+    } else if (x > 0) {
       bool *data = malloc(sizeof(bool));
       PYERR_MEM(data);
       *should_free = true;
@@ -71,11 +73,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Short: {
     short *data = malloc(sizeof(short));
     PYERR_MEM(data);
-    *data = PyLong_AsLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -91,11 +95,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_UShort: {
     unsigned short *data = malloc(sizeof(unsigned short));
     PYERR_MEM(data);
-    *data = PyLong_AsUnsignedLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsUnsignedLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -111,11 +117,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Int: {
     int *data = malloc(sizeof(int));
     PYERR_MEM(data);
-    *data = PyLong_AsLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -131,11 +139,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_UInt: {
     unsigned int *data = malloc(sizeof(unsigned int));
     PYERR_MEM(data);
-    *data = PyLong_AsUnsignedLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsUnsignedLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -151,11 +161,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Long: {
     long *data = malloc(sizeof(long));
     PYERR_MEM(data);
-    *data = PyLong_AsLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -171,11 +183,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_ULong: {
     unsigned long *data = malloc(sizeof(unsigned long));
     PYERR_MEM(data);
-    *data = PyLong_AsUnsignedLongLong(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Long(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyLong_AsUnsignedLongLong(tmp);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -191,11 +205,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Float: {
     float *data = malloc(sizeof(float));
     PYERR_MEM(data);
-    *data = PyFloat_AsDouble(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Float(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyFloat_AsDouble(arg);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -211,11 +227,13 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
   case CXX_Double: {
     double *data = malloc(sizeof(double));
     PYERR_MEM(data);
-    *data = PyFloat_AsDouble(arg);
-    if (PyErr_Occurred()) {
+    PyObject *tmp = PyNumber_Float(arg);
+    if (tmp == NULL) {
       free(data);
       return NULL;
     }
+    *data = PyFloat_AsDouble(arg);
+    Py_DECREF(tmp);
     *should_free = true;
     return data;
   }
@@ -727,6 +745,10 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
 
 char *CXX_Type_TO_char_p(enum CXX_Type type, const void *extraInfo) {
   switch (type) {
+  case CXX_Bool:
+    return "bool";
+  case CXX_BoolPointer:
+    return "bool*";
   case CXX_Void:
     return "void";
   case CXX_VoidPointer:

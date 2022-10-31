@@ -312,13 +312,13 @@ static PyObject *Cpp_ModuleGet(PyObject *self, char *attr) {
     case CXX_StructPointer:
       Py_DECREF(py_attr_name);
       return Cpp_ModuleGet(self,
-                           (char *)(tdVar->typedef_name) +
+                           (char *)(tdVar->name) +
                                7); // +7 offset to skip "struct " at start
     case CXX_Union:
     case CXX_UnionPointer:
       Py_DECREF(py_attr_name);
       return Cpp_ModuleGet(self,
-                           (char *)(tdVar->typedef_name) +
+                           (char *)(tdVar->name) +
                                6); // +6 offset to skip "union " at start
     default:
       Py_DECREF(py_attr_name);
@@ -442,6 +442,12 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
     enum CXX_Type arg_cxx_type = CXX_Type_array_getat(funcType->argsTypeCXX, i);
 
     args_values[i] = pyArg_to_cppArg(arg, arg_cxx_type, locations_to_free + i);
+    if (args_values[i] == NULL) {
+      free(ffi_args);
+      free(args_values);
+      free(locations_to_free);
+      return NULL;
+    }
   }
   ffi_args[args_count]    = NULL;
   args_values[args_count] = NULL;

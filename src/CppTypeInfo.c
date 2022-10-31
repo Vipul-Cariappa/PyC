@@ -186,7 +186,7 @@ Global *Symbols_getGlobal(const Symbols *sym, const char *name) {
 
 TypeDef *Symbols_getTypeDef(const Symbols *sym, const char *name) {
   DS_LIST_PTR_FOREACH(sym->typedefs, elem) {
-    if (!strcmp(elem->name, name)) {
+    if (!strcmp(elem->typedef_name, name)) {
       return elem;
     }
   }
@@ -625,6 +625,13 @@ void *get_underlyingTypeInfo(CXType cxType,
     *cxx_type         = CXX_NotDefined;
     *objects_ffi_type = NULL;
     return NULL;
+
+  } else if (cxType.kind == CXType_Enum) {
+    return get_underlyingTypeInfo(
+        clang_getEnumDeclIntegerType(clang_getTypeDeclaration(cxType)),
+        sym,
+        cxx_type,
+        objects_ffi_type);
   }
 
   // else
@@ -642,6 +649,10 @@ void *get_underlyingTypeInfo(CXType cxType,
   case CXType_SChar:
     *cxx_type |= CXX_Char;
     *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_schar;
+    break;
+  case CXType_Bool:
+    *cxx_type |= CXX_Bool;
+    *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_uint8;
     break;
   case CXType_Short:
     *cxx_type |= CXX_Short;
