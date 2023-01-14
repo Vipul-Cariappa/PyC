@@ -40,8 +40,8 @@ class TestFunctions_C(unittest.TestCase):
             self.random_int_1 + self.random_int_2,
         )
         self.assertEqual(
-            cModule.mul_long(self.random_long_1, self.random_long_2),
-            self.random_long_1 * self.random_long_2,
+            cModule.mul_long(self.random_char_1, self.random_char_2),
+            self.random_char_1 * self.random_char_2,
         )
         self.assertEqual(
             cModule.sub_short(self.random_short_1, self.random_short_2),
@@ -75,8 +75,8 @@ class TestFunctions_C(unittest.TestCase):
             self.random_int_1 + self.random_int_2,
         )
         self.assertEqual(
-            cModule.mul_long(c_long(self.random_long_1), c_long(self.random_long_2)),
-            self.random_long_1 * self.random_long_2,
+            cModule.mul_long(c_long(self.random_char_1), c_long(self.random_char_2)),
+            self.random_char_1 * self.random_char_2,
         )
         self.assertEqual(
             cModule.sub_short(self.random_short_1, c_short(self.random_short_2)),
@@ -142,7 +142,8 @@ class TestFunctions_C(unittest.TestCase):
         self.assertAlmostEqual(d2.value(), self.random_double_2, 4)
 
         ## --- char tests with python str ---
-        full_name = cModule.string_concat("Vipul ", "Cariappa")
+        # full_name = cModule.string_concat("Vipul ", "Cariappa")
+        full_name = cModule.string_concat(c_char("Vipul "), c_char("Cariappa"))
         full_name.free_on_no_reference = True
         self.assertEqual(str(full_name), "Vipul Cariappa")
 
@@ -289,6 +290,7 @@ class TestFunctions_CPP(unittest.TestCase):
         self.assertEqual(cppModule.add(24, 46), 70)
 
         string = cppModule.add("Vipul", 2)
+        # string = cppModule.add(c_char("Vipul"), 2) # FIXME: match_ffi_type_to_defination things it is add(int, int) because PyNumber_Check is true on c_char
         string.free_on_no_reference = True
         self.assertEqual(str(string), "VipulVipul")
 

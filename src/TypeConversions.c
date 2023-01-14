@@ -36,8 +36,14 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_CharPointer:
-        if (Py_TYPE(arg) == &py_c_char_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_char_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_char *)arg)->pointer;
+        } else if (PyUnicode_Check(arg)) {
+            char **data  = malloc(sizeof(char *));
+            *data        = (char *)PyUnicode_AsUTF8AndSize(arg, NULL);
+            *should_free = true;
+            return data;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_char got other type");
             return NULL;
@@ -63,7 +69,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_BoolPointer:
-        if (Py_TYPE(arg) == &py_c_bool_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_bool_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_bool *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_bool got other type");
@@ -85,7 +92,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_ShortPointer:
-        if (Py_TYPE(arg) == &py_c_short_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_short_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_short *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_short got other type");
@@ -107,10 +115,12 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_UShortPointer:
-        if (Py_TYPE(arg) == &py_c_ushort_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_ushort_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_ushort *)arg)->pointer;
         } else {
-            PyErr_SetString(PyExc_TypeError, "Expected c_ushort got other type");
+            PyErr_SetString(PyExc_TypeError,
+                            "Expected c_ushort got other type");
             return NULL;
         }
 
@@ -151,7 +161,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_UIntPointer:
-        if (Py_TYPE(arg) == &py_c_uint_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_uint_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_uint *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_uint got other type");
@@ -173,7 +184,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_LongPointer:
-        if (Py_TYPE(arg) == &py_c_long_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_long_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_long *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_long got other type");
@@ -195,7 +207,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_ULongPointer:
-        if (Py_TYPE(arg) == &py_c_ulong_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_ulong_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_ulong *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_ulong got other type");
@@ -217,7 +230,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_FloatPointer:
-        if (Py_TYPE(arg) == &py_c_float_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_float_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_float *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_float got other type");
@@ -239,23 +253,27 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
     }
 
     case CXX_DoublePointer:
-        if (Py_TYPE(arg) == &py_c_double_type || Py_TYPE(arg) == &py_c_void_type) {
+        if (Py_TYPE(arg) == &py_c_double_type ||
+            Py_TYPE(arg) == &py_c_void_type) {
             return &((PyC_c_double *)arg)->pointer;
         } else {
-            PyErr_SetString(PyExc_TypeError, "Expected c_double got other type");
+            PyErr_SetString(PyExc_TypeError,
+                            "Expected c_double got other type");
             return NULL;
         }
 
     case CXX_Struct:
         if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
             PyC_c_struct *py_struct_type = (PyC_c_struct *)arg;
-            void         *data           = malloc(py_struct_type->structure->structSize);
+            void         *data = malloc(py_struct_type->structure->structSize);
             PYERR_MEM(data);
             *should_free = true;
-            memcpy(data, py_struct_type->pointer, py_struct_type->structure->structSize);
+            memcpy(data, py_struct_type->pointer,
+                   py_struct_type->structure->structSize);
             return data;
         } else {
-            PyErr_SetString(PyExc_TypeError, "Expected c_struct got other type");
+            PyErr_SetString(PyExc_TypeError,
+                            "Expected c_struct got other type");
             return NULL;
         }
 
@@ -263,7 +281,8 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
         if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
             return &((PyC_c_void *)arg)->pointer;
         } else {
-            PyErr_SetString(PyExc_TypeError, "Expected c_struct got other type");
+            PyErr_SetString(PyExc_TypeError,
+                            "Expected c_struct got other type");
             return NULL;
         }
 
@@ -289,13 +308,19 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
         }
 
     default:
-        PyErr_SetString(py_BindingError, "Internal Error which converting python type to cpp type");
+        PyErr_SetString(
+            py_BindingError,
+            "Internal Error which converting python type to cpp type");
         return NULL;
     }
 }
 
-PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, PyObject *module) {
+PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
+                          PyObject *module) {
     switch (type) {
+
+    case CXX_Void:
+        Py_RETURN_NONE;
 
     case CXX_VoidPointer: {
         PyObject *py_arg = _PyObject_New(&py_c_void_type);
@@ -321,11 +346,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_char *)py_arg)->pointer       = *(char **)arg;
-        ((PyC_c_char *)py_arg)->value         = *((PyC_c_char *)py_arg)->pointer;
-        ((PyC_c_char *)py_arg)->freeOnDel     = false;
-        ((PyC_c_char *)py_arg)->isPointer     = false;
-        ((PyC_c_char *)py_arg)->isArray       = false;
+        ((PyC_c_char *)py_arg)->pointer   = *(char **)arg;
+        ((PyC_c_char *)py_arg)->value     = *((PyC_c_char *)py_arg)->pointer;
+        ((PyC_c_char *)py_arg)->freeOnDel = false;
+        ((PyC_c_char *)py_arg)->isPointer = true;
+        ((PyC_c_char *)py_arg)->isArray   = false;
         ((PyC_c_char *)py_arg)->arrayCapacity = 0;
         ((PyC_c_char *)py_arg)->arraySize     = 0;
         ((PyC_c_char *)py_arg)->_i            = 0;
@@ -345,11 +370,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_bool *)py_arg)->pointer       = *(bool **)arg;
-        ((PyC_c_bool *)py_arg)->value         = *((PyC_c_bool *)py_arg)->pointer;
-        ((PyC_c_bool *)py_arg)->freeOnDel     = false;
-        ((PyC_c_bool *)py_arg)->isPointer     = false;
-        ((PyC_c_bool *)py_arg)->isArray       = false;
+        ((PyC_c_bool *)py_arg)->pointer   = *(bool **)arg;
+        ((PyC_c_bool *)py_arg)->value     = *((PyC_c_bool *)py_arg)->pointer;
+        ((PyC_c_bool *)py_arg)->freeOnDel = false;
+        ((PyC_c_bool *)py_arg)->isPointer = true;
+        ((PyC_c_bool *)py_arg)->isArray   = false;
         ((PyC_c_bool *)py_arg)->arrayCapacity = 0;
         ((PyC_c_bool *)py_arg)->arraySize     = 0;
         ((PyC_c_bool *)py_arg)->_i            = 0;
@@ -365,11 +390,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_short *)py_arg)->pointer       = *(short **)arg;
-        ((PyC_c_short *)py_arg)->value         = *((PyC_c_short *)py_arg)->pointer;
-        ((PyC_c_short *)py_arg)->freeOnDel     = false;
-        ((PyC_c_short *)py_arg)->isPointer     = false;
-        ((PyC_c_short *)py_arg)->isArray       = false;
+        ((PyC_c_short *)py_arg)->pointer   = *(short **)arg;
+        ((PyC_c_short *)py_arg)->value     = *((PyC_c_short *)py_arg)->pointer;
+        ((PyC_c_short *)py_arg)->freeOnDel = false;
+        ((PyC_c_short *)py_arg)->isPointer = true;
+        ((PyC_c_short *)py_arg)->isArray   = false;
         ((PyC_c_short *)py_arg)->arrayCapacity = 0;
         ((PyC_c_short *)py_arg)->arraySize     = 0;
         ((PyC_c_short *)py_arg)->_i            = 0;
@@ -385,10 +410,10 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_ushort *)py_arg)->pointer       = *(unsigned short **)arg;
-        ((PyC_c_ushort *)py_arg)->value         = *((PyC_c_ushort *)py_arg)->pointer;
+        ((PyC_c_ushort *)py_arg)->pointer = *(unsigned short **)arg;
+        ((PyC_c_ushort *)py_arg)->value   = *((PyC_c_ushort *)py_arg)->pointer;
         ((PyC_c_ushort *)py_arg)->freeOnDel     = false;
-        ((PyC_c_ushort *)py_arg)->isPointer     = false;
+        ((PyC_c_ushort *)py_arg)->isPointer     = true;
         ((PyC_c_ushort *)py_arg)->isArray       = false;
         ((PyC_c_ushort *)py_arg)->arrayCapacity = 0;
         ((PyC_c_ushort *)py_arg)->arraySize     = 0;
@@ -408,7 +433,7 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         ((PyC_c_int *)py_arg)->pointer       = *(int **)arg;
         ((PyC_c_int *)py_arg)->value         = *((PyC_c_int *)py_arg)->pointer;
         ((PyC_c_int *)py_arg)->freeOnDel     = false;
-        ((PyC_c_int *)py_arg)->isPointer     = false;
+        ((PyC_c_int *)py_arg)->isPointer     = true;
         ((PyC_c_int *)py_arg)->isArray       = false;
         ((PyC_c_int *)py_arg)->arrayCapacity = 0;
         ((PyC_c_int *)py_arg)->arraySize     = 0;
@@ -425,11 +450,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_uint *)py_arg)->pointer       = *(unsigned int **)arg;
-        ((PyC_c_uint *)py_arg)->value         = *((PyC_c_uint *)py_arg)->pointer;
-        ((PyC_c_uint *)py_arg)->freeOnDel     = false;
-        ((PyC_c_uint *)py_arg)->isPointer     = false;
-        ((PyC_c_uint *)py_arg)->isArray       = false;
+        ((PyC_c_uint *)py_arg)->pointer   = *(unsigned int **)arg;
+        ((PyC_c_uint *)py_arg)->value     = *((PyC_c_uint *)py_arg)->pointer;
+        ((PyC_c_uint *)py_arg)->freeOnDel = false;
+        ((PyC_c_uint *)py_arg)->isPointer = true;
+        ((PyC_c_uint *)py_arg)->isArray   = false;
         ((PyC_c_uint *)py_arg)->arrayCapacity = 0;
         ((PyC_c_uint *)py_arg)->arraySize     = 0;
         ((PyC_c_uint *)py_arg)->_i            = 0;
@@ -445,11 +470,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_long *)py_arg)->pointer       = *(long **)arg;
-        ((PyC_c_long *)py_arg)->value         = *((PyC_c_long *)py_arg)->pointer;
-        ((PyC_c_long *)py_arg)->freeOnDel     = false;
-        ((PyC_c_long *)py_arg)->isPointer     = false;
-        ((PyC_c_long *)py_arg)->isArray       = false;
+        ((PyC_c_long *)py_arg)->pointer   = *(long **)arg;
+        ((PyC_c_long *)py_arg)->value     = *((PyC_c_long *)py_arg)->pointer;
+        ((PyC_c_long *)py_arg)->freeOnDel = false;
+        ((PyC_c_long *)py_arg)->isPointer = true;
+        ((PyC_c_long *)py_arg)->isArray   = false;
         ((PyC_c_long *)py_arg)->arrayCapacity = 0;
         ((PyC_c_long *)py_arg)->arraySize     = 0;
         ((PyC_c_long *)py_arg)->_i            = 0;
@@ -465,11 +490,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_ulong *)py_arg)->pointer       = *(unsigned long **)arg;
-        ((PyC_c_ulong *)py_arg)->value         = *((PyC_c_ulong *)py_arg)->pointer;
-        ((PyC_c_ulong *)py_arg)->freeOnDel     = false;
-        ((PyC_c_ulong *)py_arg)->isPointer     = false;
-        ((PyC_c_ulong *)py_arg)->isArray       = false;
+        ((PyC_c_ulong *)py_arg)->pointer   = *(unsigned long **)arg;
+        ((PyC_c_ulong *)py_arg)->value     = *((PyC_c_ulong *)py_arg)->pointer;
+        ((PyC_c_ulong *)py_arg)->freeOnDel = false;
+        ((PyC_c_ulong *)py_arg)->isPointer = true;
+        ((PyC_c_ulong *)py_arg)->isArray   = false;
         ((PyC_c_ulong *)py_arg)->arrayCapacity = 0;
         ((PyC_c_ulong *)py_arg)->arraySize     = 0;
         ((PyC_c_ulong *)py_arg)->_i            = 0;
@@ -485,11 +510,11 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_float *)py_arg)->pointer       = *(float **)arg;
-        ((PyC_c_float *)py_arg)->value         = *((PyC_c_float *)py_arg)->pointer;
-        ((PyC_c_float *)py_arg)->freeOnDel     = false;
-        ((PyC_c_float *)py_arg)->isPointer     = false;
-        ((PyC_c_float *)py_arg)->isArray       = false;
+        ((PyC_c_float *)py_arg)->pointer   = *(float **)arg;
+        ((PyC_c_float *)py_arg)->value     = *((PyC_c_float *)py_arg)->pointer;
+        ((PyC_c_float *)py_arg)->freeOnDel = false;
+        ((PyC_c_float *)py_arg)->isPointer = true;
+        ((PyC_c_float *)py_arg)->isArray   = false;
         ((PyC_c_float *)py_arg)->arrayCapacity = 0;
         ((PyC_c_float *)py_arg)->arraySize     = 0;
         ((PyC_c_float *)py_arg)->_i            = 0;
@@ -505,10 +530,10 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         if (py_arg == NULL) {
             return NULL;
         }
-        ((PyC_c_double *)py_arg)->pointer       = *(double **)arg;
-        ((PyC_c_double *)py_arg)->value         = *((PyC_c_double *)py_arg)->pointer;
+        ((PyC_c_double *)py_arg)->pointer = *(double **)arg;
+        ((PyC_c_double *)py_arg)->value   = *((PyC_c_double *)py_arg)->pointer;
         ((PyC_c_double *)py_arg)->freeOnDel     = false;
-        ((PyC_c_double *)py_arg)->isPointer     = false;
+        ((PyC_c_double *)py_arg)->isPointer     = true;
         ((PyC_c_double *)py_arg)->isArray       = false;
         ((PyC_c_double *)py_arg)->arrayCapacity = 0;
         ((PyC_c_double *)py_arg)->arraySize     = 0;
@@ -543,7 +568,7 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
 
         ((PyC_c_struct *)py_arg)->pointer       = *(void **)arg;
         ((PyC_c_struct *)py_arg)->freeOnDel     = false;
-        ((PyC_c_struct *)py_arg)->isPointer     = false;
+        ((PyC_c_struct *)py_arg)->isPointer     = true;
         ((PyC_c_struct *)py_arg)->isArray       = false;
         ((PyC_c_struct *)py_arg)->arrayCapacity = 0;
         ((PyC_c_struct *)py_arg)->arraySize     = 0;
@@ -577,7 +602,7 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
 
         ((PyC_c_union *)py_arg)->pointer       = *(void **)arg;
         ((PyC_c_union *)py_arg)->freeOnDel     = false;
-        ((PyC_c_union *)py_arg)->isPointer     = false;
+        ((PyC_c_union *)py_arg)->isPointer     = true;
         ((PyC_c_union *)py_arg)->isArray       = false;
         ((PyC_c_union *)py_arg)->arrayCapacity = 0;
         ((PyC_c_union *)py_arg)->arraySize     = 0;
@@ -587,7 +612,9 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info, 
         ((PyC_c_struct *)py_arg)->parentModule = module;
     }
     default:
-        PyErr_SetString(py_BindingError, "Internal Error while converting cpp type to python type");
+        PyErr_SetString(
+            py_BindingError,
+            "Internal Error while converting cpp type to python type");
         return NULL;
     }
 }
@@ -598,74 +625,89 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
     Py_ssize_t args_count = PyTuple_Size(args);
 
     for (int i = 0; i < funcs->funcCount; i++) {
-        FunctionType *func_type = FunctionType_array_get_ptr_at(funcs->functionTypes, i);
+        FunctionType *func_type =
+            FunctionType_array_get_ptr_at(funcs->functionTypes, i);
 
         if (args_count == func_type->argsCount) {
             func_num = i;
 
             for (int j = 0; j < args_count; j++) {
 
-                PyObject     *py_arg   = PyTuple_GetItem(args, j);
-                enum CXX_Type arg_type = CXX_Type_array_getat(func_type->argsTypeCXX, j);
+                PyObject     *py_arg = PyTuple_GetItem(args, j);
+                enum CXX_Type arg_type =
+                    CXX_Type_array_getat(func_type->argsTypeCXX, j);
 
                 switch (arg_type) {
                 case CXX_VoidPointer:
-                    if (PyObject_IsInstance(py_arg, (PyObject *)&py_c_type_type)) {
+                    if (PyObject_IsInstance(py_arg,
+                                            (PyObject *)&py_c_type_type)) {
                         func_num = -1;
                     }
                     break;
                 case CXX_CharPointer:
-                    if (Py_TYPE(py_arg) != &py_c_char_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_char_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type &&
+                        PyUnicode_Check(py_arg) == 0) {
                         func_num = -1;
                     }
                     break;
                 case CXX_Bool:
-                    if (PyBool_Check(py_arg) == 0) {
+                    if (PyBool_Check(py_arg) == 0 &&
+                        PyNumber_Check(py_arg) == 0) {
                         func_num = -1;
                     }
                     break;
                 case CXX_BoolPointer:
-                    if (Py_TYPE(py_arg) != &py_c_bool_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_bool_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_ShortPointer:
-                    if (Py_TYPE(py_arg) != &py_c_short_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_short_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_UShortPointer:
-                    if (Py_TYPE(py_arg) != &py_c_ushort_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_ushort_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_IntPointer:
-                    if (Py_TYPE(py_arg) != &py_c_int_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_int_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_UIntPointer:
-                    if (Py_TYPE(py_arg) != &py_c_uint_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_uint_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_LongPointer:
-                    if (Py_TYPE(py_arg) != &py_c_long_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_long_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_ULongPointer:
-                    if (Py_TYPE(py_arg) != &py_c_ulong_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_ulong_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_FloatPointer:
-                    if (Py_TYPE(py_arg) != &py_c_float_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_float_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
                 case CXX_DoublePointer:
-                    if (Py_TYPE(py_arg) != &py_c_double_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_double_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
@@ -675,7 +717,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
                     }
                     break;
                 case CXX_StructPointer:
-                    if (Py_TYPE(py_arg) != &py_c_struct_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_struct_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
@@ -685,7 +728,8 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
                     }
                     break;
                 case CXX_UnionPointer:
-                    if (Py_TYPE(py_arg) != &py_c_union_type && Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_union_type &&
+                        Py_TYPE(py_arg) != &py_c_void_type) {
                         func_num = -1;
                     }
                     break;
