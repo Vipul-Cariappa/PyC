@@ -37,6 +37,9 @@ jobs:
 
     - name: Code Coverage
       run: |
+        ls build
+        ls build/temp*
+        ls build/temp*/*
         gcov -abcfu build/temp.linux-x86_64-39/src/CppTypeInfo.c
         gcov -abcfu build/temp.linux-x86_64-39/src/CppWrapper_PyTypes.c
         gcov -abcfu build/temp.linux-x86_64-39/src/PyC.c
