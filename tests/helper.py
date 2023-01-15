@@ -1,3 +1,5 @@
+from PyC import *
+import PyC
 from PyC import LoadCpp, print_CppModule
 
 cache = dict()

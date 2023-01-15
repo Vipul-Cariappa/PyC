@@ -11,33 +11,41 @@ char *returns_pointer_c() {
 
 short *returns_pointer_s() {
   short *r = (short *)malloc(sizeof(short));
-  *r = 420;
+  *r       = 420;
   return r;
 }
 
 int *returns_pointer_i() {
   int *r = (int *)malloc(sizeof(int));
-  *r = 360;
+  *r     = 360;
   return r;
 }
 
 long *returns_pointer_l() {
   long *r = (long *)malloc(sizeof(long));
-  *r = 360;
+  *r      = 360;
   return r;
 }
 
-int add(int x, int y) { return x + y; }
+int add(int x, int y) {
+  return x + y;
+}
 
-int product_int(int x, int y) { return x * y; }
+int product_int(int x, int y) {
+  return x * y;
+}
 
-long increment_1(long x) { return ++x; }
+long increment_1(long x) {
+  return ++x;
+}
 
-short add_short(short x, short y) { return x + y; }
+short add_short(short x, short y) {
+  return x + y;
+}
 
 char *add(char *s, int n) {
   std::string result = std::string("");
-  std::string str = std::string(s);
+  std::string str    = std::string(s);
 
   for (int i = 0; i < n; i++) {
     result += str;
@@ -46,7 +54,9 @@ char *add(char *s, int n) {
   return strdup(result.c_str());
 }
 
-long long add_long_long(long long x, long long y) { return x + y; }
+// long long add_long_long(long long x, long long y) {
+//   return x + y;
+// }
 
 char *repeat_char(char s, int n) {
   std::string result = std::string("");
@@ -88,18 +98,22 @@ double pi(int n) {
 
 RECT *get_rect(int x, int y) {
   RECT *result = (RECT *)malloc(sizeof(RECT));
-  result->x = x;
-  result->y = y;
+  result->x    = x;
+  result->y    = y;
   return result;
 }
 
 RECT *rect_add(RECT *a, RECT *b) {
   RECT *result = (RECT *)malloc(sizeof(RECT));
-  result->x = a->x + b->x;
-  result->y = a->y + b->y;
+  result->x    = a->x + b->x;
+  result->y    = a->y + b->y;
   return result;
 }
 
-int get_area(RECT a) { return a.x * a.y; }
+int get_area(RECT a) {
+  return a.x * a.y;
+}
 
-int get_periment(RECT a) { return 2 * (a.x + a.y); }
+int get_periment(RECT a) {
+  return 2 * (a.x + a.y);
+}

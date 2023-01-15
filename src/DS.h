@@ -3,29 +3,29 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #define DS_ARRAY_DEC(name, TYPE)                                               \
   typedef struct _##name##_array_t name##_array_t;                             \
   name##_array_t *name##_array_new();                                          \
-  size_t name##_array_size(name##_array_t *arr);                               \
+  size_t name##_array_size(const name##_array_t *arr);                         \
   bool name##_array_append(name##_array_t *arr, TYPE val);                     \
   TYPE name##_array_pop(name##_array_t *arr);                                  \
-  bool name##_array_setat(name##_array_t *arr, TYPE val, size_t index);        \
-  TYPE name##_array_getat(name##_array_t *arr, size_t index);                  \
-  TYPE *name##_array_get_ptr_at(name##_array_t *arr, size_t index);            \
+  bool name##_array_setat(name##_array_t *arr, TYPE val, const size_t index);  \
+  TYPE name##_array_getat(const name##_array_t *arr, const size_t index);      \
+  TYPE *name##_array_get_ptr_at(const name##_array_t *arr,                     \
+                                const size_t index);                           \
   bool name##_array_clear(name##_array_t *arr);
 
 #define DS_LIST_DEC(name, TYPE)                                                \
   typedef struct _##name##_list_t name##_list_t;                               \
   name##_list_t *name##_list_new();                                            \
-  size_t name##_list_size(name##_list_t *li);                                  \
+  size_t name##_list_size(const name##_list_t *li);                            \
   bool name##_list_append(name##_list_t *li, TYPE val);                        \
   TYPE name##_list_pop(name##_list_t *li);                                     \
-  bool name##_list_setat(name##_list_t *li, TYPE val, size_t index);           \
-  TYPE name##_list_getat(name##_list_t *li, size_t index);                     \
-  TYPE *name##_list_get_ptr_at(name##_list_t *li, size_t index);               \
+  bool name##_list_setat(name##_list_t *li, TYPE val, const size_t index);     \
+  TYPE name##_list_getat(const name##_list_t *li, const size_t index);         \
+  TYPE *name##_list_get_ptr_at(const name##_list_t *li, const size_t index);   \
   bool name##_list_clear(name##_list_t *li);
 
 #define DS_ARRAY_DEF(name, TYPE, delFunc)                                      \
@@ -51,11 +51,13 @@
     }                                                                          \
                                                                                \
     arr->capacity = 4;                                                         \
-    arr->size = 0;                                                             \
+    arr->size     = 0;                                                         \
     return arr;                                                                \
   }                                                                            \
                                                                                \
-  size_t name##_array_size(name##_array_t *arr) { return arr->size; }          \
+  size_t name##_array_size(const name##_array_t *arr) {                        \
+    return arr->size;                                                          \
+  }                                                                            \
                                                                                \
   bool name##_array_append(name##_array_t *arr, TYPE val) {                    \
     if (arr->size < arr->capacity) {                                           \
@@ -90,10 +92,10 @@
     return last_value;                                                         \
   }                                                                            \
                                                                                \
-  bool name##_array_setat(name##_array_t *arr, TYPE val, size_t index) {       \
+  bool name##_array_setat(name##_array_t *arr, TYPE val, const size_t index) { \
     if (index < arr->size) {                                                   \
       if (delFunc) {                                                           \
-        delFunc(arr->array[index]);                                            \
+        delFunc(arr->array + index);                                           \
       }                                                                        \
       arr->array[index] = val;                                                 \
       return true;                                                             \
@@ -102,7 +104,7 @@
     return false;                                                              \
   }                                                                            \
                                                                                \
-  TYPE name##_array_getat(name##_array_t *arr, size_t index) {                 \
+  TYPE name##_array_getat(const name##_array_t *arr, const size_t index) {     \
     if (index < arr->size) {                                                   \
       return arr->array[index];                                                \
     }                                                                          \
@@ -110,7 +112,8 @@
     return (TYPE){0};                                                          \
   }                                                                            \
                                                                                \
-  TYPE *name##_array_get_ptr_at(name##_array_t *arr, size_t index) {           \
+  TYPE *name##_array_get_ptr_at(const name##_array_t *arr,                     \
+                                const size_t index) {                          \
     if (index < arr->size) {                                                   \
       return arr->array + index;                                               \
     }                                                                          \
@@ -121,7 +124,7 @@
   bool name##_array_clear(name##_array_t *arr) {                               \
     if (delFunc) {                                                             \
       for (size_t i = 0; i < arr->size; i++) {                                 \
-        delFunc(arr->array[i]);                                                \
+        delFunc(arr->array + i);                                               \
       }                                                                        \
     }                                                                          \
     free(arr->array);                                                          \
@@ -129,9 +132,13 @@
     return true;                                                               \
   }
 
-#define DS_ARRAY_FOREACH(arr)                                                  \
-  for (size_t _k = 1, _i = 0; _k && _i != arr->size; _k = !_k, _i++)           \
-    for (typeof(*(arr->array)) elem = arr->array[_i]; _k; _k = !_k)
+#define DS_ARRAY_FOREACH(arr, name)                                            \
+  typeof(*(arr->array)) name = arr->array[0];                                  \
+  for (size_t _i = 0; _i++ < arr->size; name = arr->array[_i])
+
+#define DS_ARRAY_PTR_FOREACH(arr, name)                                        \
+  typeof(*(arr->array)) *name = arr->array + 0;                                \
+  for (size_t _i = 0; _i++ < arr->size; name = arr->array + _i)
 
 #define DS_LIST_DEF(name, TYPE, delFunc)                                       \
   typedef struct _##name##_list_node name##_list_node;                         \
@@ -156,12 +163,14 @@
     }                                                                          \
                                                                                \
     li->first = NULL;                                                          \
-    li->last = NULL;                                                           \
-    li->size = 0;                                                              \
+    li->last  = NULL;                                                          \
+    li->size  = 0;                                                             \
     return li;                                                                 \
   }                                                                            \
                                                                                \
-  size_t name##_list_size(name##_list_t *li) { return li->size; }              \
+  size_t name##_list_size(const name##_list_t *li) {                           \
+    return li->size;                                                           \
+  }                                                                            \
                                                                                \
   bool name##_list_append(name##_list_t *li, TYPE val) {                       \
     name##_list_node *new = malloc(sizeof(name##_list_node));                  \
@@ -171,15 +180,15 @@
     }                                                                          \
                                                                                \
     new->element = val;                                                        \
-    new->next = NULL;                                                          \
+    new->next    = NULL;                                                       \
                                                                                \
     if (li->size > 0) {                                                        \
       name##_list_node *last = li->last;                                       \
       assert(last->next == NULL);                                              \
-      last->next = new;                                                        \
+      last->next    = new;                                                     \
       new->previous = last;                                                    \
     } else {                                                                   \
-      li->first = new;                                                         \
+      li->first     = new;                                                     \
       new->previous = NULL;                                                    \
     }                                                                          \
                                                                                \
@@ -190,8 +199,8 @@
                                                                                \
   TYPE name##_list_pop(name##_list_t *li) {                                    \
     name##_list_node *last = li->last;                                         \
-    last->previous->next = NULL;                                               \
-    li->last = last->previous;                                                 \
+    last->previous->next   = NULL;                                             \
+    li->last               = last->previous;                                   \
     li->size--;                                                                \
                                                                                \
     TYPE element = last->element;                                              \
@@ -199,7 +208,7 @@
     return element;                                                            \
   }                                                                            \
                                                                                \
-  bool name##_list_setat(name##_list_t *li, TYPE val, size_t index) {          \
+  bool name##_list_setat(name##_list_t *li, TYPE val, const size_t index) {    \
     if (index >= li->size) {                                                   \
       errno = EINVAL;                                                          \
       return false;                                                            \
@@ -211,14 +220,14 @@
     }                                                                          \
                                                                                \
     if (delFunc) {                                                             \
-      delFunc(node->element);                                                  \
+      delFunc(&(node->element));                                               \
     }                                                                          \
                                                                                \
     node->element = val;                                                       \
     return true;                                                               \
   }                                                                            \
                                                                                \
-  TYPE name##_list_getat(name##_list_t *li, size_t index) {                    \
+  TYPE name##_list_getat(const name##_list_t *li, const size_t index) {        \
     if (index >= li->size) {                                                   \
       errno = EINVAL;                                                          \
       return (TYPE){0};                                                        \
@@ -231,7 +240,7 @@
     return node->element;                                                      \
   }                                                                            \
                                                                                \
-  TYPE *name##_list_get_ptr_at(name##_list_t *li, size_t index) {              \
+  TYPE *name##_list_get_ptr_at(const name##_list_t *li, const size_t index) {  \
     if (index >= li->size) {                                                   \
       errno = EINVAL;                                                          \
       return NULL;                                                             \
@@ -244,12 +253,12 @@
     return &(node->element);                                                   \
   }                                                                            \
                                                                                \
-  bool name##_list_clear(name##_list_t *li) {                                   \
+  bool name##_list_clear(name##_list_t *li) {                                  \
     name##_list_node *node = li->first;                                        \
     for (size_t i = 0; i < li->size; i++) {                                    \
       name##_list_node *next = node->next;                                     \
       if (delFunc) {                                                           \
-        delFunc(node->element);                                                \
+        delFunc(&(node->element));                                             \
       }                                                                        \
       free(node);                                                              \
       node = next;                                                             \
@@ -258,8 +267,19 @@
     return true;                                                               \
   }
 
-#define DS_LIST_FOREACH(li)                                                    \
-  typeof(li->first) _node = li->first;                                         \
-  for (size_t _k = 1, _i = 0; _k && _i != li->size;                            \
-       _k = !_k, _i++, _node = _node->next)                                    \
-    for (typeof(li->first->element) elem = _node->element; _k; _k = !_k)
+#define DS_LIST_FOREACH(li, name)                                              \
+  typeof(li->first) name##_node   = li->first;                                 \
+  typeof(li->first->element) name = name##_node->element;                      \
+  for (size_t(name##_i) = 0, _i = 0; ++(name##_i) <= li->size;                 \
+       name##_node = name##_node->next,                                        \
+      name         = name##_node ? name##_node->element                        \
+                                 : (typeof(li->first->element)){0},            \
+      _i++)
+
+#define DS_LIST_PTR_FOREACH(li, name)                                          \
+  typeof(li->first) name##_node    = li->first;                                \
+  typeof(li->first->element) *name = &(name##_node->element);                  \
+  for (size_t(name##_i) = 0, _i = 0; ++(name##_i) <= li->size;                 \
+       name##_node = name##_node->next,                                        \
+      name         = name##_node ? &(name##_node->element) : NULL,             \
+      _i++)
