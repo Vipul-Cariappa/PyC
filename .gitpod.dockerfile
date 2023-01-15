@@ -27,27 +27,28 @@ RUN sudo apt-get update \
     && sudo rm -rf /var/lib/apt/lists/*
 
 # downloading and extracting premake5
-RUN sudo wget https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-linux.tar.gz \
- && sudo tar xzf premake-5.0.0-beta1-linux.tar.gz \
+RUN sudo wget https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-linux.tar.gz \
+ && sudo tar xzf premake-5.0.0-beta2-linux.tar.gz \
  && sudo mv premake5 /usr/bin \
- && sudo rm premake-5.0.0-beta1-linux.tar.gz
+ && sudo rm premake-5.0.0-beta2-linux.tar.gz
 
 # downloading qlibc and installing
-RUN git clone https://github.com/wolkykim/qlibc.git \
- && cd qlibc \
- && ./configure --prefix=/usr/ \
- && make \
- && sudo make install \
- && cd .. \
- && rm -fr qlibc/
+# NOTE: No longer a dependency
+# RUN git clone https://github.com/wolkykim/qlibc.git \
+#  && cd qlibc \
+#  && ./configure --prefix=/usr/ \
+#  && make \
+#  && sudo make install \
+#  && cd .. \
+#  && rm -fr qlibc/
 
-# downloading and installing python3.10 in debug mode
-RUN wget https://www.python.org/ftp/python/3.10.7/Python-3.10.7.tar.xz \
- && tar -xf Python-3.10.7.tar.xz \
- && cd Python-3.10.7 \
- && ./configure --enable-shared --with-trace-refs --with-assertions --with-address-sanitizer --with-pydebug \
+# downloading and installing python3.11 in debug mode
+RUN wget https://www.python.org/ftp/python/3.11.1/Python-3.11.1.tar.xz \
+ && tar -xf Python-3.11.1.tar.xz \
+ && cd Python-3.11.1 \
+ && ./configure --enable-shared --with-trace-refs --with-assertions --with-pydebug \
  && make \
  && sudo make altinstall \
  && sudo ldconfig $(pwd) \
  && cd .. \
- && rm Python-3.10.7.tar.xz
+ && rm Python-3.11.1.tar.xz
