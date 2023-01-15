@@ -452,16 +452,29 @@ PyObject *Cpp_FunctionCall(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     // preparing ffi_type for return value
     void *rc = malloc(funcType->returnTypeFFI->size);
-    if (ffi_args == NULL) {
-        free(ffi_args);
-        free(args_values);
-        free(locations_to_free);
-        return PyErr_NoMemory();
-    }
+    // if (ffi_args == NULL) {
+    //     free(ffi_args);
+    //     free(args_values);
+    //     free(locations_to_free);
+    //     return PyErr_NoMemory();
+    // }
 
     if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, args_count, funcType->returnTypeFFI,
                      ffi_args) == FFI_OK) {
         ffi_call(&cif, funcType->func, rc, args_values);
+    } else {
+        // clear allocated memory
+        for (int i = 0; i < args_count; i++) {
+            if (locations_to_free[i] == true) {
+                free(args_values[i]);
+            }
+        }
+        free(ffi_args);
+        free(args_values);
+        free(locations_to_free);
+        // TODO: free rc based of type
+        PyErr_SetString(py_CppError, "Error occured when calling ffi_prep_cif");
+        return NULL;
     }
 
     // clear allocated memory

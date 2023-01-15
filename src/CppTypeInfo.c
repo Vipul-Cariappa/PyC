@@ -265,7 +265,10 @@ ffi_type Build_Structure_ffi_type(const p_ffi_type_array_t *ffi_type_list) {
     size_t len    = p_ffi_type_array_size(ffi_type_list);
     type.elements = calloc(len + 1, sizeof(ffi_type *));
 
-    DS_ARRAY_FOREACH (ffi_type_list, elem) { type.elements[_i] = elem; }
+    for (int i = 0; i < p_ffi_type_array_size(ffi_type_list); i++) {
+        type.elements[i] = p_ffi_type_array_getat(ffi_type_list, i);
+    }
+
     type.elements[len] = NULL;
 
     ffi_cif cif;
@@ -364,6 +367,7 @@ ffi_type Build_Union_ffi_type(const p_ffi_type_array_t *ffi_type_list) {
 
 bool Symbols_appendUnion(Symbols *sym, Union u) {
     ffi_type union_type = Build_Union_ffi_type(u.attrTypeFFI);
+    u.type = union_type;
 
     if (!Symbols_getUnion(sym, u.name)) {
 

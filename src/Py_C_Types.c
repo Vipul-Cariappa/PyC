@@ -210,7 +210,7 @@ struct Custom_u_PyTypeObject {
         if (type_check_func(py_value)) {                                             \
             type value = type_convert_pyobj_to_ctype(py_value);                      \
                                                                                      \
-            if (selfType->arrayCapacity > (selfType->arraySize + 1)) {               \
+            if (selfType->arrayCapacity > selfType->arraySize) {                     \
                 selfType->pointer[selfType->arraySize] = value;                      \
             } else {                                                                 \
                 int new_capacity = selfType->arrayCapacity                           \
@@ -221,6 +221,9 @@ struct Custom_u_PyTypeObject {
                 selfType->arrayCapacity = new_capacity;                              \
                                                                                      \
                 selfType->pointer[selfType->arraySize] = value;                      \
+                /*memset(selfType->pointer + selfType->arraySize + 1, 0,             \
+                       sizeof(*(selfType->pointer)) * new_capacity -                 \
+                           selfType->arraySize + 1);*/                               \
             }                                                                        \
                                                                                      \
             (selfType->arraySize)++;                                                 \
@@ -598,6 +601,7 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
     selfType->structure     = s;
     selfType->freeOnDel     = true;
     selfType->isArray       = false;
+    selfType->isPointer     = false;
     selfType->arraySize     = 0;
     selfType->arrayCapacity = 0;
 
@@ -612,15 +616,17 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
         return 0;
     }
 
+    // making a array od structs
     if (args_len == 1 && PySequence_Check(PyTuple_GetItem(args, 0))) {
         PyObject *arr     = PyTuple_GetItem(args, 0);
         size_t    arr_len = PySequence_Size(arr);
 
-        free(selfType->pointer);
-        selfType->pointer       = calloc(arr_len, s->structSize);
+        selfType->pointer =
+            realloc(selfType->pointer, s->structSize * (arr_len + 1));
         selfType->isArray       = true;
+        selfType->isPointer     = true;
         selfType->arraySize     = arr_len;
-        selfType->arrayCapacity = arr_len;
+        selfType->arrayCapacity = arr_len + 1;
 
         for (size_t i = 0; i < arr_len; i++) {
             PyObject *element = PySequence_GetItem(arr, i);
@@ -636,6 +642,8 @@ static int c_struct_init(PyObject *self, PyObject *args, PyObject *kwargs) {
             PyC_c_struct *elementType = (PyC_c_struct *)element;
             memcpy(selfType->pointer + (s->structSize * i),
                    elementType->pointer, s->structSize);
+
+            Py_DECREF(element);
         }
 
         return 0;
@@ -714,8 +722,8 @@ static int c_struct_setattr(PyObject *self, char *attr, PyObject *pValue) {
     }
 
     for (size_t i = 0; i < selfType->structure->attrCount; i++) {
-        if (!(strcmp(attr,
-                     str_array_getat(selfType->structure->attrNames, i)))) {
+        if (strcmp(attr, str_array_getat(selfType->structure->attrNames, i)) ==
+            0) {
             enum CXX_Type cxx_type =
                 CXX_Type_array_getat(selfType->structure->attrTypeCXX, i);
             ffi_type *type =
@@ -905,13 +913,11 @@ static PyObject *c_struct_append(PyObject *self, PyObject *args) {
                valueType->pointer, selfType->structure->structSize);
     }
 
-    void *data = selfType->pointer +
-                 (selfType->structure->structSize * selfType->arraySize);
-
     (selfType->arraySize)++;
 
-    return cppArg_to_pyArg(data, CXX_Struct, selfType->structure,
-                           selfType->parentModule);
+    Py_INCREF(value);
+
+    return value;
 }
 
 // PyC.c_struct.pop
@@ -930,20 +936,22 @@ static PyObject *c_struct_pop(PyObject *self) {
         return NULL;
     }
 
-    // BUG: I guess this is flawed logic to pop the memory should be copied
-    // before pop
-    void *data = selfType->pointer +
-                 (selfType->structure->structSize * selfType->arraySize - 1);
+    void *data = malloc(selfType->structure->structSize);
+    memcpy(data,
+           ((char *)selfType->pointer) +
+               (selfType->structure->structSize * (selfType->arraySize - 1)),
+           selfType->structure->structSize);
+
     PyObject *tmp = cppArg_to_pyArg(data, CXX_Struct, selfType->structure,
                                     selfType->parentModule);
 
     (selfType->arraySize)--;
 
-    if ((selfType->arraySize * 2 + 1) < selfType->arrayCapacity) {
+    if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
         selfType->pointer =
-            realloc(selfType->pointer, (selfType->arraySize + 1) *
-                                           selfType->structure->structSize);
-        selfType->arrayCapacity = selfType->arraySize * 2 + 1;
+            realloc(selfType->pointer,
+                    (selfType->arraySize) * selfType->structure->structSize);
+        selfType->arrayCapacity = selfType->arraySize;
     }
 
     return tmp;
@@ -1333,8 +1341,8 @@ static PyObject *c_union_next(PyObject *self) {
 
     if (selfType->arraySize > index) {
         void *data = selfType->pointer + (selfType->u->unionSize * index);
-        return cppArg_to_pyArg(data, CXX_Struct, selfType->u,
-                               selfType->parentModule);
+        rvalue     = cppArg_to_pyArg(data, CXX_Struct, selfType->u,
+                                     selfType->parentModule);
     }
     (selfType->_i)++;
 
@@ -1386,8 +1394,8 @@ static PyObject *c_union_append(PyObject *self, PyObject *args) {
 
     (selfType->arraySize)++;
 
-    return cppArg_to_pyArg(data, CXX_Union, selfType->u,
-                           selfType->parentModule);
+    Py_INCREF(value);
+    return value;
 }
 
 // PyC.c_union.pop
@@ -1406,20 +1414,21 @@ static PyObject *c_union_pop(PyObject *self) {
         return NULL;
     }
 
-    // BUG: I guess this is flawed logic to pop the memory should be copied
-    // before pop
-    void *data =
-        selfType->pointer + (selfType->u->unionSize * selfType->arraySize - 1);
+    void *data = malloc(selfType->u->unionSize);
+    memcpy(data,
+           ((char *)selfType->pointer) +
+               (selfType->u->unionSize * (selfType->arraySize - 1)),
+           selfType->u->unionSize);
+
     PyObject *tmp =
-        cppArg_to_pyArg(data, CXX_Union, selfType->u, selfType->parentModule);
+        cppArg_to_pyArg(data, CXX_Struct, selfType->u, selfType->parentModule);
 
     (selfType->arraySize)--;
 
-    if ((selfType->arraySize * 2 + 1) < selfType->arrayCapacity) {
-        selfType->pointer =
-            realloc(selfType->pointer,
-                    (selfType->arraySize + 1) * selfType->u->unionSize);
-        selfType->arrayCapacity = selfType->arraySize * 2 + 1;
+    if ((selfType->arraySize * 2) < selfType->arrayCapacity) {
+        selfType->pointer = realloc(
+            selfType->pointer, (selfType->arraySize) * selfType->u->unionSize);
+        selfType->arrayCapacity = selfType->arraySize * 2;
     }
 
     return tmp;

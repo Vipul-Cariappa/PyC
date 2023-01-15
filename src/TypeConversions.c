@@ -279,7 +279,7 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
 
     case CXX_StructPointer:
         if (PyObject_IsInstance(arg, (PyObject *)&py_c_struct_type)) {
-            return &((PyC_c_void *)arg)->pointer;
+            return &((PyC_c_union *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError,
                             "Expected c_struct got other type");
@@ -301,7 +301,7 @@ void *pyArg_to_cppArg(PyObject *arg, enum CXX_Type type, bool *should_free) {
 
     case CXX_UnionPointer:
         if (PyObject_IsInstance(arg, (PyObject *)&py_c_union_type)) {
-            return &((PyC_c_void *)arg)->pointer;
+            return &((PyC_c_union *)arg)->pointer;
         } else {
             PyErr_SetString(PyExc_TypeError, "Expected c_union got other type");
             return NULL;
@@ -543,11 +543,18 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
     }
 
     case CXX_Struct: {
-        PyObject *py_arg = _PyObject_New(&py_c_struct_type);
+        Structure *s           = extra_type_info;
+        PyObject  *struct_type = PyObject_GetAttrString(module, s->name);
+
+        PyObject *a      = PyTuple_New(0);
+        PyObject *py_arg = PyObject_CallObject(struct_type, a);
+        Py_DECREF(a);
+
         if (py_arg == NULL) {
             return NULL;
         }
 
+        free(((PyC_c_struct *)py_arg)->pointer);
         ((PyC_c_struct *)py_arg)->pointer       = arg;
         ((PyC_c_struct *)py_arg)->freeOnDel     = false;
         ((PyC_c_struct *)py_arg)->isPointer     = false;
@@ -558,14 +565,23 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
         ((PyC_c_struct *)py_arg)->structure     = extra_type_info;
         Py_INCREF(module);
         ((PyC_c_struct *)py_arg)->parentModule = module;
+
+        return py_arg;
     }
 
     case CXX_StructPointer: {
-        PyObject *py_arg = _PyObject_New(&py_c_struct_type);
+        Structure *s           = extra_type_info;
+        PyObject  *struct_type = PyObject_GetAttrString(module, s->name);
+
+        PyObject *a      = PyTuple_New(0);
+        PyObject *py_arg = PyObject_CallObject(struct_type, a);
+        Py_DECREF(a);
+
         if (py_arg == NULL) {
             return NULL;
         }
 
+        free(((PyC_c_struct *)py_arg)->pointer);
         ((PyC_c_struct *)py_arg)->pointer       = *(void **)arg;
         ((PyC_c_struct *)py_arg)->freeOnDel     = false;
         ((PyC_c_struct *)py_arg)->isPointer     = true;
@@ -576,13 +592,25 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
         ((PyC_c_struct *)py_arg)->structure     = extra_type_info;
         Py_INCREF(module);
         ((PyC_c_struct *)py_arg)->parentModule = module;
+
+        // Py_INCREF(py_arg); // FIXME
+        // Py_INCREF(struct_type); // FIXME
+
+        return py_arg;
     }
     case CXX_Union: {
-        PyObject *py_arg = _PyObject_New(&py_c_union_type);
+        Union    *s           = extra_type_info;
+        PyObject *struct_type = PyObject_GetAttrString(module, s->name);
+
+        PyObject *a      = PyTuple_New(0);
+        PyObject *py_arg = PyObject_CallObject(struct_type, a);
+        Py_DECREF(a);
+
         if (py_arg == NULL) {
             return NULL;
         }
 
+        free(((PyC_c_union *)py_arg)->pointer);
         ((PyC_c_union *)py_arg)->pointer       = arg;
         ((PyC_c_union *)py_arg)->freeOnDel     = false;
         ((PyC_c_union *)py_arg)->isPointer     = false;
@@ -593,13 +621,21 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
         ((PyC_c_union *)py_arg)->u             = extra_type_info;
         Py_INCREF(module);
         ((PyC_c_struct *)py_arg)->parentModule = module;
+        return py_arg;
     }
     case CXX_UnionPointer: {
-        PyObject *py_arg = _PyObject_New(&py_c_union_type);
+        Union    *s           = extra_type_info;
+        PyObject *struct_type = PyObject_GetAttrString(module, s->name);
+
+        PyObject *a      = PyTuple_New(0);
+        PyObject *py_arg = PyObject_CallObject(struct_type, a);
+        Py_DECREF(a);
+
         if (py_arg == NULL) {
             return NULL;
         }
 
+        free(((PyC_c_union *)py_arg)->pointer);
         ((PyC_c_union *)py_arg)->pointer       = *(void **)arg;
         ((PyC_c_union *)py_arg)->freeOnDel     = false;
         ((PyC_c_union *)py_arg)->isPointer     = true;
@@ -610,6 +646,7 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
         ((PyC_c_union *)py_arg)->u             = extra_type_info;
         Py_INCREF(module);
         ((PyC_c_struct *)py_arg)->parentModule = module;
+        return py_arg;
     }
     default:
         PyErr_SetString(
@@ -712,24 +749,28 @@ int match_ffi_type_to_defination(Function *funcs, PyObject *args) {
                     }
                     break;
                 case CXX_Struct:
-                    if (Py_TYPE(py_arg) != &py_c_struct_type) {
+                    if (PyObject_IsInstance(
+                            py_arg, (PyObject *)&py_c_struct_type) == 0) {
                         func_num = -1;
                     }
                     break;
                 case CXX_StructPointer:
-                    if (Py_TYPE(py_arg) != &py_c_struct_type &&
-                        Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_void_type &&
+                        PyObject_IsInstance(
+                            py_arg, (PyObject *)&py_c_struct_type) == 0) {
                         func_num = -1;
                     }
                     break;
                 case CXX_Union:
-                    if (Py_TYPE(py_arg) != &py_c_union_type) {
+                    if (PyObject_IsInstance(
+                            py_arg, (PyObject *)&py_c_union_type) == 0) {
                         func_num = -1;
                     }
                     break;
                 case CXX_UnionPointer:
-                    if (Py_TYPE(py_arg) != &py_c_union_type &&
-                        Py_TYPE(py_arg) != &py_c_void_type) {
+                    if (Py_TYPE(py_arg) != &py_c_void_type &&
+                        PyObject_IsInstance(
+                            py_arg, (PyObject *)&py_c_union_type) == 0) {
                         func_num = -1;
                     }
                     break;

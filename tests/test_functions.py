@@ -161,122 +161,122 @@ class TestFunctions_C(unittest.TestCase):
         list_power_2 = cModule.powers_of_two_list(20)  # TODO: change a pointer to array
         list_power_2.free_on_no_reference = True
 
-    # def test_functions_with_structs(self):
-    #     # TODO: update to use randomly generated number
-    #     r = cModule.RECT
+    def test_functions_with_structs(self):
+        # TODO: update to use randomly generated number
+        r = cModule.RECT
 
-    #     r1 = r()
-    #     r1.x = 200
-    #     r1.y = 100
+        r1 = r()
+        r1.x = 200
+        r1.y = 100
 
-    #     r2 = r()
-    #     r2.x = 250
-    #     r2.y = 140
+        r2 = r()
+        r2.x = 250
+        r2.y = 140
 
-    #     self.assertEqual(cModule.get_area(r1), 200 * 100)
-    #     self.assertEqual(cModule.get_perimeter(r1), 2 * (200 + 100))
+        self.assertEqual(cModule.get_area(r1), 200 * 100)
+        self.assertEqual(cModule.get_perimeter(r1), 2 * (200 + 100))
 
-    #     self.assertEqual(cModule.get_area(r2), 250 * 140)
-    #     self.assertEqual(cModule.get_perimeter(r2), 2 * (250 + 140))
+        self.assertEqual(cModule.get_area(r2), 250 * 140)
+        self.assertEqual(cModule.get_perimeter(r2), 2 * (250 + 140))
 
-    #     self.assertFalse(cModule.same_rects(r1, r2))
-    #     self.assertTrue(cModule.same_rects(r1, r1))
+        self.assertFalse(cModule.same_rects(r1, r2))
+        self.assertTrue(cModule.same_rects(r1, r1))
 
-    #     t = cModule.create_rect(1, 2)
-    #     f = cModule.rect_add_from_ptr(r1, r2)
-    #     f.free_on_no_reference = True
+        t = cModule.create_rect(1, 2)
+        f = cModule.rect_add_from_ptr(r1, r2)
+        f.free_on_no_reference = True
 
-    #     self.assertEqual(t.x, 1)
-    #     self.assertEqual(t.y, 2)
-    #     self.assertEqual(f.x, 200 + 250)
-    #     self.assertEqual(f.y, 100 + 140)
+        self.assertEqual(t.x, 1)
+        self.assertEqual(t.y, 2)
+        self.assertEqual(f.x, 200 + 250)
+        self.assertEqual(f.y, 100 + 140)
 
-    #     c = cModule.Cuboid()
-    #     c.z = 20
-    #     c.r = r1
-    #     self.assertEqual(c.r.x, 200)
-    #     self.assertEqual(c.r.y, 100)
-    #     self.assertEqual(c.z, 20)
+        c = cModule.Cuboid()
+        c.z = 20
+        c.r = r1
+        self.assertEqual(c.r.x, 200)
+        self.assertEqual(c.r.y, 100)
+        self.assertEqual(c.z, 20)
 
-    #     c = cModule.Cuboid_p()
-    #     c_int_ = c_int(20)
-    #     c.z = c_int_
-    #     c.r = r1
-    #     self.assertEqual(c.z.value(), 20)
-    #     self.assertEqual(c.r.x, 200)
-    #     self.assertEqual(c.r.y, 100)
+        c = cModule.Cuboid_p()
+        c_int_ = c_long(20)
+        c.z = c_int_
+        c.r = r1
+        self.assertEqual(c.z.value(), 20)
+        self.assertEqual(c.r.x, 200)
+        self.assertEqual(c.r.y, 100)
 
-    #     num = cModule.Number()
-    #     num.d = 3.1415
-    #     snum = cModule.sNumber()
-    #     snum.x = 10
-    #     snum.y = 20
-    #     snum.num = num
-    #     self.assertAlmostEqual(snum.num.d, 3.1415, 4)
-    #     self.assertEqual(snum.x, 10)
-    #     self.assertEqual(snum.y, 20)
+        num = cModule.Number()
+        num.d = 3.1415
+        snum = cModule.sNumber()
+        snum.x = 10
+        snum.y = 20
+        snum.num = num
+        self.assertAlmostEqual(snum.num.d, 3.1415, 4)
+        self.assertEqual(snum.x, 10)
+        self.assertEqual(snum.y, 20)
 
-    #     snump = cModule.sNumber_ptr()
-    #     n1 = c_int(10)
-    #     n2 = c_int(20)
-    #     snump.x = n1
-    #     snump.y = n2
-    #     snump.num = num
-    #     self.assertAlmostEqual(snump.num.d, 3.1415, 4)
-    #     self.assertEqual(snump.x.value(), 10)
-    #     self.assertEqual(snump.y.value(), 20)
+        snump = cModule.sNumber_ptr()
+        n1 = c_int(10)
+        n2 = c_int(20)
+        snump.x = n1
+        snump.y = n2
+        snump.num = num
+        self.assertAlmostEqual(snump.num.d, 3.1415, 4)
+        self.assertEqual(snump.x.value(), 10)
+        self.assertEqual(snump.y.value(), 20)
 
-    # def test_functions_with_unions(self):
-    #     num = cModule.Number()
-    #     num.c = 10
-    #     self.assertEqual(num.c, 10)
-    #     num.i = 200
-    #     self.assertEqual(num.i, 200)
-    #     num.l = 3000
-    #     self.assertEqual(num.l, 3000)
-    #     num.f = 3.14
-    #     self.assertAlmostEqual(num.f, 3.14, 4)
+    def test_functions_with_unions(self):
+        num = cModule.Number()
+        num.c = 10
+        self.assertEqual(num.c, 10)
+        num.i = 200
+        self.assertEqual(num.i, 200)
+        num.l = 3000
+        self.assertEqual(num.l, 3000)
+        num.f = 3.14
+        self.assertAlmostEqual(num.f, 3.14, 4)
 
-    #     num.d = cModule.pi(50000)
-    #     self.assertAlmostEqual(num.d, 3.1415, 3)
+        num.d = cModule.pi(50000)
+        self.assertAlmostEqual(num.d, 3.1415, 3)
 
-    #     unionOfStructs_ = cModule.unionOfStructs()
-    #     r1 = cModule.RECT()
-    #     r1.x = 920
-    #     r1.y = 640
-    #     unionOfStructs_.r = r1
-    #     self.assertEqual(unionOfStructs_.r.x, 920)
-    #     self.assertEqual(unionOfStructs_.r.y, 640)
-    #     unionOfStructs_.x = 300
-    #     self.assertEqual(unionOfStructs_.x, 300)
+        unionOfStructs_ = cModule.unionOfStructs()
+        r1 = cModule.RECT()
+        r1.x = 920
+        r1.y = 640
+        unionOfStructs_.r = r1
+        self.assertEqual(unionOfStructs_.r.x, 920)
+        self.assertEqual(unionOfStructs_.r.y, 640)
+        unionOfStructs_.x = 300
+        self.assertEqual(unionOfStructs_.x, 300)
 
-    #     unionOfUnions_ = cModule.unionOfUnions()
-    #     num.l = 5600
-    #     unionOfUnions_.n = num
-    #     self.assertEqual(unionOfUnions_.n.l, 5600)
-    #     unionOfUnions_.uos = unionOfStructs_
-    #     self.assertEqual(unionOfUnions_.uos.x, 300)
+        unionOfUnions_ = cModule.unionOfUnions()
+        num.l = 5600
+        unionOfUnions_.n = num
+        self.assertEqual(unionOfUnions_.n.l, 5600)
+        unionOfUnions_.uos = unionOfStructs_
+        self.assertEqual(unionOfUnions_.uos.x, 300)
 
-    #     unionOfPtr_ = cModule.unionOfPtr()
-    #     unionOfPtr_.n = num
-    #     self.assertEqual(unionOfPtr_.n.l, 5600)
-    #     unionOfPtr_.r = r1
-    #     self.assertEqual(unionOfPtr_.r.x, 920)
-    #     self.assertEqual(unionOfPtr_.r.y, 640)
-    #     n = c_int(12)
-    #     unionOfPtr_.x = n
-    #     self.assertEqual(unionOfPtr_.x.value(), 12)
+        unionOfPtr_ = cModule.unionOfPtr()
+        unionOfPtr_.n = num
+        self.assertEqual(unionOfPtr_.n.l, 5600)
+        unionOfPtr_.r = r1
+        self.assertEqual(unionOfPtr_.r.x, 920)
+        self.assertEqual(unionOfPtr_.r.y, 640)
+        n = c_int(12)
+        unionOfPtr_.x = n
+        self.assertEqual(unionOfPtr_.x.value(), 12)
 
-    #     num.l = 3600
-    #     self.assertEqual(cModule.get_number(num), 3600)
-    #     self.assertEqual(cModule.get_number(num), 3600)
+        num.l = 3600
+        # self.assertEqual(cModule.get_number(num), 3600)
+        self.assertEqual(cModule.get_number_ptr(num), 3600)
 
-    #     num1 = cModule.creat_number_with_int(4800)
-    #     self.assertEqual(num1.i, 4800)
+        num1 = cModule.creat_number_with_int(4800)
+        self.assertEqual(num1.i, 4800)
 
-    #     num2 = cModule.creat_number_ptr_with_int(4800)
-    #     num2.free_on_no_reference = True
-    #     self.assertEqual(num2.i, 4800)
+        num2 = cModule.creat_number_ptr_with_int(4800)
+        num2.free_on_no_reference = True
+        self.assertEqual(num2.i, 4800)
 
 
 class TestFunctions_CPP(unittest.TestCase):
