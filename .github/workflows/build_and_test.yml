@@ -13,7 +13,7 @@ jobs:
 
     - name: Install Requirements
       run: |
-        sudo apt-get install -y libclang-dev libffi-dev
+        sudo apt-get install -y libclang-14-dev libffi-dev
     
     # - name: Initialize CodeQL
     #   uses: github/codeql-action/init@v2
@@ -28,7 +28,9 @@ jobs:
     #   uses: github/codeql-action/analyze@v2
 
     - name: Install
-      run: python setup.py install
+      run: |
+        mv -f ./.github/setup.py ./setup.py
+        python setup.py install
     
     - name: Test
       run: bash ./.github/test.sh

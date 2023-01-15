@@ -22,6 +22,13 @@ module = Extension(
         "ffi",
         "clang-14",
     ],
+    extra_compile_args=[
+        "-ftest-coverage",
+        "-fprofile-arcs",
+    ],
+    extra_link_args=[
+        "-lgcov",
+    ]
 )
 
 setup(
