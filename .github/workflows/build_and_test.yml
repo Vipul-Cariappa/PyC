@@ -22,14 +22,15 @@ jobs:
     #       queries: security-and-quality
 
     - name: Build
-      run: python setup.py build
+      run: |
+        mv -f ./.github/setup.py ./setup.py
+        python setup.py build
 
     # - name: Perform CodeQL Analysis
     #   uses: github/codeql-action/analyze@v2
 
     - name: Install
       run: |
-        mv -f ./.github/setup.py ./setup.py
         python setup.py install
     
     - name: Test
@@ -40,11 +41,11 @@ jobs:
         ls build
         ls build/temp*
         ls build/temp*/*
-        gcov -abcfu build/temp.linux-x86_64-39/src/CppTypeInfo.c
-        gcov -abcfu build/temp.linux-x86_64-39/src/CppWrapper_PyTypes.c
-        gcov -abcfu build/temp.linux-x86_64-39/src/PyC.c
-        gcov -abcfu build/temp.linux-x86_64-39/src/TypeConversions.c
-        gcov -abcfu build/temp.linux-x86_64-39/src/Py_C_Types.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/CppTypeInfo.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/CppWrapper_PyTypes.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/PyC.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/TypeConversions.c
+        gcov -abcfu build/temp.linux-x86_64-3.9/src/Py_C_Types.c
 
     - name: Upload Code Coverage
       uses: codecov/codecov-action@v2
