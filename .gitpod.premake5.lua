@@ -10,16 +10,16 @@ project "PyC"
 
     
     filter "configurations:Debug"
-        includedirs { "/usr/include/python3.8", "/usr/include", "/usr/lib/llvm-12/include/" }
+        includedirs { "/usr/local/include/python3.11d", "/usr/include", "/usr/lib/llvm-12/include/" }
         libdirs { "/usr/lib", "/usr/lib/llvm-12/lib/" }
-        links { "python3.8", "ffi", "clang-12" }
+        links { "python3.11d", "ffi", "clang-12" }
         defines { "DEBUG" }
         symbols "On"
     
     filter "configurations:TestCoverage"
-        includedirs { "/usr/include/python3.8", "/usr/include", "/usr/lib/llvm-12/include/" }
+        includedirs { "/usr/local/include/python3.11d", "/usr/include", "/usr/lib/llvm-12/include/" }
         libdirs { "/usr/lib", "/usr/lib/llvm-12/lib/" }
-        links { "python3.8", "ffi", "clang-12" }
+        links { "python3.11d", "ffi", "clang-12" }
         buildoptions { "-ftest-coverage", "-fprofile-arcs" }
         linkoptions { "-lgcov" }
         defines { "DEBUG" }
@@ -33,9 +33,9 @@ project "PyC"
         optimize "On"
     
     filter "configurations:MemoryTest"
-        includedirs { "/usr/local/include/python3.10d", "/usr/include", "/usr/lib/llvm-12/include/" }
+        includedirs { "/usr/local/include/python3.11d", "/usr/include", "/usr/lib/llvm-12/include/" }
         libdirs { "/usr/lib", "/usr/lib/llvm-12/lib/", "/usr/local/lib" }
-        links { "python3.10d", "ffi", "clang-12" }
+        links { "python3.11d", "ffi", "clang-12" }
         buildoptions { "-fsanitize=address" }
         defines { "DEBUG" }
         symbols "On"
