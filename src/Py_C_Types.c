@@ -345,7 +345,7 @@ struct Custom_u_PyTypeObject {
         return -1;                                                                   \
     }
 
-// TODO: better error msg fro c_utypes (unsigned types)
+// TODO: better error msg for c_utypes (unsigned types)
 // TODO: raise error when setting free_on_no_reference for non pointers
 // TODO: change free_on_no_reference attribute to method for c_struct & c_union
 

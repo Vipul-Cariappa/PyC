@@ -593,9 +593,6 @@ PyObject *cppArg_to_pyArg(void *arg, enum CXX_Type type, void *extra_type_info,
         Py_INCREF(module);
         ((PyC_c_struct *)py_arg)->parentModule = module;
 
-        // Py_INCREF(py_arg); // FIXME
-        // Py_INCREF(struct_type); // FIXME
-
         return py_arg;
     }
     case CXX_Union: {
