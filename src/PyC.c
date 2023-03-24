@@ -3,22 +3,18 @@
 #include "Py_C_Types.h"
 #include "Python.h"
 
-PyObject       *PyC;
+PyObject *PyC;
 p_void_array_t *EXTRA_HEAP_MEMORY;
 
 PyObject *py_CppError;
 PyObject *py_BindingError;
 
 PyMethodDef PyC_Methods[] = {
-    {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS,
-     LOAD_CPP_DOC_STRING},
-    {"print_CppModule", (PyCFunction)print_PyC_CppModule, METH_VARARGS,
-     PRINT_CPPMODULE_DOC_STRING},
+    {"LoadCpp", (PyCFunction)load_cpp, METH_VARARGS | METH_KEYWORDS, LOAD_CPP_DOC_STRING},
+    {"print_CppModule", (PyCFunction)print_PyC_CppModule, METH_VARARGS, PRINT_CPPMODULE_DOC_STRING},
     {NULL, NULL, 0, NULL}};
 
-PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1,
-                          PyC_Methods,           NULL,    NULL,    NULL,
-                          &PyClear_PyC};
+PyModuleDef PyC_Module = {PyModuleDef_HEAD_INIT, "PyCpp", "PyCpp", -1, PyC_Methods, NULL, NULL, NULL, &PyClear_PyC};
 
 void extra_init() {
     py_c_char_type.tp_str = c_char_str;
@@ -58,15 +54,15 @@ PyMODINIT_FUNC PyInit_PyC(void) {
         return NULL;
     }
 
-#define ADD_OBJECT_TO_MODULE(module, object, name)                             \
-    if (PyType_Ready(object) < 0) {                                            \
-        return NULL;                                                           \
-    }                                                                          \
-                                                                               \
-    Py_INCREF(object);                                                         \
-    if (PyModule_AddObject(module, name, (PyObject *)object) < 0) {            \
-        Py_DECREF(object);                                                     \
-        Py_DECREF(m);                                                          \
+#define ADD_OBJECT_TO_MODULE(module, object, name)                                                                     \
+    if (PyType_Ready(object) < 0) {                                                                                    \
+        return NULL;                                                                                                   \
+    }                                                                                                                  \
+                                                                                                                       \
+    Py_INCREF(object);                                                                                                 \
+    if (PyModule_AddObject(module, name, (PyObject *)object) < 0) {                                                    \
+        Py_DECREF(object);                                                                                             \
+        Py_DECREF(m);                                                                                                  \
     }
 
     ADD_OBJECT_TO_MODULE(m, &py_CppModuleType, "CppModule")

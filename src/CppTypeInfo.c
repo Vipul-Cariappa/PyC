@@ -34,35 +34,31 @@ DS_LIST_DEF(Union, Union, Symbols_clearUnion);
 DS_LIST_DEF(TypeDef, TypeDef, Symbols_clearTypedef);
 DS_LIST_DEF(Enum, Enum, Symbols_clearEnum);
 
-enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
-                                CXClientData client_data);
+enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data);
 
 char *clangString_to_CString(CXString cxstring_object) {
-    const char *string        = clang_getCString(cxstring_object);
-    char       *return_string = strdup(string);
+    const char *string  = clang_getCString(cxstring_object);
+    char *return_string = strdup(string);
     clang_disposeString(cxstring_object);
     return return_string;
 }
 
 void print_Global(const Global *global) {
-    printf("    %s: %s\n", global->name,
-           CXX_Type_TO_char_p(global->typeCXX, global->extraInfo));
+    printf("    %s: %s\n", global->name, CXX_Type_TO_char_p(global->typeCXX, global->extraInfo));
 }
 
 void print_Structure(const Structure *const structure) {
     assert(str_array_size(structure->attrNames) == structure->attrCount);
-    assert(p_ffi_type_array_size(structure->attrTypeFFI) ==
-           structure->attrCount);
+    assert(p_ffi_type_array_size(structure->attrTypeFFI) == structure->attrCount);
 
     printf("    struct %s\n", structure->name);
 
     for (size_t i = 0; i < structure->attrCount; i++) {
-        enum CXX_Type type = CXX_Type_array_getat(structure->attrTypeCXX, i);
-        const char   *attr_name = str_array_getat(structure->attrNames, i);
+        enum CXX_Type type     = CXX_Type_array_getat(structure->attrTypeCXX, i);
+        const char *attr_name  = str_array_getat(structure->attrNames, i);
         const void *extra_info = p_void_array_getat(structure->attrTypeInfo, i);
 
-        printf("      %s: %s\n", attr_name,
-               CXX_Type_TO_char_p(type, extra_info));
+        printf("      %s: %s\n", attr_name, CXX_Type_TO_char_p(type, extra_info));
     }
 }
 
@@ -73,12 +69,11 @@ void print_Union(const Union *_union) {
     printf("    union %s\n", _union->name);
 
     for (size_t i = 0; i < _union->attrCount; i++) {
-        enum CXX_Type type       = CXX_Type_array_getat(_union->attrTypeCXX, i);
-        const char   *attr_name  = str_array_getat(_union->attrNames, i);
-        const void   *extra_info = p_void_array_getat(_union->attrTypeInfo, i);
+        enum CXX_Type type     = CXX_Type_array_getat(_union->attrTypeCXX, i);
+        const char *attr_name  = str_array_getat(_union->attrNames, i);
+        const void *extra_info = p_void_array_getat(_union->attrTypeInfo, i);
 
-        printf("      %s: %s\n", attr_name,
-               CXX_Type_TO_char_p(type, extra_info));
+        printf("      %s: %s\n", attr_name, CXX_Type_TO_char_p(type, extra_info));
     }
 }
 
@@ -88,23 +83,17 @@ void print_Function(const Function *func) {
     printf("    %s\n", func->name);
 
     for (size_t i = 0; i < func->funcCount; i++) {
-        FunctionType func_type =
-            FunctionType_array_getat(func->functionTypes, i);
+        FunctionType func_type = FunctionType_array_getat(func->functionTypes, i);
 
-        printf("      %s %s(",
-               CXX_Type_TO_char_p(func_type.returnTypeCXX,
-                                  func_type.returnTypeInfo),
+        printf("      %s %s(", CXX_Type_TO_char_p(func_type.returnTypeCXX, func_type.returnTypeInfo),
                func_type.mangledName);
 
-        assert(func_type.argsCount ==
-               p_ffi_type_array_size(func_type.argsTypeFFI));
-        assert(func_type.argsCount ==
-               CXX_Type_array_size(func_type.argsTypeCXX));
+        assert(func_type.argsCount == p_ffi_type_array_size(func_type.argsTypeFFI));
+        assert(func_type.argsCount == CXX_Type_array_size(func_type.argsTypeCXX));
 
         for (size_t j = 0; j < func_type.argsCount; j++) {
-            printf("%s, ", CXX_Type_TO_char_p(
-                               CXX_Type_array_getat(func_type.argsTypeCXX, j),
-                               p_void_array_getat(func_type.argsTypeInfo, j)));
+            printf("%s, ", CXX_Type_TO_char_p(CXX_Type_array_getat(func_type.argsTypeCXX, j),
+                                              p_void_array_getat(func_type.argsTypeInfo, j)));
         }
         printf(")\n");
     }
@@ -116,8 +105,7 @@ void print_Enum(const Enum *e) {
 }
 
 void print_TypeDef(const TypeDef *td) {
-    printf("    %s: %s\n", td->name,
-           CXX_Type_TO_char_p(td->type, td->extraInfo));
+    printf("    %s: %s\n", td->name, CXX_Type_TO_char_p(td->type, td->extraInfo));
 }
 
 void print_Symbols(const Symbols *symbols) {
@@ -235,8 +223,7 @@ raise_error:
     if (errno == ENOMEM)
         PyErr_NoMemory();
     else if (errno == EINVAL)
-        PyErr_SetString(py_BindingError,
-                        "Incompatible function name found in translation unit");
+        PyErr_SetString(py_BindingError, "Incompatible function name found in translation unit");
     else
         PyErr_SetString(py_BindingError, "Unknown error occured");
     return false;
@@ -317,9 +304,7 @@ raise_error:
     if (errno == ENOMEM)
         PyErr_NoMemory();
     else if (errno == EINVAL)
-        PyErr_SetString(
-            py_BindingError,
-            "Incompatible structure name found in translation unit");
+        PyErr_SetString(py_BindingError, "Incompatible structure name found in translation unit");
     else
         PyErr_SetString(py_BindingError, "Unknown error occured");
     return false;
@@ -349,8 +334,7 @@ ffi_type Build_Union_ffi_type(const p_ffi_type_array_t *ffi_type_list) {
         type.elements[_i] = elem;
 
         ffi_cif cif;
-        if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, type.elements[_i], NULL) ==
-            FFI_OK) {
+        if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, type.elements[_i], NULL) == FFI_OK) {
             if (type.elements[_i]->size > type.size) {
                 type.size = type.elements[_i]->size;
             }
@@ -367,7 +351,7 @@ ffi_type Build_Union_ffi_type(const p_ffi_type_array_t *ffi_type_list) {
 
 bool Symbols_appendUnion(Symbols *sym, Union u) {
     ffi_type union_type = Build_Union_ffi_type(u.attrTypeFFI);
-    u.type = union_type;
+    u.type              = union_type;
 
     if (!Symbols_getUnion(sym, u.name)) {
 
@@ -397,8 +381,7 @@ raise_error:
     if (errno == ENOMEM)
         PyErr_NoMemory();
     else if (errno == EINVAL)
-        PyErr_SetString(py_BindingError,
-                        "Incompatible union name found in translation unit");
+        PyErr_SetString(py_BindingError, "Incompatible union name found in translation unit");
     else
         PyErr_SetString(py_BindingError, "Unknown error occured");
     return false;
@@ -423,8 +406,7 @@ bool Symbols_appendGlobal(Symbols *sym, Global g) {
     if (errno == ENOMEM)
         PyErr_NoMemory();
     else if (errno == EINVAL)
-        PyErr_SetString(py_BindingError,
-                        "Incompatible global name found in translation unit");
+        PyErr_SetString(py_BindingError, "Incompatible global name found in translation unit");
     else
         PyErr_SetString(py_BindingError, "Unknown error occured");
     return false;
@@ -435,8 +417,7 @@ bool Symbols_clearGlobal(Global *global) {
     return true;
 }
 
-bool Symbols_appendTypedef(Symbols *sym, char *typedef_name, char *type_name,
-                           enum CXX_Type type, void *extra_info) {
+bool Symbols_appendTypedef(Symbols *sym, char *typedef_name, char *type_name, enum CXX_Type type, void *extra_info) {
     TypeDef typeDef;
     typeDef.name         = type_name;
     typeDef.typedef_name = typedef_name;
@@ -524,14 +505,13 @@ void free_Symbols(Symbols *sym) {
 }
 
 bool Symbols_parse(Symbols *sym, const char *header) {
-    CXIndex           index = clang_createIndex(1, 0);
+    CXIndex index = clang_createIndex(1, 0);
     CXTranslationUnit unit;
 
     // TODO: support comments with
     // CXTranslationUnit_IncludeBriefCommentsInCodeCompletion
-    enum CXErrorCode err_code = clang_parseTranslationUnit2(
-        index, header, NULL, 0, NULL, 0, CXTranslationUnit_SkipFunctionBodies,
-        &unit);
+    enum CXErrorCode err_code =
+        clang_parseTranslationUnit2(index, header, NULL, 0, NULL, 0, CXTranslationUnit_SkipFunctionBodies, &unit);
 
     if (err_code != CXError_Success)
         return false;
@@ -548,22 +528,17 @@ bool Symbols_parse(Symbols *sym, const char *header) {
     return true;
 }
 
-void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
-                             enum CXX_Type *cxx_type,
-                             ffi_type     **objects_ffi_type) {
+void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym, enum CXX_Type *cxx_type, ffi_type **objects_ffi_type) {
     // TODO: set and raise error; if could not figure out type
     CXType underlying_type = cxType;
 
     if (cxType.kind == CXType_Typedef) {
-        underlying_type = clang_getTypedefDeclUnderlyingType(
-            clang_getTypeDeclaration(cxType));
-        return get_underlyingTypeInfo(underlying_type, sym, cxx_type,
-                                      objects_ffi_type);
+        underlying_type = clang_getTypedefDeclUnderlyingType(clang_getTypeDeclaration(cxType));
+        return get_underlyingTypeInfo(underlying_type, sym, cxx_type, objects_ffi_type);
 
     } else if (cxType.kind == CXType_Elaborated) {
         underlying_type = clang_Type_getNamedType(cxType);
-        return get_underlyingTypeInfo(underlying_type, sym, cxx_type,
-                                      objects_ffi_type);
+        return get_underlyingTypeInfo(underlying_type, sym, cxx_type, objects_ffi_type);
 
     } else if (cxType.kind == CXType_Pointer) {
         underlying_type = clang_getPointeeType(cxType);
@@ -577,18 +552,15 @@ void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
 
         *cxx_type |= POINTER;
         *objects_ffi_type = &ffi_type_pointer;
-        return get_underlyingTypeInfo(underlying_type, sym, cxx_type,
-                                      objects_ffi_type);
+        return get_underlyingTypeInfo(underlying_type, sym, cxx_type, objects_ffi_type);
 
     } else if (cxType.kind == CXType_Record) {
-        char *record_name =
-            clangString_to_CString(clang_getTypeSpelling(cxType));
+        char *record_name = clangString_to_CString(clang_getTypeSpelling(cxType));
 
         if (strncmp(record_name, "struct ", 7) == 0) {
             *cxx_type |= CXX_Struct;
-            Structure *underlying_struct =
-                Symbols_getStructure(sym, record_name + 7);
-            *objects_ffi_type = &(underlying_struct->type);
+            Structure *underlying_struct = Symbols_getStructure(sym, record_name + 7);
+            *objects_ffi_type            = &(underlying_struct->type);
 
             free(record_name);
             return underlying_struct;
@@ -610,86 +582,69 @@ void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
         return NULL;
 
     } else if (cxType.kind == CXType_Enum) {
-        return get_underlyingTypeInfo(
-            clang_getEnumDeclIntegerType(clang_getTypeDeclaration(cxType)), sym,
-            cxx_type, objects_ffi_type);
+        return get_underlyingTypeInfo(clang_getEnumDeclIntegerType(clang_getTypeDeclaration(cxType)), sym, cxx_type,
+                                      objects_ffi_type);
     }
 
     // else
     switch (underlying_type.kind) {
     case CXType_Void:
         *cxx_type |= CXX_Void;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_void;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_void;
         break;
     case CXType_Char_U:
     case CXType_UChar:
         *cxx_type |= CXX_UChar;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_uchar;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_uchar;
         break;
     case CXType_Char_S:
     case CXType_SChar:
         *cxx_type |= CXX_Char;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_schar;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_schar;
         break;
     case CXType_Bool:
         *cxx_type |= CXX_Bool;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_uint8;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_uint8;
         break;
     case CXType_Short:
         *cxx_type |= CXX_Short;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_sshort;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_sshort;
         break;
     case CXType_UShort:
         *cxx_type |= CXX_UShort;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_ushort;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_ushort;
         break;
     case CXType_Int:
         *cxx_type |= CXX_Int;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_sint;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_sint;
         break;
     case CXType_UInt:
         *cxx_type |= CXX_UInt;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_uint;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_uint;
         break;
     case CXType_Long:
         *cxx_type |= CXX_Long;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_slong;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_slong;
         break;
     case CXType_ULong:
         *cxx_type |= CXX_ULong;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_ulong;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_ulong;
         break;
     case CXType_LongLong:
         *cxx_type |= CXX_LongLong;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type
-                              : &ffi_type_slong; // FIXME: no ffi_type long long
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_slong; // FIXME: no ffi_type long long
         break;
     case CXType_ULongLong:
         *cxx_type |= CXX_ULongLong;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type
-                              : &ffi_type_ulong; // FIXME: no ffi_type long long
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_ulong; // FIXME: no ffi_type long long
         break;
     case CXType_Float:
         *cxx_type |= CXX_Float;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_float;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_float;
         break;
     case CXType_Double:
         *cxx_type |= CXX_Double;
-        *objects_ffi_type =
-            *objects_ffi_type ? *objects_ffi_type : &ffi_type_double;
+        *objects_ffi_type = *objects_ffi_type ? *objects_ffi_type : &ffi_type_double;
         break;
     default:
         *cxx_type         = CXX_NotDefined;
@@ -698,12 +653,11 @@ void *get_underlyingTypeInfo(CXType cxType, const Symbols *sym,
     return NULL;
 }
 
-enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent,
-                                     CXClientData client_data) {
+enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
     // TODO: group enum's with parents
 
     long long value = clang_getEnumConstantDeclValue(cursor);
-    char     *name  = clangString_to_CString(clang_getCursorSpelling(cursor));
+    char *name      = clangString_to_CString(clang_getCursorSpelling(cursor));
 
     if (!Symbols_appendEnum(client_data, name, value)) {
         free(name);
@@ -713,19 +667,17 @@ enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent,
     return CXChildVisit_Continue;
 }
 
-enum CXChildVisitResult record_visitor(CXCursor cursor, CXCursor parent,
-                                       CXClientData client_data) {
-    void              **info      = client_data;
+enum CXChildVisitResult record_visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
+    void **info                   = client_data;
     struct _RecordType *structure = (struct _RecordType *)info[0];
-    const Symbols      *sym       = (Symbols *)info[1];
+    const Symbols *sym            = (Symbols *)info[1];
 
     enum CXX_Type cxx_attr_type = 0;
-    ffi_type     *ffi_attr_type = NULL;
+    ffi_type *ffi_attr_type     = NULL;
 
     CXType attr_type = clang_getCursorType(cursor);
 
-    void *extra_arg_type_info =
-        get_underlyingTypeInfo(attr_type, sym, &cxx_attr_type, &ffi_attr_type);
+    void *extra_arg_type_info = get_underlyingTypeInfo(attr_type, sym, &cxx_attr_type, &ffi_attr_type);
 
     if (cxx_attr_type == CXX_NotDefined || ffi_attr_type == NULL) {
         // could not get type info
@@ -748,11 +700,10 @@ FunctionType Function_parser(CXCursor funcCursor, const Symbols *symbols) {
     FunctionType func = {0};
 
     enum CXX_Type cxx_return_type = 0;
-    ffi_type     *ffi_return_type = NULL;
+    ffi_type *ffi_return_type     = NULL;
 
-    void *extra_return_type_info = get_underlyingTypeInfo(
-        clang_getResultType(clang_getCursorType(funcCursor)), symbols,
-        &cxx_return_type, &ffi_return_type);
+    void *extra_return_type_info = get_underlyingTypeInfo(clang_getResultType(clang_getCursorType(funcCursor)), symbols,
+                                                          &cxx_return_type, &ffi_return_type);
 
     if (cxx_return_type == CXX_NotDefined || ffi_return_type == NULL) {
         // could not get type info
@@ -771,14 +722,13 @@ FunctionType Function_parser(CXCursor funcCursor, const Symbols *symbols) {
     func.argsTypeInfo = p_void_array_new();
 
     for (int i = 0; i < args_len; i++) {
-        CXCursor arg      = clang_Cursor_getArgument(funcCursor, i);
-        CXType   arg_type = clang_getCursorType(arg);
+        CXCursor arg    = clang_Cursor_getArgument(funcCursor, i);
+        CXType arg_type = clang_getCursorType(arg);
 
         enum CXX_Type cxx_arg_type = 0;
-        ffi_type     *ffi_arg_type = NULL;
+        ffi_type *ffi_arg_type     = NULL;
 
-        void *extra_arg_type_info = get_underlyingTypeInfo(
-            arg_type, symbols, &cxx_arg_type, &ffi_arg_type);
+        void *extra_arg_type_info = get_underlyingTypeInfo(arg_type, symbols, &cxx_arg_type, &ffi_arg_type);
 
         if (cxx_arg_type == CXX_NotDefined || ffi_arg_type == NULL) {
             // could not get type info
@@ -830,31 +780,26 @@ Structure Structure_parser(CXCursor structCursor, Symbols *symbols) {
     structure.offsets      = long_long_array_new();
     structure.type         = (ffi_type){0, 0, 0, NULL};
     structure.attrCount    = 0;
-    structure.structSize =
-        clang_Type_getSizeOf(clang_getCursorType(structCursor));
+    structure.structSize   = clang_Type_getSizeOf(clang_getCursorType(structCursor));
 
     void *info[] = {&structure, symbols};
     clang_visitChildren(structCursor, record_visitor, info);
 
     // offset
     for (int i = 0; i < structure.attrCount; i++) {
-        long_long_array_append(
-            structure.offsets,
-            clang_Type_getOffsetOf(clang_getCursorType(structCursor),
-                                   str_array_getat(structure.attrNames, i)));
+        long_long_array_append(structure.offsets, clang_Type_getOffsetOf(clang_getCursorType(structCursor),
+                                                                         str_array_getat(structure.attrNames, i)));
     }
 
     return structure;
 }
 
-enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
-                                CXClientData client_data) {
+enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
     Symbols *symbols = client_data;
 
     // function
     if (clang_getCursorKind(cursor) == CXCursor_FunctionDecl) {
-        char *func_name =
-            clangString_to_CString(clang_getCursorSpelling(cursor));
+        char *func_name = clangString_to_CString(clang_getCursorSpelling(cursor));
 
         FunctionType func_type = Function_parser(cursor, symbols);
 
@@ -892,19 +837,15 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     else if (clang_getCursorKind(cursor) == CXCursor_TypedefDecl) {
         CXType underlying_type = clang_getTypedefDeclUnderlyingType(cursor);
         CXType cursor_cxtype   = clang_getCursorType(cursor);
-        char  *typedef_name =
-            clangString_to_CString(clang_getTypedefName(cursor_cxtype));
-        char *type_name =
-            clangString_to_CString(clang_getTypeSpelling(underlying_type));
+        char *typedef_name     = clangString_to_CString(clang_getTypedefName(cursor_cxtype));
+        char *type_name        = clangString_to_CString(clang_getTypeSpelling(underlying_type));
 
         enum CXX_Type td_cxx_type = 0;
-        ffi_type     *td_ffi_type = NULL;
+        ffi_type *td_ffi_type     = NULL;
 
-        void *underlying_type_info = get_underlyingTypeInfo(
-            underlying_type, symbols, &td_cxx_type, &td_ffi_type);
+        void *underlying_type_info = get_underlyingTypeInfo(underlying_type, symbols, &td_cxx_type, &td_ffi_type);
 
-        if (!Symbols_appendTypedef(symbols, typedef_name, type_name,
-                                   td_cxx_type, underlying_type_info)) {
+        if (!Symbols_appendTypedef(symbols, typedef_name, type_name, td_cxx_type, underlying_type_info)) {
             free(type_name);
             free(typedef_name);
             return CXChildVisit_Break;
@@ -919,8 +860,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
         Global global = {0};
         global.name   = clangString_to_CString(clang_getCursorSpelling(cursor));
 
-        void *underlying_type_info = get_underlyingTypeInfo(
-            type, symbols, &(global.typeCXX), &(global.typeFFI));
+        void *underlying_type_info = get_underlyingTypeInfo(type, symbols, &(global.typeCXX), &(global.typeFFI));
 
         global.extraInfo = underlying_type_info;
 
@@ -938,15 +878,13 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     // else
     else {
         // raising error because unknow type found
-        char *name = clangString_to_CString(clang_getCursorSpelling(cursor));
-        char *type_name = clangString_to_CString(
-            clang_getTypeSpelling(clang_getCursorType(cursor)));
+        char *name      = clangString_to_CString(clang_getCursorSpelling(cursor));
+        char *type_name = clangString_to_CString(clang_getTypeSpelling(clang_getCursorType(cursor)));
 
         PyErr_Format(py_BindingError,
                      "Could not figure out type info\nGiven cursor: %s: cursor "
                      "kind: %i\n\ttype: %s type kind: %i",
-                     name, clang_getCursorKind(cursor), type_name,
-                     clang_getCursorType(cursor).kind);
+                     name, clang_getCursorKind(cursor), type_name, clang_getCursorType(cursor).kind);
 
         free(name);
         free(type_name);
