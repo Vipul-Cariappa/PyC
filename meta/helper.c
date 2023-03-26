@@ -109,8 +109,29 @@ void print_TypeDef(const TypeDef *s) {
 }
 
 void print_Function(const Function *s) {
-    //  TODO
-    printf("  Function\n");
+    printf("  %s (", s->name);
+
+    size_t args_count = arr_uint_size(s->args_type);
+    for (size_t i = 0; i < args_count; i++) {
+        unsigned int c_type   = *arr_uint_get(s->args_type, i);
+        void *additional_info = *arr_void_get(s->additional_info, i);
+
+        char *type_name = c_type_to_c_char(c_type, additional_info);
+
+        if ((i + 1) == args_count) {
+            printf("%s", type_name);
+        } else {
+            printf("%s, ", type_name);
+        }
+        free(type_name);
+    }
+
+    unsigned int c_type   = s->return_type;
+    void *additional_info = s->return_type_additional_info;
+
+    char *type_name = c_type_to_c_char(c_type, additional_info);
+    printf(") -> %s\n", type_name);
+    free(type_name);
 }
 
 void print_Symbol(const Symbols *s) {

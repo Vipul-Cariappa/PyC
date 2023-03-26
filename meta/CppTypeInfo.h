@@ -61,9 +61,10 @@ typedef struct _Array {
 } Array;
 
 static inline void clear_Array(Array *s) {
-    if (s->additional_info) {
-        free(s->additional_info);
+    if (s->c_type & ARRAY) {
+        clear_Array(s->additional_info);
     }
+    free(s->additional_info);
 }
 
 static inline void init_Array(Array *s) {
@@ -120,7 +121,7 @@ static inline void clear_Record(Record *s) {
     arr_uint_it_t it;
     int i = 0;
     for (arr_uint_it(it, s->c_types); !arr_uint_end_p(it); arr_uint_next(it)) {
-        unsigned int c_type   = *arr_uint_cref(it);
+        unsigned int c_type    = *arr_uint_cref(it);
         void **additional_info = arr_void_get(s->additional_info, i);
 
         if (c_type & ARRAY) {
@@ -214,7 +215,7 @@ static inline void clear_Function(Function *s) {
     if (s->return_type & ARRAY) {
         clear_Array(s->return_type_additional_info);
     }
-    free(s->additional_info);
+    free(s->return_type_additional_info);
 
     // clearing additional info of arguments type
     arr_uint_it_t it;

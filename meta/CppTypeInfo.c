@@ -378,7 +378,59 @@ void handle_CXCursor_EnumDecl(CXCursor cursor, Symbols *sym) {
     string_clear(key);
 }
 
-void handle_CXCursor_FunctionDecl(CXCursor cursor, Symbols *sym) {}
+void handle_CXCursor_FunctionDecl(CXCursor cursor, Symbols *sym) {
+    // FIXME: Should not allow variable length argument functions
+    // FIXME: Should not allow inlined functions
+    CXType cx_type = clang_getCursorType(cursor);
+    CXString_to_string(clang_getCursorSpelling(cursor), func_name);
+    int args_count        = clang_Cursor_getNumArguments(cursor);
+    CXType cx_return_type = clang_getResultType(cx_type);
+
+    Function s;
+    init_Function(&s);
+
+    s.name                        = strdup(string_get_cstr(func_name));
+    s.return_type                 = CXType_to_c_type(cx_return_type);
+    s.return_type_additional_info = get_additional_info(cx_return_type, s.return_type, sym);
+
+    if ((s.return_type == 0) || (ERROR_OCCURRED == true)) {
+        CXString_to_char_ptr(clang_getTypeKindSpelling(clang_getCanonicalType(cx_return_type).kind), type_name);
+        printf(GRN "Warning: " RESET
+                   "Given function's return type is not supported\n  Function Name:%s  Return Type: %s\n  Skipping\n\n",
+               string_get_cstr(func_name), type_name);
+        ERROR_OCCURRED = false;
+        free(type_name);
+        string_clear(func_name);
+        clear_Function(&s);
+        return;
+    }
+
+    for (int i = 0; i < args_count; i++) {
+        CXCursor args_cursor = clang_Cursor_getArgument(cursor, i);
+        CXType args_cx_type  = clang_getCursorType(args_cursor);
+
+        unsigned int c_type   = CXType_to_c_type(args_cx_type);
+        void *additional_info = get_additional_info(args_cx_type, c_type, sym);
+
+        if ((s.return_type == 0) || (ERROR_OCCURRED == true)) {
+            CXString_to_char_ptr(clang_getTypeKindSpelling(clang_getCanonicalType(cx_return_type).kind), type_name);
+            printf(GRN "Warning: " RESET "Given function's argument type is not supported\n  Function Name:%s  "
+                       "Argument Type: %s\n  Skipping\n\n",
+                   string_get_cstr(func_name), type_name);
+            ERROR_OCCURRED = false;
+            free(type_name);
+            string_clear(func_name);
+            clear_Function(&s);
+            return;
+        }
+
+        arr_uint_push_back(s.args_type, c_type);
+        arr_void_push_back(s.additional_info, additional_info);
+    }
+
+    map_Function_set_at(sym->funcs, func_name, s);
+    string_clear(func_name);
+}
 
 void handle_CXCursor_TypedefDecl(CXCursor cursor, Symbols *sym) {
     CXType cx_type             = clang_getCursorType(cursor);
@@ -448,8 +500,7 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
     } else if (cursor.kind == CXCursor_EnumDecl) {
         handle_CXCursor_EnumDecl(cursor, sym);
     } else if (cursor.kind == CXCursor_FunctionDecl) {
-        // TODO
-        // FIXME: Should not allow variable length argument functions
+        handle_CXCursor_FunctionDecl(cursor, sym);
     } else if (cursor.kind == CXCursor_TypedefDecl) {
         handle_CXCursor_TypedefDecl(cursor, sym);
     } else {
