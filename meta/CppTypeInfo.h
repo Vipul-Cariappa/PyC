@@ -6,19 +6,19 @@
 #include "m-string.h"
 #include "clang-c/Index.h"
 
+#define VOID     0b10000000000000000000000000000000
 #define POINTER  0b01000000000000000000000000000000
 #define ARRAY    0b00100000000000000000000000000000
 #define UNSIGNED 0b00010000000000000000000000000000
-#define VOID     1
-#define BOOL     2
-#define CHAR     3
-#define SHORT    4
-#define INT      5
-#define LONG     6
-#define FLOAT    7
-#define DOUBLE   8
-#define STRUCT   9
-#define UNION    10
+#define STRUCT   0b00001000000000000000000000000000
+#define UNION    0b00000100000000000000000000000000
+#define BOOL     1
+#define CHAR     2
+#define SHORT    3
+#define INT      4
+#define LONG     5
+#define FLOAT    6
+#define DOUBLE   7
 
 #define char_ptr_to_string(str, name)                                                                                  \
     string_t name;                                                                                                     \

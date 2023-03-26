@@ -4,6 +4,8 @@
 
 bool ERROR_OCCURRED = false;
 
+const char *create_AnonymousRecord(CXCursor cursor, Symbols *sym, bool is_union);
+
 ffi_type *c_type_to_ffi_type(unsigned int c_type) {
     if (c_type & POINTER) {
         return &ffi_type_pointer;
@@ -112,24 +114,64 @@ unsigned int CXType_to_c_type(CXType type) {
     return 0;
 }
 
-void *get_additional_info(CXCursor cursor, unsigned int c_type, const Symbols *scope) {
-    if ((c_type == STRUCT) || (c_type == (STRUCT | POINTER)) || (c_type == UNION) || (c_type == (UNION | POINTER))) {
-        CXType cx_type = clang_getCursorType(cursor);
-        CXString_to_string(clang_getCursorSpelling(cursor), struct_name);
-        Record *result = map_Record_get(scope->records, struct_name);
-        return strdup(string_get_cstr(struct_name));
+void *get_additional_info(CXType cx_type, unsigned int c_type, Symbols *sym) {
+    // resolve indirections
+    if (cx_type.kind == CXType_Pointer) {
+        return get_additional_info(clang_getPointeeType(cx_type), c_type, sym);
     }
 
+    if (cx_type.kind == CXType_Elaborated) {
+        return get_additional_info(clang_Type_getNamedType(cx_type), c_type, sym);
+    }
+
+    if (cx_type.kind == CXType_Typedef) {
+        return get_additional_info(clang_getTypedefDeclUnderlyingType(clang_getTypeDeclaration(cx_type)), c_type, sym);
+    }
+
+    // return the name of underlying struct or union
+    if ((c_type == STRUCT) || (c_type == (STRUCT | POINTER)) || (c_type == UNION) || (c_type == (UNION | POINTER))) {
+        CXCursor cursor = clang_getTypeDeclaration(cx_type);
+        CXString_to_string(clang_getCursorSpelling(cursor), struct_name);
+        Record *result = map_Record_get(sym->records, struct_name);
+
+        if (result == NULL) {
+            // mostly a anonymous record
+            void *additional_info = NULL;
+
+            if (cursor.kind == CXCursor_StructDecl) {
+                additional_info = (void *)create_AnonymousRecord(cursor, sym, false);
+            } else if (cursor.kind == CXCursor_UnionDecl) {
+                additional_info = (void *)create_AnonymousRecord(cursor, sym, true);
+            } else {
+                ERROR_OCCURRED = true;
+                fprintf(stderr, RED "Error: " BLU "Got a CXType of CXType_Record, but CXCursor is neither "
+                                    "CXCursor_UnionDecl nor CXCursor_StructDecl\n" RESET);
+            }
+
+            return additional_info;
+        }
+
+        char *result_string = strdup(string_get_cstr(struct_name));
+        string_clear(struct_name);
+        return result_string;
+    }
+
+    // return a Array* with information in the array initialized
     if ((c_type & ARRAY)) {
         Array *arr = malloc(sizeof(Array));
 
-        CXType type      = clang_getCursorType(cursor);
-        long long length = clang_getArraySize(type);
+        long long length = clang_getArraySize(cx_type);
         arr->length      = length;
 
-        CXType elements_type = clang_getArrayElementType(type);
+        CXType elements_type = clang_getArrayElementType(cx_type);
         arr->c_type          = CXType_to_c_type(elements_type);
-        arr->additional_info = get_additional_info(clang_getTypeDeclaration(elements_type), arr->c_type, scope);
+        if (arr->c_type == 0) {
+            ERROR_OCCURRED = true;
+            free(arr);
+            return NULL;
+        }
+
+        arr->additional_info = get_additional_info(elements_type, arr->c_type, sym);
 
         return arr;
     }
@@ -172,40 +214,17 @@ int main(int argc, char *argv[]) {
     clear_Symbols(&sym);
 }
 
-void handle_CXType_void(CXCursor cursor, CXType type) {}
-void handle_CXType_Bool(CXCursor cursor, CXType type) {}
-void handle_CXType_UChar(CXCursor cursor, CXType type) {}
-void handle_CXType_UShort(CXCursor cursor, CXType type) {}
-void handle_CXType_UInt(CXCursor cursor, CXType type) {}
-void handle_CXType_ULong(CXCursor cursor, CXType type) {}
-void handle_CXType_ULongLong(CXCursor cursor, CXType type) {}
-void handle_CXType_Char_S(CXCursor cursor, CXType type) {}
-void handle_CXType_SChar(CXCursor cursor, CXType type) {}
-void handle_CXType_Short(CXCursor cursor, CXType type) {}
-void handle_CXType_Int(CXCursor cursor, CXType type) {}
-void handle_CXType_Long(CXCursor cursor, CXType type) {}
-void handle_CXType_LongLong(CXCursor cursor, CXType type) {}
-void handle_CXType_Float(CXCursor cursor, CXType type) {}
-void handle_CXType_Double(CXCursor cursor, CXType type) {}
-void handle_CXType_LongDouble(CXCursor cursor, CXType type) {}
-void handle_CXType_Pointer(CXCursor cursor, CXType type) {}
-void handle_CXType_Record(CXCursor cursor, CXType type) {}
-void handle_CXType_Enum(CXCursor cursor, CXType type) {}
-void handle_CXType_Typedef(CXCursor cursor, CXType type) {}
-void handle_CXType_ConstantArray(CXCursor cursor, CXType type) {}
-void handle_CXType_IncompleteArray(CXCursor cursor, CXType type) {}
-void handle_CXType_Elaborated(CXCursor cursor, CXType type) {}
-
 void handle_CXCursor_VarDecl(CXCursor cursor, Symbols *sym) {
     CXType cx_type = clang_getCursorType(cursor);
     CXString_to_string(clang_getCursorSpelling(cursor), key);
-    const char *variable_name      = strdup(string_get_cstr(key));
-    unsigned int c_type            = CXType_to_c_type(cx_type);
-    void* additional_info = get_additional_info(cursor, c_type, sym);
+    const char *variable_name = strdup(string_get_cstr(key));
+    unsigned int c_type       = CXType_to_c_type(cx_type);
+    void *additional_info     = get_additional_info(cx_type, c_type, sym);
 
-    if (c_type == 0) {
+    if ((c_type == 0) || (ERROR_OCCURRED == true)) {
         // Given c_type is not supported. Skipping
-        CXString_to_char_ptr(clang_getTypeKindSpelling(cx_type.kind), type_name);
+        ERROR_OCCURRED = false;
+        CXString_to_char_ptr(clang_getTypeKindSpelling(clang_getCanonicalType(cx_type).kind), type_name);
         printf(GRN "Warning: " RESET
                    "Given Variable type could is not supported\n  Variable Name: %s\t Type Name: %s\n  Skipping\n\n",
                variable_name, type_name);
@@ -218,22 +237,28 @@ void handle_CXCursor_VarDecl(CXCursor cursor, Symbols *sym) {
     GlobalVariable var = {.name = variable_name, .c_type = c_type, .additional_info = additional_info};
 
     map_GlobalVariable_set_at(sym->globals, key, var);
+    string_clear(key);
 }
 
 enum CXChildVisitResult record_visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
-    void **info        = client_data;
-    Record *s          = (Record *)info[0];
-    const Symbols *sym = (Symbols *)info[1];
+    void **info  = client_data;
+    Record *s    = (Record *)info[0];
+    Symbols *sym = (Symbols *)info[1];
+
+    if (clang_getCursorKind(cursor) != CXCursor_FieldDecl) {
+        return CXChildVisit_Continue;
+    }
 
     CXType cx_type = clang_getCursorType(cursor);
     CXString_to_string(clang_getCursorSpelling(cursor), attribute_name);
-    unsigned int c_type            = CXType_to_c_type(cx_type);
-    void* additional_info = get_additional_info(cursor, c_type, sym);
-    long long offset = clang_Type_getOffsetOf(clang_getCursorType(parent), string_get_cstr(attribute_name));
+    unsigned int c_type   = CXType_to_c_type(cx_type);
+    void *additional_info = get_additional_info(cx_type, c_type, sym);
+    long long offset      = clang_Cursor_getOffsetOfField(cursor);
 
-    if (c_type == 0) {
+    if ((c_type == 0) || (ERROR_OCCURRED == true)) {
         // Given c_type is not supported. Skipping
-        CXString_to_char_ptr(clang_getTypeKindSpelling(cx_type.kind), type_name);
+        ERROR_OCCURRED = false;
+        CXString_to_char_ptr(clang_getTypeKindSpelling(clang_getCanonicalType(cx_type).kind), type_name);
         printf(GRN "Warning: " RESET "Given Struct type could not be supported due to following attribute\n  Variable "
                    "Name: %s\t Type Name: %s\n  Skipping\n\n",
                string_get_cstr(attribute_name), type_name);
@@ -250,6 +275,7 @@ enum CXChildVisitResult record_visitor(CXCursor cursor, CXCursor parent, CXClien
     arr_llong_push_back(s->offsets, offset);
     ++(s->attr_count);
 
+    string_clear(attribute_name);
     return CXChildVisit_Continue;
 }
 
@@ -257,10 +283,10 @@ void handle_CXCursor_RecordDecl(CXCursor cursor, Symbols *sym, bool is_union) {
     CXType cx_type = clang_getCursorType(cursor);
     CXString_to_string(clang_getCursorSpelling(cursor), key);
 
-    // if (clang_Cursor_isAnonymousRecordDecl(cursor) || string_empty_p(key)) {
-    //     string_clear(key);
-    //     string_init_printf(key, "AnonymousRecord%d", clock());
-    // }
+    if (clang_Cursor_isAnonymous(cursor) || string_empty_p(key)) {
+        string_clear(key);
+        return;
+    }
 
     Record s;
     init_Record(&s);
@@ -280,6 +306,39 @@ void handle_CXCursor_RecordDecl(CXCursor cursor, Symbols *sym, bool is_union) {
     }
 
     map_Record_set_at(sym->records, key, s);
+    string_clear(key);
+}
+
+const char *create_AnonymousRecord(CXCursor cursor, Symbols *sym, bool is_union) {
+    CXType cx_type = clang_getCursorType(cursor);
+    CXString_to_string(clang_getCursorSpelling(cursor), key);
+
+    if (clang_Cursor_isAnonymous(cursor) || string_empty_p(key)) {
+        string_clear(key);
+        string_init_printf(key, "AnonymousRecord%d", clock());
+    }
+
+    Record s;
+    init_Record(&s);
+    s.name     = strdup(string_get_cstr(key));
+    s.size     = clang_Type_getSizeOf(cx_type);
+    s.is_union = is_union;
+
+    void *info[2] = {&s, sym};
+
+    clang_visitChildren(cursor, record_visitor, info);
+
+    if (ERROR_OCCURRED) {
+        clear_Record(&s);
+        ERROR_OCCURRED = false;
+        string_clear(key);
+        return NULL;
+    }
+
+    map_Record_set_at(sym->records, key, s);
+    const char *result = strdup(string_get_cstr(key));
+    string_clear(key);
+    return result;
 }
 
 enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
@@ -289,6 +348,7 @@ enum CXChildVisitResult enum_visitor(CXCursor cursor, CXCursor parent, CXClientD
     CXString_to_string((clang_getCursorSpelling(cursor)), name);
 
     map_string_to_llong_set_at(s->values, name, value);
+    string_clear(name);
 
     return CXChildVisit_Continue;
 }
@@ -315,25 +375,33 @@ void handle_CXCursor_EnumDecl(CXCursor cursor, Symbols *sym) {
     clang_visitChildren(cursor, enum_visitor, &s);
 
     map_Enum_set_at(sym->enums, key, s);
+    string_clear(key);
 }
 
 void handle_CXCursor_FunctionDecl(CXCursor cursor, Symbols *sym) {}
 
 void handle_CXCursor_TypedefDecl(CXCursor cursor, Symbols *sym) {
-    CXType cx_type            = clang_getCursorType(cursor);
-    CXType type_defed_cx_type = clang_getTypedefDeclUnderlyingType(cursor);
+    CXType cx_type             = clang_getCursorType(cursor);
+    CXType type_defed_cx_type  = clang_getTypedefDeclUnderlyingType(cursor);
+    CXCursor type_defed_cursor = clang_getTypeDeclaration(type_defed_cx_type);
+
+    if ((type_defed_cx_type.kind == CXType_Pointer) && (type_defed_cursor.kind == CXCursor_NoDeclFound)) {
+        type_defed_cursor = clang_getTypeDeclaration(clang_getPointeeType(type_defed_cx_type));
+    }
 
     CXString_to_string(clang_getTypedefName(cx_type), type_defed_name);
-    unsigned int c_type            = CXType_to_c_type(type_defed_cx_type);
-    void* additional_info = get_additional_info(clang_getTypeDeclaration(type_defed_cx_type), c_type, sym);
+    unsigned int c_type   = CXType_to_c_type(type_defed_cx_type);
+    void *additional_info = get_additional_info(type_defed_cx_type, c_type, sym);
 
-    if (c_type == 0) {
+    if ((c_type == 0) || (ERROR_OCCURRED == true)) {
         // Given c_type is not supported. Skipping
-        CXString_to_char_ptr(clang_getTypeKindSpelling(type_defed_cx_type.kind), type_name);
+        ERROR_OCCURRED = false;
+        CXString_to_char_ptr(clang_getTypeKindSpelling(clang_getCanonicalType(type_defed_cx_type).kind), type_name);
         printf(GRN "Warning: " RESET "Given Typedef type is not supported\n  Underlying type: %s\n  Skipping\n\n",
                type_name);
 
         free(type_name);
+        string_clear(type_defed_name);
         return;
     }
 
@@ -345,6 +413,7 @@ void handle_CXCursor_TypedefDecl(CXCursor cursor, Symbols *sym) {
     s.additional_info = additional_info;
 
     map_TypeDef_set_at(sym->typedefs, type_defed_name, s);
+    string_clear(type_defed_name);
 }
 
 enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData client_data) {
@@ -383,6 +452,10 @@ enum CXChildVisitResult visitor(CXCursor cursor, CXCursor parent, CXClientData c
         // FIXME: Should not allow variable length argument functions
     } else if (cursor.kind == CXCursor_TypedefDecl) {
         handle_CXCursor_TypedefDecl(cursor, sym);
+    } else {
+        CXString_to_char_ptr(clang_getCursorPrettyPrinted(cursor, 0), cursor_info);
+        printf(CYN "Warning: " RESET "Can not figure out the following element:\n  %s \n   Skipping\n\n", cursor_info);
+        free(cursor_info);
     }
 
     return CXChildVisit_Continue;
