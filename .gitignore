@@ -272,3 +272,5 @@ PyC.vcxproj.user
 run.sh
 premake5.lua
 .clangd/
+.idea/
+cmake-build-debug/
